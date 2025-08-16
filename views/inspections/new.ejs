@@ -65,17 +65,15 @@
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h2 class="h5 mb-0">Tyres</h2>
           </div>
-          <p class="section-help mb-3">Enter tread depths (mm), PSI, brand, DOT last-4 (WWYY), notes, and status. Use “Apply this tyre to all” to speed things up.</p>
+          <p class="section-help mb-3">Enter size, tread depths (mm), PSI, brand, DOT last-4 (WWYY), notes, and status. Use “Apply this tyre to all” to speed things up.</p>
 
           <% const positions = [
               { key: 'nearside.front',  label: 'Nearside • Front'  },
               { key: 'nearside.rear',   label: 'Nearside • Rear'   },
               { key: 'offside.front',   label: 'Offside • Front'   },
               { key: 'offside.rear',    label: 'Offside • Rear'    },
-              { key: 'spare',           label: 'Spare'             },
             ];
             const path = (k) => `tyres${k.split('.').map(p => `[${p}]`).join('')}`;
-            // Helper to safely read prefilled values if you pass `data` back on errors:
             const getVal = (obj, str) => {
               if (!obj) return '';
               return str.split('.').reduce((o, k) => (o && (k in o)) ? o[k] : '', obj) ?? '';
@@ -103,6 +101,7 @@
                     </div>
 
                     <div class="row g-3">
+                      <!-- Row A: tread depths -->
                       <div class="col-12">
                         <span class="fw-600">Tread depth (mm)</span>
                       </div>
@@ -131,6 +130,18 @@
                           placeholder="e.g. 6.0">
                       </div>
 
+                      <!-- Row B: size + psi + dot (6 + 3 + 3 = 12) -->
+                      <div class="col-12 col-md-6">
+                        <label class="form-label">Tyre Size</label>
+                        <input type="text" class="form-control"
+                          name="<%= path(pos.key) %>[size]"
+                          data-field="size"
+                          value="<%= pre ? (pre.size ?? '') : '' %>"
+                          placeholder="e.g. 205/55 R16 91V"
+                          pattern="\\d{3}\\/\\d{2}\\s*R\\d{2}(\\s*\\d{2,3}[A-Z])?"
+                          title="Format like 205/55 R16 91V">
+                        <div class="form-text">Width/Aspect Rim (Load+Speed optional)</div>
+                      </div>
                       <div class="col-6 col-md-3">
                         <label class="form-label">PSI</label>
                         <input type="number" min="0" step="0.1" class="form-control"
@@ -139,15 +150,7 @@
                           value="<%= pre ? (pre.psi ?? '') : '' %>"
                           placeholder="e.g. 32">
                       </div>
-                      <div class="col-12 col-md-5">
-                        <label class="form-label">Brand</label>
-                        <input type="text" class="form-control"
-                          name="<%= path(pos.key) %>[brand]"
-                          data-field="brand"
-                          value="<%= pre ? (pre.brand ?? '') : '' %>"
-                          placeholder="e.g. MICHELIN CROSSCLIMATE">
-                      </div>
-                      <div class="col-6 col-md-4">
+                      <div class="col-6 col-md-3">
                         <label class="form-label">DOT (WWYY)</label>
                         <input type="text" class="form-control"
                           name="<%= path(pos.key) %>[dot]"
@@ -159,13 +162,14 @@
                         <div class="form-text">Last 4 digits only (week + year).</div>
                       </div>
 
+                      <!-- Row C: brand + status (8 + 4 = 12) -->
                       <div class="col-12 col-md-8">
-                        <label class="form-label">Tyre Notes</label>
+                        <label class="form-label">Brand</label>
                         <input type="text" class="form-control"
-                          name="<%= path(pos.key) %>[notes]"
-                          data-field="notes"
-                          value="<%= pre ? (pre.notes ?? '') : '' %>"
-                          placeholder="e.g. Bald on edges">
+                          name="<%= path(pos.key) %>[brand]"
+                          data-field="brand"
+                          value="<%= pre ? (pre.brand ?? '') : '' %>"
+                          placeholder="e.g. MICHELIN CROSSCLIMATE">
                       </div>
                       <div class="col-12 col-md-4">
                         <label class="form-label">Status</label>
@@ -177,6 +181,16 @@
                           <option value="Warning"<%= pre && pre.status === 'Warning' ? 'selected' : '' %>>Warning</option>
                           <option value="Bad"    <%= pre && pre.status === 'Bad' ? 'selected' : '' %>>Bad</option>
                         </select>
+                      </div>
+
+                      <!-- Row D: notes (full width) -->
+                      <div class="col-12">
+                        <label class="form-label">Tyre Notes</label>
+                        <input type="text" class="form-control"
+                          name="<%= path(pos.key) %>[notes]"
+                          data-field="notes"
+                          value="<%= pre ? (pre.notes ?? '') : '' %>"
+                          placeholder="e.g. Bald on edges">
                       </div>
                     </div> <!-- /row -->
                   </div>
@@ -204,7 +218,6 @@
       const srcMap = {};
       sourceCard.querySelectorAll('[data-field]').forEach(el => {
         const key = el.getAttribute('data-field');
-        // For checkboxes/radios we'd use checked; here it's input/select/textarea
         srcMap[key] = el.value;
       });
 
@@ -214,11 +227,8 @@
           const key = tgt.getAttribute('data-field');
           if (key in srcMap) {
             tgt.value = srcMap[key];
-            // Trigger change event if any client-side validation depends on it
-            const evt = new Event('input', { bubbles: true });
-            tgt.dispatchEvent(evt);
-            const evt2 = new Event('change', { bubbles: true });
-            tgt.dispatchEvent(evt2);
+            tgt.dispatchEvent(new Event('input', { bubbles: true }));
+            tgt.dispatchEvent(new Event('change', { bubbles: true }));
           }
         });
       });
@@ -232,14 +242,10 @@
       if (!card) return;
       copyTyreValues(card);
 
-      // Nice little visual confirmation (non-blocking)
       btn.disabled = true;
       const old = btn.textContent;
       btn.textContent = 'Applied!';
-      setTimeout(() => {
-        btn.disabled = false;
-        btn.textContent = old;
-      }, 900);
+      setTimeout(() => { btn.disabled = false; btn.textContent = old; }, 900);
     });
   </script>
 </body>

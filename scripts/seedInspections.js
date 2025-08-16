@@ -28,6 +28,16 @@ const brands = [
   "Dunlop Sport"
 ];
 
+const sizes = [
+  "205/55 R16 91V",
+  "225/45 R17 94W",
+  "195/65 R15 91H",
+  "215/55 R18 99V",
+  "235/40 R18 95Y",
+  "245/45 R19 102W",
+  "265/35 R19 98Y",
+];
+
 const statuses = ["Good", "Warning", "Bad"];
 
 // random int inclusive
@@ -45,20 +55,13 @@ function maybe(probTrue = 0.5) {
   return Math.random() < probTrue;
 }
 
-function makeTyre({ allowEmpty = true } = {}) {
-  // 35% chance to leave a tyre completely empty (to test your "no data" UI)
-  if (allowEmpty && maybe(0.35)) return undefined;
-
-  const tdInner = rf1(5, 8);
-  const tdMiddle = Math.max(0, tdInner - rf1(0, 1));
-  const tdOuter = Math.max(0, tdMiddle - rf1(0, 1));
-
+function makeTyre() {
+  const inner = rf1(5, 8);
+  const middle = Math.max(0, inner - rf1(0, 1));
+  const outer = Math.max(0, middle - rf1(0, 1));
   return {
-    treadDepth: {
-      inner: tdInner,
-      middle: tdMiddle,
-      outer: tdOuter,
-    },
+    size: sizes[ri(0, sizes.length - 1)], // NEW
+    treadDepth: { inner, middle, outer },
     psi: rf1(28, 36),
     brand: brands[ri(0, brands.length - 1)],
     dot: randomDOT(),
@@ -66,6 +69,7 @@ function makeTyre({ allowEmpty = true } = {}) {
     status: statuses[ri(0, statuses.length - 1)],
   };
 }
+
 
 function randomVRM() {
   // Simple UK-ish plate mock: AB12 CDE
@@ -77,21 +81,16 @@ function randomVRM() {
 function makeInspection() {
   return {
     vrm: randomVRM(),
-    mileage: `${ri(10_000, 120_000)}`,
+    mileage: `${ri(10000, 120000)}`,
     notes: maybe(0.4) ? "Customer reported vibration at 60mph." : "",
     tyres: {
-      nearside: {
-        front: makeTyre(),
-        rear: makeTyre(),
-      },
-      offside: {
-        front: makeTyre(),
-        rear: makeTyre(),
-      },
-      spare: makeTyre({ allowEmpty: true }),
+      nearside: { front: makeTyre(), rear: makeTyre() },
+      offside:  { front: makeTyre(), rear: makeTyre() },
+      // REMOVED: spare
     },
   };
 }
+
 
 // ---- Main ----
 async function main() {
