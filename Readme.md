@@ -1,0 +1,3 @@
+I want to create an application whereby any user can go onto the site, create a tyre inspection and then, upon completion, receive a code that can be used to view the tyre inspection data. No account / authentication required. Simply create an inspection, get the code, and share it with the customer.
+
+I want it to be to the standard of ITMS, whereby you can record dot codes, tyre brands, tread patterns, notes, and tread depths at 3 different points on the vehicle.

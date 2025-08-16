@@ -1,0 +1,21 @@
+{
+  "name": "tyre-inspector",
+  "version": "1.0.0",
+  "description": "I want to create an application whereby any user can go onto the site, create a tyre inspection and then, upon completion, receive a code that can be used to view the tyre inspection data. No account / authentication required. Simply create an inspection, get the code, and share it with the customer.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server.js",
+    "dev": "node --watch --env-file=.env server.js",
+    "seed": "node --env-file=.env scripts/seedInspections.js --count=20 --purge"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.1",
+    "mongoose": "^8.17.1"
+  }
+}
