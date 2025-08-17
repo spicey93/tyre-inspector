@@ -6,248 +6,246 @@
   <title>New Inspection</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <style>
-    :root{
-      --muted:#6c757d; --accent:#0d6efd;
-      --ok:#198754; --ok-bg:#e6f4ea;
-      --adv:#ffc107; --adv-bg:#fff3cd;
-      --fail:#dc3545; --fail-bg:#f8d7da;
-      --neutral:#adb5bd; --neutral-bg:#ffffff;
-      --active-ring: rgba(102,163,255,.25);
-    }
+    :root{ --muted:#6c757d; --ring:rgba(102,163,255,.25); --ok:#198754; --okbg:#e6f4ea; }
     .muted{ color:var(--muted); }
     .hidden{ display:none !important; }
 
-    /* CAR DIAGRAM — extra small on phones, scales up on larger screens */
-    .car-wrap{
-      position:relative;
-      max-width:220px;        /* phones */
-      margin-inline:auto;
-    }
-    @media (min-width: 576px){ .car-wrap{ max-width:280px; } }   /* small tablets */
-    @media (min-width: 992px){ .car-wrap{ max-width:360px; } }   /* desktops */
-
+    /* Smaller car */
+    .car-wrap{ position:relative; max-width:200px; margin-inline:auto; }
+    @media (min-width:576px){ .car-wrap{ max-width:220px; } }
+    @media (min-width:992px){ .car-wrap{ max-width:260px; } }
     .car-svg{ width:100%; height:auto; display:block; }
 
     .wheel-hotspot{
-      position:absolute;
-      width:20%;
-      aspect-ratio:1/1;
-      border-radius:50%;
-      transform: translate(-50%,-50%);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer;
-
-      border:2px solid var(--neutral);       /* fixed width => no jump */
-      background:var(--neutral-bg);
-      box-shadow:none;                        /* active ring only via shadow */
-      transition: box-shadow .15s, background-color .15s, border-color .15s, color .15s, filter .15s, opacity .15s;
+      position:absolute; width:22%; aspect-ratio:1/1; border-radius:50%;
+      transform:translate(-50%,-50%);
+      border:2px solid #adb5bd; background:#fff;
+      display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem;
+      transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s;
+      cursor:pointer; user-select:none;
     }
-    .wheel-hotspot span{ font-weight:700; font-size:.8rem; color:#495057; }
-    .wheel-hotspot.active{ box-shadow:0 0 0 .45rem var(--active-ring) inset; }
+    .wheel-hotspot.active{ box-shadow:0 0 0 .45rem var(--ring) inset; }
+    .wheel-hotspot.completed{ border-color:var(--ok); background:var(--okbg); }
 
-    /* Status colours when COMPLETE */
-    .wheel-hotspot.cond-ok    { border-color:var(--ok);   background:var(--ok-bg); }
-    .wheel-hotspot.cond-adv   { border-color:var(--adv);  background:var(--adv-bg); }
-    .wheel-hotspot.cond-fail  { border-color:var(--fail); background:var(--fail-bg); }
+    /* Tread depth quick selects */
+    .tread-row .form-select{ text-align:center; }
 
-    /* Incomplete look: faded + grayscale */
-    .wheel-hotspot.incomplete{
-      opacity:.55;
-      filter: grayscale(0.6);
-    }
+    /* Tag chips */
+    .chip{ border:1px solid #ced4da; border-radius:20px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
+    .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
 
-    /* FORM TWEAKS */
-    .tread-row .input-group-text{ min-width:3.25rem; justify-content:center; }
-    .tread-row .form-control{ text-align:center; }
-    .btn-ghost{ background:transparent; border:1px dashed #ced4da; }
-
-    /* layout: stack on mobile, side-by-side on large screens */
-    @media (min-width: 992px){
-      .layout { display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; align-items:start; }
-    }
+    .panel-footer-actions{ display:flex; gap:.5rem; justify-content:space-between; flex-wrap:wrap; }
   </style>
 </head>
 <body class="container py-3">
+  <a href="/" class="btn btn-sm btn-outline-secondary mb-2">← Home</a>
 
-  <div class="mb-3">
-    <a href="/" class="btn btn-sm btn-outline-secondary">← Home</a>
-  </div>
-
-  <!-- Vehicle summary -->
-  <header class="mb-3">
+  <header class="mb-2">
     <div class="d-flex justify-content-between align-items-center">
-      <h1 class="h4 mb-0">New Inspection</h1>
+      <h1 class="h5 mb-0">New Inspection</h1>
       <span class="badge text-bg-light"><%= vehicle.vrm %></span>
     </div>
-    <div class="muted mt-1">
+    <div class="muted small mt-1">
       <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
       <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
     </div>
-    <% if (vehicle.tyreRecords?.length) { %>
-      <div class="mt-1 small text-muted">
-        Last pressures: F <%= defaults.pressures.front %> psi • R <%= defaults.pressures.rear %> psi
-      </div>
-    <% } %>
   </header>
 
   <form method="POST" action="/inspections" id="inspection-form">
     <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
 
-    <div class="layout">
-      <!-- Birds-eye car with wheel hotspots -->
-      <section>
-        <div class="card">
-          <div class="card-header fw-bold">Select a wheel</div>
-          <div class="card-body">
-            <div class="car-wrap">
-              <!-- Simple top-down sedan SVG -->
-              <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <!-- body -->
-                <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
-                <!-- bonnet + boot accents -->
-                <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-                <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-                <!-- glass -->
-                <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-                <!-- doors seam -->
-                <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
-              </svg>
+    <!-- mileage -->
+    <div class="mb-3">
+      <label class="form-label">Mileage</label>
+      <input type="number" step="1" name="mileage" class="form-control" inputmode="numeric" placeholder="e.g. 45678" />
+    </div>
 
-              <!-- Wheel hotspots (percentage positions for responsive scaling) -->
-              <button type="button" class="wheel-hotspot active" data-tyre="osf" style="left:86%; top:19%;"><span>OSF</span></button>
-              <button type="button" class="wheel-hotspot" data-tyre="nsf" style="left:14%; top:19%;"><span>NSF</span></button>
-              <button type="button" class="wheel-hotspot" data-tyre="osr" style="left:86%; top:81%;"><span>OSR</span></button>
-              <button type="button" class="wheel-hotspot" data-tyre="nsr" style="left:14%; top:81%;"><span>NSR</span></button>
+    <!-- PICK SCREEN -->
+    <section id="pick-screen">
+      <div class="card">
+        <div class="card-header fw-bold">Select a wheel to enter details</div>
+        <div class="card-body">
+          <div class="car-wrap">
+            <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
+              <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
+              <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
+              <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
+              <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
+            </svg>
+
+            <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
+            <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
+            <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
+            <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
+          </div>
+          <div class="small text-muted mt-2">Sizes are blank unless provided in the URL. Use “Copy to all” to speed up size/pressure/brand/model.</div>
+        </div>
+      </div>
+    </section>
+
+    <% const panels = [
+      {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize, pDefault: defaults.pressures.front},
+      {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize, pDefault: defaults.pressures.front},
+      {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize,  pDefault: defaults.pressures.rear},
+      {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize,  pDefault: defaults.pressures.rear},
+    ];
+
+    // Tread depth options (8 → 2 in 0.5 steps, plus 1.6)
+    const TREADS = [];
+    for (let v = 8.0; v >= 2.0; v -= 0.5) TREADS.push(v.toFixed(v % 1 ? 1 : 0));
+    TREADS.push("1.6");
+
+    const QUICK_TAGS = [
+      "Bald on inner edge",
+      "Bald on outer edge",
+      "Perished",
+      "Bulge",
+      "Puncture",
+      "Uneven wear",
+      "Cracked sidewall",
+      "Cord exposed"
+    ];
+    %>
+
+    <% function panelMarkup(p){ %>
+      <section id="panel-<%= p.key %>" class="hidden">
+        <div class="card mb-3">
+          <div class="card-body">
+            <h2 class="h6 mb-3"><%= p.title %></h2>
+            <div class="row g-3">
+
+              <!-- Size / Pressure -->
+              <div class="col-12">
+                <label class="form-label">Size</label>
+                <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
+                  class="form-control tyre-field" data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
+              </div>
+              <div class="col-6">
+                <label class="form-label">Pressure (psi)</label>
+                <input name="<%= p.key==='osf'?'offside.front.pressure': p.key==='nsf'?'nearside.front.pressure': p.key==='osr'?'offside.rear.pressure':'nearside.rear.pressure' %>"
+                  type="number" inputmode="decimal" step="0.1" class="form-control tyre-field" data-tyre-key="<%= p.key %>" value="<%= p.pDefault %>"/>
+              </div>
+              <div class="col-6">
+                <label class="form-label">DOT (WWYY in code)</label>
+                <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
+                  class="form-control tyre-field" data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
+              </div>
+
+              <!-- Brand / Model dropdowns (no manual entry) -->
+              <div class="col-6">
+                <label class="form-label">Brand</label>
+                <select class="form-select tyre-field brand-select" data-tyre-key="<%= p.key %>"
+                        name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>">
+                  <option value="">Select brand</option>
+                  <% for (const b of brandOptions) { %>
+                    <option value="<%= b %>"><%= b %></option>
+                  <% } %>
+                </select>
+              </div>
+
+              <div class="col-6">
+                <label class="form-label">Model</label>
+                <select class="form-select tyre-field model-select"
+                        data-tyre-key="<%= p.key %>"
+                        name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
+                  <option value="">Select model</option>
+                </select>
+              </div>
+
+              <!-- Condition -->
+              <div class="col-12">
+                <label class="form-label">Condition</label>
+                <select name="<%= p.key==='osf'?'offside.front.condition': p.key==='nsf'?'nearside.front.condition': p.key==='osr'?'offside.rear.condition':'nearside.rear.condition' %>"
+                        class="form-select tyre-field" data-tyre-key="<%= p.key %>">
+                  <option value="ok" selected>OK</option>
+                  <option value="advisory">Advisory</option>
+                  <option value="fail">Fail</option>
+                </select>
+              </div>
+
+              <!-- Tread depth (quick selects) -->
+              <div class="col-12">
+                <label class="form-label">Tread depth (mm)</label>
+                <div class="row g-2 tread-row">
+                  <div class="col-4">
+                    <select class="form-select tyre-field" data-tyre-key="<%= p.key %>"
+                            name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
+                      <option value="">Inner</option>
+                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <select class="form-select tyre-field" data-tyre-key="<%= p.key %>"
+                            name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
+                      <option value="">Middle</option>
+                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                    </select>
+                  </div>
+                  <div class="col-4">
+                    <select class="form-select tyre-field" data-tyre-key="<%= p.key %>"
+                            name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
+                      <option value="">Outer</option>
+                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick tags -->
+              <div class="col-12">
+                <label class="form-label">Tags</label><br/>
+                <div class="d-flex flex-wrap gap-2">
+                  <% for (const tag of QUICK_TAGS) { 
+                       const id = `${p.key}-tag-${tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}`; %>
+                    <label class="chip" for="<%= id %>">
+                      <input id="<%= id %>" type="checkbox" class="form-check-input me-1 d-none tag-input"
+                             name="<%= p.key==='osf'?'offside.front.tags': p.key==='nsf'?'nearside.front.tags': p.key==='osr'?'offside.rear.tags':'nearside.rear.tags' %>"
+                             value="<%= tag %>"/>
+                      <span><%= tag %></span>
+                    </label>
+                  <% } %>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div class="col-12">
+                <label class="form-label">Notes</label>
+                <textarea name="<%= p.key==='osf'?'offside.front.notes': p.key==='nsf'?'nearside.front.notes': p.key==='osr'?'offside.rear.notes':'nearside.rear.notes' %>"
+                  rows="2" class="form-control tyre-field" data-tyre-key="<%= p.key %>" placeholder="Damage, age cracks, nails, uneven wear…"></textarea>
+              </div>
             </div>
 
-            <div class="small text-muted mt-2">Tip: tap a wheel to edit that tyre. Wheels are faded until all fields are complete.</div>
+            <!-- Panel footer actions -->
+            <div class="panel-footer-actions mt-3">
+              <button type="button" class="btn btn-outline-secondary" data-back>Back to car</button>
+              <button type="button" class="btn btn-primary" data-save-back="<%= p.key %>">Save <%= p.key.toUpperCase() %></button>
+              <button type="button" class="btn btn-sm btn-outline-primary ms-auto" data-copy-all="<%= p.key %>">Copy to all (core fields)</button>
+            </div>
           </div>
         </div>
       </section>
+    <% } %>
 
-      <!-- Dynamic fields area -->
-      <section>
-        <% const panels = [
-          {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize, pDefault: defaults.pressures.front},
-          {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize, pDefault: defaults.pressures.front},
-          {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize,  pDefault: defaults.pressures.rear},
-          {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize,  pDefault: defaults.pressures.rear},
-        ]; %>
+    <% for (const p of panels) { %>
+      <%- panelMarkup(p) %>
+    <% } %>
 
-        <% function panelMarkup(p){ %>
-          <section id="panel-<%= p.key %>" class="tyre-panel <%= p.key==='osf' ? '' : 'hidden' %>">
-            <div class="card mb-3">
-              <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                <span class="fw-bold"><%= p.title %></span>
-                <div>
-                  <button type="button" class="btn btn-sm btn-outline-primary" data-copy-all="<%= p.key %>">Copy to all</button>
-                </div>
-              </div>
-              <div class="card-body">
-                <div class="row g-3">
-                  <div class="col-12">
-                    <label class="form-label">Size</label>
-                    <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>" class="form-control tyre-field" data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label">Pressure (psi)</label>
-                    <input name="<%= p.key==='osf'?'offside.front.pressure': p.key==='nsf'?'nearside.front.pressure': p.key==='osr'?'offside.rear.pressure':'nearside.rear.pressure' %>" type="number" inputmode="decimal" step="0.1" class="form-control tyre-field" data-tyre-key="<%= p.key %>" value="<%= p.pDefault %>"/>
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label">DOT (WWYY in code)</label>
-                    <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>" class="form-control tyre-field" data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
-                  </div>
-
-                  <div class="col-6">
-                    <label class="form-label">Brand</label>
-                    <input name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>" class="form-control brand-input tyre-field" data-tyre-key="<%= p.key %>" list="brand-list" autocomplete="off" data-model-list="models-<%= p.key %>" />
-                  </div>
-                  <div class="col-6">
-                    <label class="form-label">Model</label>
-                    <input name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>" class="form-control model-input tyre-field" data-tyre-key="<%= p.key %>" list="models-<%= p.key %>" autocomplete="off" />
-                    <datalist id="models-<%= p.key %>"></datalist>
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label">Condition</label>
-                    <select name="<%= p.key==='osf'?'offside.front.condition': p.key==='nsf'?'nearside.front.condition': p.key==='osr'?'offside.rear.condition':'nearside.rear.condition' %>" class="form-select tyre-field condition-field" data-tyre-key="<%= p.key %>">
-                      <option value="">—</option>
-                      <option value="ok" selected>OK</option>
-                      <option value="advisory">Advisory</option>
-                      <option value="fail">Fail</option>
-                    </select>
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label">Tread depth (mm)</label>
-                    <div class="row tread-row">
-                      <div class="col-4">
-                        <div class="input-group">
-                          <span class="input-group-text">In</span>
-                          <input name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>" type="number" inputmode="decimal" step="0.1" class="form-control tyre-field" data-tyre-key="<%= p.key %>" />
-                        </div>
-                      </div>
-                      <div class="col-4">
-                        <div class="input-group">
-                          <span class="input-group-text">Mid</span>
-                          <input name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>" type="number" inputmode="decimal" step="0.1" class="form-control tyre-field" data-tyre-key="<%= p.key %>" />
-                        </div>
-                      </div>
-                      <div class="col-4">
-                        <div class="input-group">
-                          <span class="input-group-text">Out</span>
-                          <input name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>" type="number" inputmode="decimal" step="0.1" class="form-control tyre-field" data-tyre-key="<%= p.key %>" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-12">
-                    <label class="form-label">Notes</label>
-                    <textarea name="<%= p.key==='osf'?'offside.front.notes': p.key==='nsf'?'nearside.front.notes': p.key==='osr'?'offside.rear.notes':'nearside.rear.notes' %>" rows="2" class="form-control tyre-field" data-tyre-key="<%= p.key %>" placeholder="Damage, age cracks, nails, uneven wear…"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        <% } %>
-
-        <% for (const p of panels) { %>
-          <%- panelMarkup(p) %>
-        <% } %>
-
-        <!-- General notes + Save -->
-        <div class="mb-3">
-          <label class="form-label">General notes</label>
-          <textarea name="notes" class="form-control" rows="3" placeholder="Overall findings, advisories, etc."></textarea>
-        </div>
-        <div class="mb-5">
-          <button class="btn btn-primary w-100">Save inspection</button>
-        </div>
-      </section>
+    <!-- Appears only when all four tyres complete -->
+    <div class="mb-3 hidden" id="notes-block">
+      <label class="form-label">General notes</label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Overall findings, advisories, etc."></textarea>
     </div>
 
-    <!-- global brand list (manual entry allowed) -->
-    <datalist id="brand-list">
-      <% for (const b of brandOptions) { %>
-        <option value="<%= b %>"></option>
-      <% } %>
-    </datalist>
+    <div class="mb-5 hidden" id="save-block">
+      <button class="btn btn-success w-100">Save inspection</button>
+    </div>
   </form>
 
   <script>
-    // ---- wheel selection -> show one panel ----
-    const hotspots = document.querySelectorAll('.wheel-hotspot');
-    const panels = document.querySelectorAll('.tyre-panel');
-    function selectTyre(key){
-      panels.forEach(p => p.classList.add('hidden'));
-      document.getElementById('panel-' + key).classList.remove('hidden');
-      hotspots.forEach(h => h.classList.toggle('active', h.dataset.tyre === key));
-      document.getElementById('panel-' + key).scrollIntoView({ behavior:'smooth', block:'start' });
-    }
-    hotspots.forEach(h => h.addEventListener('click', () => selectTyre(h.dataset.tyre)));
+    const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
 
-    // ---- brand -> models (per-tyre) ----
+    // brand -> models
     async function fetchModels(brand) {
       if (!brand) return [];
       try {
@@ -255,147 +253,169 @@
         return await res.json();
       } catch { return []; }
     }
-    document.querySelectorAll('.brand-input').forEach(input => {
-      input.addEventListener('input', async e => {
-        const brand = e.target.value.trim();
-        const listId = e.target.getAttribute('data-model-list');
-        const dl = document.getElementById(listId);
-        const modelInput = e.target.closest('.row').querySelector(`.model-input[list="${listId}"]`);
-        if (!dl) return;
-        dl.innerHTML = '';
-        if (modelInput) modelInput.value = '';
-        const models = await fetchModels(brand);
+
+    // Populate models when a brand changes
+    document.addEventListener('change', async (e) => {
+      if (!e.target.classList.contains('brand-select')) return;
+      const sel = e.target;
+      const key = sel.getAttribute('data-tyre-key');
+      const modelSel = document.querySelector(`#panel-${key} .model-select`);
+      modelSel.innerHTML = `<option value="">Select model</option>`;
+      if (sel.value) {
+        const models = await fetchModels(sel.value);
         for (const m of models) {
-          const opt = document.createElement('option');
-          opt.value = m; dl.appendChild(opt);
+          const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
+          modelSel.appendChild(opt);
         }
-      });
-    });
-
-    // ---- copy to all ----
-    const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
-    function readTyre(path){
-      const q = (name, sel='input') => document.querySelector(`${sel}[name="${path}.${name}"]`);
-      return {
-        size: q('size')?.value ?? '',
-        pressure: q('pressure')?.value ?? '',
-        dot: q('dot')?.value ?? '',
-        brand: q('brand')?.value ?? '',
-        model: q('model')?.value ?? '',
-        condition: document.querySelector(`select[name="${path}.condition"]`)?.value ?? '',
-        tdIn: q('treadDepth.inner')?.value ?? '',
-        tdMid: q('treadDepth.middle')?.value ?? '',
-        tdOut: q('treadDepth.outer')?.value ?? '',
-        notes: q('notes', 'textarea')?.value ?? '',
-      };
-    }
-    function writeTyre(path, d){
-      const set = (name, val, sel='input') => {
-        const el = document.querySelector(`${sel}[name="${path}.${name}"]`);
-        if (el != null) el.value = val;
-      };
-      set('size', d.size);
-      set('pressure', d.pressure);
-      set('dot', d.dot);
-      set('brand', d.brand);
-      set('model', d.model);
-      const sel = document.querySelector(`select[name="${path}.condition"]`);
-      if (sel) sel.value = d.condition || '';
-      set('treadDepth.inner', d.tdIn);
-      set('treadDepth.middle', d.tdMid);
-      set('treadDepth.outer', d.tdOut);
-      set('notes', d.notes, 'textarea');
-      const key = Object.keys(PATHS).find(k => PATHS[k] === path);
-      if (key) updateWheelAppearance(key);
-    }
-    document.querySelectorAll('[data-copy-all]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const fromKey = btn.getAttribute('data-copy-all');
-        const snapshot = readTyre(PATHS[fromKey]);
-        Object.keys(PATHS).forEach(k => { if (k !== fromKey) writeTyre(PATHS[k], snapshot); });
-      });
-    });
-
-    // ---- appearance logic ----
-    function isNumber(v){ return v !== "" && !isNaN(Number(v)); }
-    function filled(v){ return v != null && String(v).trim() !== ""; }
-
-    function requiredFilled(key){
-      const base = PATHS[key];
-      const g = name => document.querySelector(`[name="${base}.${name}"]`);
-      const size = g('size')?.value ?? "";
-      const pressure = g('pressure')?.value ?? "";
-      const brand = g('brand')?.value ?? "";
-      const model = g('model')?.value ?? "";
-      const tdi = g('treadDepth.inner')?.value ?? "";
-      const tdm = g('treadDepth.middle')?.value ?? "";
-      const tdo = g('treadDepth.outer')?.value ?? "";
-      // We treat DOT and notes as optional. Condition is used for colour if set.
-      return filled(size) && isNumber(pressure) && filled(brand) && filled(model)
-             && isNumber(tdi) && isNumber(tdm) && isNumber(tdo);
-    }
-
-    function treadColourFromDepths(key){
-      const base = PATHS[key];
-      const g = name => Number(document.querySelector(`[name="${base}.${name}"]`)?.value ?? NaN);
-      const vals = [g('treadDepth.inner'), g('treadDepth.middle'), g('treadDepth.outer')];
-      if (vals.some(v => isNaN(v))) return null;
-      if (vals.some(v => v < 3)) return 'cond-fail';
-      if (vals.some(v => v < 4)) return 'cond-adv';
-      return 'cond-ok';
-    }
-
-    function conditionToClass(val){
-      const v = (val || '').toLowerCase();
-      if (v === 'fail') return 'cond-fail';
-      if (v === 'advisory') return 'cond-adv';
-      if (v === 'ok') return 'cond-ok';
-      return null;
-    }
-
-    function updateWheelAppearance(key){
-      const hs = document.querySelector(`.wheel-hotspot[data-tyre="${key}"]`);
-      if (!hs) return;
-
-      // reset classes
-      hs.classList.remove('cond-ok','cond-adv','cond-fail','incomplete');
-
-      const complete = requiredFilled(key);
-      if (!complete){
-        hs.classList.add('incomplete'); // faded/grey
-        return;
       }
+    });
 
-      // complete: choose colour by condition else tread-depths
-      const condSel = document.querySelector(`select[name="${PATHS[key]}.condition"]`);
-      const condClass = conditionToClass(condSel?.value);
-      const cls = condClass || treadColourFromDepths(key);
+    // Tag chips toggle
+    document.querySelectorAll('.chip').forEach(ch => {
+      ch.addEventListener('click', (e) => {
+        const input = ch.querySelector('.tag-input');
+        if (!input) return;
+        input.checked = !input.checked;
+        ch.classList.toggle('active', input.checked);
+        e.preventDefault();
+      });
+    });
 
-      if (cls) hs.classList.add(cls);
+    const pickScreen = document.getElementById('pick-screen');
+    const notesBlock = document.getElementById('notes-block');
+    const saveBlock = document.getElementById('save-block');
+
+    // go to panel
+    document.querySelectorAll('.wheel-hotspot').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.key;
+        pickScreen.classList.add('hidden');
+        document.getElementById('panel-'+key).classList.remove('hidden');
+        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
+        btn.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // back to car
+    document.querySelectorAll('[data-back]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
+        pickScreen.classList.remove('hidden');
+        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // completion rules (brand & model must be selected, not blank)
+    function isNum(v){ return v !== "" && !isNaN(Number(v)); }
+    function filled(v){ return v != null && String(v).trim() !== ""; }
+    function tyreComplete(path){
+      const g = (n)=>document.querySelector(`[name="${path}.${n}"]`)?.value ?? "";
+      return filled(g('size')) && isNum(g('pressure'))
+          && filled(g('brand')) && filled(g('model'))
+          && isNum(g('treadDepth.inner')) && isNum(g('treadDepth.middle')) && isNum(g('treadDepth.outer'));
     }
 
-    // Recompute on any relevant input
+    function markWheel(key){
+      const hotspot = document.querySelector(`.wheel-hotspot[data-key="${key}"]`);
+      if (!hotspot) return;
+      if (tyreComplete(PATHS[key])) hotspot.classList.add('completed');
+      else hotspot.classList.remove('completed');
+    }
+
+    function updateSaveVisibility(){
+      const allDone = Object.values(PATHS).every(tyreComplete);
+      notesBlock.classList.toggle('hidden', !allDone);
+      saveBlock.classList.toggle('hidden', !allDone);
+    }
+
+    // track inputs
     document.querySelectorAll('.tyre-field').forEach(el => {
       el.addEventListener('input', e => {
         const key = e.target.getAttribute('data-tyre-key');
-        if (key) updateWheelAppearance(key);
+        if (key) { markWheel(key); updateSaveVisibility(); }
       });
       el.addEventListener('change', e => {
         const key = e.target.getAttribute('data-tyre-key');
-        if (key) updateWheelAppearance(key);
+        if (key) { markWheel(key); updateSaveVisibility(); }
       });
     });
 
-    // Also update when condition explicitly changes
-    document.querySelectorAll('.condition-field').forEach(sel => {
-      sel.addEventListener('change', e => {
-        const key = e.target.getAttribute('data-tyre-key');
-        if (key) updateWheelAppearance(key);
+    // Save & back to car (just mark complete + go back)
+    document.querySelectorAll('[data-save-back]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-save-back');
+        markWheel(key);
+        updateSaveVisibility();
+        document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
+        pickScreen.classList.remove('hidden');
+        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
 
-    // Initialize all wheels on load
-    ['osf','nsf','osr','nsr'].forEach(updateWheelAppearance);
+    // Copy to all — only size/pressure/brand/model
+    function readCore(path){
+      const get = (n)=>document.querySelector(`[name="${path}.${n}"]`)?.value ?? "";
+      return { size:get('size'), pressure:get('pressure'), brand:get('brand'), model:get('model') };
+    }
+    function writeCore(path, d){
+      const set = (n,v)=>{ const el=document.querySelector(`[name="${path}.${n}"]`); if (el) el.value=v; }
+      set('size', d.size);
+      set('pressure', d.pressure);
+
+      // brand (select option must exist to set)
+      const bSel = document.querySelector(`[name="${path}.brand"]`);
+      if (bSel) { bSel.value = ""; [...bSel.options].forEach(o=>{ if (o.value===d.brand) bSel.value=d.brand; }); }
+
+      // model (will be populated only after brand change; attempt immediate set if exists)
+      const mSel = document.querySelector(`[name="${path}.model"]`);
+      if (mSel) {
+        mSel.value = "";
+        [...mSel.options].forEach(o=>{ if (o.value===d.model) mSel.value=d.model; });
+      }
+    }
+    document.querySelectorAll('[data-copy-all]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const fromKey = btn.getAttribute('data-copy-all');
+        const core = readCore(PATHS[fromKey]);
+
+        // For each tyre: set brand first, then fetch and populate models, then set model
+        for (const [k,p] of Object.entries(PATHS)) {
+          if (k === fromKey) continue;
+
+          // brand
+          const bSel = document.querySelector(`[name="${p}.brand"]`);
+          const mSel = document.querySelector(`[name="${p}.model"]`);
+          if (bSel && mSel) {
+            // set size/pressure immediately
+            writeCore(p, core);
+            // populate models for this brand
+            mSel.innerHTML = `<option value="">Select model</option>`;
+            if (core.brand) {
+              const models = await fetchModels(core.brand);
+              for (const m of models) {
+                const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
+                mSel.appendChild(opt);
+              }
+              // now set model if it exists
+              mSel.value = "";
+              [...mSel.options].forEach(o=>{ if (o.value===core.model) mSel.value = core.model; });
+            }
+          }
+        }
+
+        // refresh completion status
+        Object.keys(PATHS).forEach(markWheel);
+        updateSaveVisibility();
+      });
+    });
+
+    // init visibility
+    Object.keys(PATHS).forEach(markWheel);
+    updateSaveVisibility();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>

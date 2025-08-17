@@ -3,65 +3,9 @@ import Vehicle from "../models/vehicle.model.js";
 import Tyre from "../models/tyre.model.js";
 import Inspection from "../models/inspection.model.js";
 
-/* ---------- helpers ---------- */
 const toNum = (v) => (v === "" || v == null ? undefined : Number(v));
+const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
 
-const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1
-const randomCode = (len = 6) =>
-  Array.from({ length: len }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-
-async function generateUniqueCode() {
-  // If the model has the static, prefer that.
-  if (typeof Inspection.generateUniqueCode === "function") {
-    return Inspection.generateUniqueCode();
-  }
-  // Fallback: do it here without nanoid
-  for (let i = 0; i < 5; i++) {
-    const code = randomCode(6);
-    const exists = await Inspection.exists({ code });
-    if (!exists) return code;
-  }
-  throw new Error("Could not generate unique code");
-}
-
-function buildInspectionPayload(body) {
-  return {
-    vrm: body.vrm?.toUpperCase(),
-    mileage: toNum(body.mileage),
-    notes: body.notes,
-
-    offside: {
-      front: {
-        size: body["offside.front.size"]?.trim(),
-        pressure: toNum(body["offside.front.pressure"]),
-        brand: body["offside.front.brand"]?.trim(),
-        model: body["offside.front.model"]?.trim(),
-      },
-      rear: {
-        size: body["offside.rear.size"]?.trim(),
-        pressure: toNum(body["offside.rear.pressure"]),
-        brand: body["offside.rear.brand"]?.trim(),
-        model: body["offside.rear.model"]?.trim(),
-      },
-    },
-    nearside: {
-      front: {
-        size: body["nearside.front.size"]?.trim(),
-        pressure: toNum(body["nearside.front.pressure"]),
-        brand: body["nearside.front.brand"]?.trim(),
-        model: body["nearside.front.model"]?.trim(),
-      },
-      rear: {
-        size: body["nearside.rear.size"]?.trim(),
-        pressure: toNum(body["nearside.rear.pressure"]),
-        brand: body["nearside.rear.brand"]?.trim(),
-        model: body["nearside.rear.model"]?.trim(),
-      },
-    },
-  };
-}
-
-/* ---------- GET /inspections/new ---------- */
 export const newInspection = async (req, res) => {
   try {
     const { vrm, tyreSize } = req.query;
@@ -71,12 +15,16 @@ export const newInspection = async (req, res) => {
     if (!vehicle) return res.status(404).send("Vehicle not found");
 
     const last = vehicle.tyreRecords?.[vehicle.tyreRecords.length - 1];
-    let frontSize = last?.front?.size || "";
-    let rearSize = last?.rear?.size || frontSize || "";
 
+    // If no tyreSize provided, keep blank; otherwise parse as before
+    let frontSize = "";
+    let rearSize = "";
     if (tyreSize && tyreSize !== "__none__") {
       const decoded = decodeURIComponent(tyreSize);
-      const parts = decoded.split("|").map((s) => s.trim()).filter(Boolean);
+      const parts = decoded
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (parts.length === 1) {
         frontSize = parts[0];
         rearSize = parts[0];
@@ -86,7 +34,8 @@ export const newInspection = async (req, res) => {
     }
 
     const pressures = {
-      front: typeof last?.front?.pressure === "number" ? last.front.pressure : "",
+      front:
+        typeof last?.front?.pressure === "number" ? last.front.pressure : "",
       rear: typeof last?.rear?.pressure === "number" ? last.rear.pressure : "",
     };
 
@@ -104,8 +53,7 @@ export const newInspection = async (req, res) => {
   }
 };
 
-/* ---------- Autocomplete APIs ---------- */
-export const listBrands = async (req, res) => {
+export const listBrands = async (_req, res) => {
   const brands = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
   res.json(brands.map((b) => b.brand));
 };
@@ -113,82 +61,123 @@ export const listBrands = async (req, res) => {
 export const listModelsByBrand = async (req, res) => {
   const { brand } = req.query;
   if (!brand) return res.json([]);
-  // case-insensitive match to be friendlier
-  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const doc = await Tyre.findOne({ brand: new RegExp(`^${esc(brand)}$`, "i") }, "models").lean();
+  const doc = await Tyre.findOne({ brand }, "models").lean();
   const models = Array.isArray(doc?.models) ? [...doc.models].sort() : [];
   res.json(models);
 };
 
-/* ---------- GET /inspections?code=XXXXXX ---------- */
 export const showByCode = async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).send("Missing code");
   const norm = String(code).toUpperCase().trim();
-  if (!/^[A-Z0-9]{6}$/.test(norm)) return res.status(400).send("Invalid code format");
-
+  if (!/^[A-Z0-9]{6}$/.test(norm))
+    return res.status(400).send("Invalid code format");
   const inspection = await Inspection.findOne({ code: norm }).lean();
   if (!inspection) return res.status(404).send("Inspection not found");
-
   return res.render("inspections/show", { inspection });
 };
 
-/* ---------- POST /inspections ---------- */
-const toStr = (v) => (v == null ? undefined : String(v).trim());
-
-function readTyre(body, prefix) {
-  // prefix like "offside.front"
-  const g = (name) => body[`${prefix}.${name}`];
-
-  return {
-    size: toStr(g("size")),
-    pressure: toNum(g("pressure")),
-    dot: toStr(g("dot")),
-    brand: toStr(g("brand")),
-    model: toStr(g("model")),
-    notes: toStr(g("notes")),
-    condition: toStr(g("condition")), // "ok" | "advisory" | "fail"
-    treadDepth: {
-      inner: toNum(g("treadDepth.inner")),
-      middle: toNum(g("treadDepth.middle")),
-      outer: toNum(g("treadDepth.outer")),
-    },
-  };
-}
-
 export const createInspection = async (req, res) => {
   try {
-    const payload = {
-      code: await generateUniqueCode(), // or Inspection.generateUniqueCode()
-      vrm: toStr(req.body.vrm)?.toUpperCase(),
+    const code = await Inspection.generateUniqueCode();
+
+    const doc = await Inspection.create({
+      code,
+      vrm: req.body.vrm?.toUpperCase(),
       mileage: toNum(req.body.mileage),
-      notes: toStr(req.body.notes),
+      notes: req.body.notes,
 
       offside: {
-        front: readTyre(req.body, "offside.front"),
-        rear: readTyre(req.body, "offside.rear"),
+        front: {
+          size: req.body["offside.front.size"]?.trim(),
+          pressure: toNum(req.body["offside.front.pressure"]),
+          brand:
+            req.body["offside.front.brandValue"]?.trim() ||
+            req.body["offside.front.brand"]?.trim(), // manual fallback
+          model:
+            req.body["offside.front.modelValue"]?.trim() ||
+            req.body["offside.front.model"]?.trim(),
+          dot: req.body["offside.front.dot"]?.trim(),
+          treadDepth: {
+            inner: toNum(req.body["offside.front.treadDepth.inner"]),
+            middle: toNum(req.body["offside.front.treadDepth.middle"]),
+            outer: toNum(req.body["offside.front.treadDepth.outer"]),
+          },
+          condition: req.body["offside.front.condition"],
+          notes: req.body["offside.front.notes"],
+          tags: toArr(req.body["offside.front.tags"]),
+        },
+        rear: {
+          size: req.body["offside.rear.size"]?.trim(),
+          pressure: toNum(req.body["offside.rear.pressure"]),
+          brand:
+            req.body["offside.front.brandValue"]?.trim() ||
+            req.body["offside.front.brand"]?.trim(),
+          model:
+            req.body["offside.front.modelValue"]?.trim() ||
+            req.body["offside.front.model"]?.trim(),
+          dot: req.body["offside.rear.dot"]?.trim(),
+          treadDepth: {
+            inner: toNum(req.body["offside.rear.treadDepth.inner"]),
+            middle: toNum(req.body["offside.rear.treadDepth.middle"]),
+            outer: toNum(req.body["offside.rear.treadDepth.outer"]),
+          },
+          condition: req.body["offside.rear.condition"],
+          notes: req.body["offside.rear.notes"],
+          tags: toArr(req.body["offside.front.tags"]),
+        },
       },
       nearside: {
-        front: readTyre(req.body, "nearside.front"),
-        rear: readTyre(req.body, "nearside.rear"),
+        front: {
+          size: req.body["nearside.front.size"]?.trim(),
+          pressure: toNum(req.body["nearside.front.pressure"]),
+          brand: req.body["nearside.front.brand"]?.trim(),
+          model: req.body["nearside.front.model"]?.trim(),
+          dot: req.body["nearside.front.dot"]?.trim(),
+          treadDepth: {
+            inner: toNum(req.body["nearside.front.treadDepth.inner"]),
+            middle: toNum(req.body["nearside.front.treadDepth.middle"]),
+            outer: toNum(req.body["nearside.front.treadDepth.outer"]),
+          },
+          condition: req.body["nearside.front.condition"],
+          notes: req.body["nearside.front.notes"],
+        },
+        rear: {
+          size: req.body["nearside.rear.size"]?.trim(),
+          pressure: toNum(req.body["nearside.rear.pressure"]),
+          brand: req.body["nearside.rear.brand"]?.trim(),
+          model: req.body["nearside.rear.model"]?.trim(),
+          dot: req.body["nearside.rear.dot"]?.trim(),
+          treadDepth: {
+            inner: toNum(req.body["nearside.rear.treadDepth.inner"]),
+            middle: toNum(req.body["nearside.rear.treadDepth.middle"]),
+            outer: toNum(req.body["nearside.rear.treadDepth.outer"]),
+          },
+          condition: req.body["nearside.rear.condition"],
+          notes: req.body["nearside.rear.notes"],
+        },
       },
-    };
+    });
 
-    let doc;
-    try {
-      doc = await Inspection.create(payload);
-    } catch (e) {
-      if (e?.code === 11000 && e?.keyPattern?.code) {
-        payload.code = await generateUniqueCode();
-        doc = await Inspection.create(payload);
-      } else {
-        throw e;
+    // Instead of redirecting straight to the report, show a confirmation screen
+    // with code + copy + link (better for techs to put on work order).
+    return res.render("inspections/created", { code: doc.code, vrm: doc.vrm });
+  } catch (e) {
+    // unique code rare collision retry
+    if (e?.code === 11000 && e?.keyPattern?.code) {
+      try {
+        const code = await Inspection.generateUniqueCode();
+        req.body.vrm = req.body.vrm?.toUpperCase();
+        // simplest retry: set code and re-run creation with same payload
+        return await createInspection(
+          { ...req, body: { ...req.body, code } },
+          res
+        );
+      } catch (err) {
+        console.error(err);
       }
     }
-
-    return res.redirect(`/inspections?code=${encodeURIComponent(doc.code)}`);
-  } catch (e) {
     console.error(e);
-    res.status(500).send("Failed to save inspection");
+    return res.status(500).send("Failed to save inspection");
   }
 };

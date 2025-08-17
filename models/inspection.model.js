@@ -21,11 +21,8 @@ const TyreSubSchema = new Schema(
     model: { type: String, trim: true },
     size: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 2000 },
-    condition: {
-      type: String,
-      enum: ["ok", "advisory", "fail"],
-      default: "ok",
-    },
+    condition: { type: String, enum: ["ok", "advisory", "fail"], default: "ok" },
+    tags: [{ type: String, trim: true }], // 👈 NEW
   },
   { _id: false }
 );

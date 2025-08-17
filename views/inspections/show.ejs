@@ -13,29 +13,35 @@
       --adv:#ffc107;        /* warning */
       --fail:#dc3545;       /* danger */
       --pill:#f8f9fa;
-      --active-ring: rgba(102,163,255,.25);
+      --active-ring: rgba(13,110,253,.25);
     }
     body{ background:#fff; }
     .muted{ color:var(--muted); }
     .small-label{ font-size:.78rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
-    .code-badge{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .code-badge{
+      font-size:1.25rem;
+      font-weight:700;
+      letter-spacing:.06em;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      padding: .35rem .6rem;
+    }
     .clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
     .clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 
-    /* LAYOUT (screen) */
+    /* Screen layout: car left, detail right */
     .layout{
       display:grid; gap:1rem;
       grid-template-columns: 1fr;            /* mobile: stack */
       align-items:start;
     }
     @media (min-width: 992px){
-      .layout{ grid-template-columns: .8fr 1.2fr; } /* car left, details right */
+      .layout{ grid-template-columns: .8fr 1.2fr; }
     }
 
     /* Car diagram */
     .car-wrap{
       position:relative;
-      max-width:280px;        /* comfy on phones */
+      max-width:280px;
       margin-inline:auto;
     }
     @media (min-width: 576px){ .car-wrap{ max-width:320px; } }
@@ -61,6 +67,7 @@
     .wheel.ok    { border-color:var(--ok);   background:#e6f4ea; }
     .wheel.adv   { border-color:var(--adv);  background:#fff3cd; }
     .wheel.fail  { border-color:var(--fail); background:#f8d7da; }
+    .wheel.active{ box-shadow:0 0 0 .55rem var(--active-ring) inset; transform: translate(-50%,-50%) scale(0.985); }
 
     /* Detail panel (screen) */
     .detail-card .list-group-item{ padding:.5rem .7rem; }
@@ -70,6 +77,8 @@
     .cond-ok{ background:var(--ok); }
     .cond-adv{ background:var(--adv); }
     .cond-fail{ background:var(--fail); }
+
+    .hidden{ display:none !important; }
 
     /* PRINT */
     @media print {
@@ -81,10 +90,10 @@
       .container { max-width:none !important; width:auto !important; padding:0 !important; }
       .h4, h1, h2, h3, h4, h5 { margin: 0 0 .35rem 0; }
 
-      /* Use a compact grid that fits on 1 page */
+      /* Compact 2×2 card grid */
       .print-grid{
         display:grid; gap:8px;
-        grid-template-columns: 1fr 1fr;   /* two columns of cards */
+        grid-template-columns: 1fr 1fr;
         align-items:start;
       }
       .card, .list-group, .list-group-item { break-inside: avoid; page-break-inside: avoid; }
@@ -93,7 +102,7 @@
       .small-label{ font-size:.7rem; }
       .clamp-3{ -webkit-line-clamp:2; }
 
-      /* shrink car for print and place AFTER cards */
+      /* Small car under cards */
       .print-car{ margin-top: 6mm; display: flex; justify-content:center; }
       .print-car .car-wrap{ max-width:240px !important; }
     }
@@ -159,16 +168,20 @@
   <header class="mb-2">
     <div class="d-flex justify-content-between align-items-center">
       <h1 class="h4 mb-0">Tyre Inspection Report</h1>
-      <span class="badge text-bg-light code-badge">Code: <%= inspection.code %></span>
+      <span class="badge text-bg-light code-badge"><%= inspection.code %></span>
     </div>
     <div class="muted mt-1 d-flex flex-wrap gap-3">
       <div><strong>VRM:</strong> <%= inspection.vrm %></div>
-      <% if (created) { %><div><strong>Date:</strong> <%= created.toLocaleString() %></div><% } %>
-      <% if (typeof inspection.mileage === "number") { %><div><strong>Mileage:</strong> <%= inspection.mileage %></div><% } %>
+      <% if (typeof inspection.mileage === "number") { %>
+        <div><strong>Mileage:</strong> <%= inspection.mileage %></div>
+      <% } %>
+      <% if (created) { %>
+        <div><strong>Date:</strong> <%= created.toLocaleString() %></div>
+      <% } %>
     </div>
   </header>
 
-  <!-- SCREEN LAYOUT: car left, single detail panel right -->
+  <!-- SCREEN: car left, single detail panel right -->
   <section class="layout no-print">
     <!-- Left: Car -->
     <aside>
@@ -191,16 +204,16 @@
             <div class="wheel <%= statusClass(tyres.osr) %>" data-key="osr" style="left:86%; top:81%;">OSR</div>
             <div class="wheel <%= statusClass(tyres.nsr) %>" data-key="nsr" style="left:14%; top:81%;">NSR</div>
           </div>
-          <div class="small text-muted mt-2">Click a wheel to view details on the right.</div>
+          <div class="small text-muted mt-2">Click a wheel to view its details.</div>
         </div>
       </div>
     </aside>
 
-    <!-- Right: Single detail panel that updates -->
+    <!-- Right: Single detail panel (hidden until a wheel is clicked) -->
     <article id="detail" class="detail-card">
-      <div class="card">
+      <div class="card hidden" id="detail-card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <span id="detail-title" class="fw-bold">Offside Front (OSF)</span>
+          <span id="detail-title" class="fw-bold"></span>
           <span id="detail-badge"></span>
         </div>
         <ul class="list-group list-group-flush">
@@ -332,7 +345,7 @@
     <button type="button" class="btn btn-outline-secondary" onclick="window.print()">Print</button>
   </section>
 
-  <!-- Data for detail panel -->
+  <!-- Screen data + interactions -->
   <script>
     const TYRES = {
       osf: <%- JSON.stringify(tyres.osf || {}) %>,
@@ -348,7 +361,7 @@
     };
 
     function fmt(v){ return (v ?? "") === "" ? "—" : v; }
-    function treadClass(n){
+    function treadBadgeClass(n){
       const val = Number(n);
       if (isNaN(val)) return "badge text-bg-secondary";
       if (val < 3) return "badge text-bg-danger";
@@ -385,21 +398,25 @@
       const elIn  = document.getElementById('d-tin');
       const elMid = document.getElementById('d-tmid');
       const elOut = document.getElementById('d-tout');
-      elIn.className  = 'tread-pill ' + treadClass(tin);  elIn.textContent  = 'In '  + fmt(tin);
-      elMid.className = 'tread-pill ' + treadClass(tmid); elMid.textContent = 'Mid ' + fmt(tmid);
-      elOut.className = 'tread-pill ' + treadClass(tout); elOut.textContent = 'Out ' + fmt(tout);
+      elIn.className  = 'tread-pill ' + treadBadgeClass(tin);  elIn.textContent  = 'In '  + fmt(tin);
+      elMid.className = 'tread-pill ' + treadBadgeClass(tmid); elMid.textContent = 'Mid ' + fmt(tmid);
+      elOut.className = 'tread-pill ' + treadBadgeClass(tout); elOut.textContent = 'Out ' + fmt(tout);
 
       const notesRow = document.getElementById('notes-row');
       if (t?.notes){ notesRow.style.display = ''; document.getElementById('d-notes').textContent = t.notes; }
       else { notesRow.style.display = 'none'; document.getElementById('d-notes').textContent = ''; }
+
+      // Show the detail card if hidden
+      document.getElementById('detail-card').classList.remove('hidden');
     }
 
-    // Initial render (default OSF)
-    renderDetail('osf');
-
-    // Click listeners on wheels
+    // Wheel click -> render detail and mark active
     document.querySelectorAll('.wheel').forEach(w => {
-      w.addEventListener('click', () => renderDetail(w.dataset.key));
+      w.addEventListener('click', () => {
+        document.querySelectorAll('.wheel').forEach(x=>x.classList.remove('active'));
+        w.classList.add('active');
+        renderDetail(w.dataset.key);
+      });
     });
 
     // Copy share URL

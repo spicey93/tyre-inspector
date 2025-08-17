@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inspection Created</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    .code-badge{
+      font-size:1.5rem;
+      font-weight:700;
+      letter-spacing:.06em;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+    }
+  </style>
+</head>
+<body class="container py-5">
+  <h1 class="h4 mb-3">Inspection created</h1>
+  <p class="text-muted mb-4">VRM <strong><%= vrm %></strong></p>
+
+  <div class="alert alert-success d-flex justify-content-between align-items-center">
+    <div>
+      <div class="small text-muted">Share/report code</div>
+      <div class="code-badge"><%= code %></div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="copyBtn" class="btn btn-outline-success">Copy code</button>
+      <a class="btn btn-success" href="/inspections?code=<%= code %>">Open report</a>
+    </div>
+  </div>
+
+  <a href="/" class="btn btn-link">← Back to home</a>
+
+  <script>
+    document.getElementById('copyBtn')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('<%= code %>');
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        setTimeout(()=> btn.textContent='Copy code', 1400);
+      } catch { alert('Copy failed, please copy manually: <%= code %>'); }
+    });
+  </script>
+</body>
+</html>
