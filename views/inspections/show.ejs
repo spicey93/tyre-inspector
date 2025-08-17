@@ -14,6 +14,7 @@
       --fail:#dc3545;       /* danger */
       --pill:#f8f9fa;
       --active-ring: rgba(13,110,253,.25);
+      --tag:#0d6efd;
     }
     body{ background:#fff; }
     .muted{ color:var(--muted); }
@@ -48,6 +49,7 @@
     @media (min-width: 992px){ .car-wrap{ max-width:360px; } }
     .car-svg{ width:100%; height:auto; display:block; }
 
+    /* Wheels */
     .wheel{
       position:absolute;
       width:22%;
@@ -57,17 +59,53 @@
       border:2px solid #adb5bd;
       background:#fff;
       display:flex; align-items:center; justify-content:center;
-      font-weight:700; font-size:.8rem; color:#495057;
+      font-weight:700; font-size:.8rem; color:#212529;
       box-shadow:none;
-      transition: box-shadow .15s, transform .05s;
+      transition: box-shadow .15s, transform .05s, background-color .15s, border-color .15s, color .15s;
       cursor:pointer; user-select:none;
     }
     .wheel:hover{ box-shadow:0 0 0 .45rem var(--active-ring) inset; }
-    .wheel:active{ transform: translate(-50%,-50%) scale(0.98); }
-    .wheel.ok    { border-color:var(--ok);   background:#e6f4ea; }
-    .wheel.adv   { border-color:var(--adv);  background:#fff3cd; }
-    .wheel.fail  { border-color:var(--fail); background:#f8d7da; }
-    .wheel.active{ box-shadow:0 0 0 .55rem var(--active-ring) inset; transform: translate(-50%,-50%) scale(0.985); }
+    .wheel:active{ transform: translate(-50%,-50%) scale(0.985); }
+
+    /* Color by status */
+    .wheel.ok    { border-color:var(--ok);   background:#e6f4ea; color:#0f5132; }
+    .wheel.adv   { border-color:var(--adv);  background:#fff3cd; color:#664d03; }
+    .wheel.fail  { border-color:var(--fail); background:#f8d7da; color:#842029; }
+
+    /* Active ring */
+    .wheel.active{ box-shadow:0 0 0 .55rem var(--active-ring) inset; }
+
+    /* Tag indicator (small dot at top-right) */
+    .wheel.has-tag::after{
+      content:"";
+      position:absolute;
+      right:-4%;
+      top:-4%;
+      width:.75rem; height:.75rem;
+      border-radius:50%;
+      background:var(--tag);
+      border:2px solid #fff;
+      box-shadow:0 0 0 2px rgba(13,110,253,.15);
+    }
+
+    /* Small caption under each wheel for min tread */
+    .wheel-caption{
+      position:absolute;
+      transform: translate(-50%, 0);
+      top: calc(0% + 0); /* set by inline style with left/top coords */
+      margin-top: 6px;
+      font-size:.75rem;
+      color:#212529;
+      font-weight:600;
+      background:rgba(255,255,255,.85);
+      padding:.1rem .25rem;
+      border-radius:.25rem;
+      border:1px solid #dee2e6;
+      backdrop-filter: blur(2px);
+    }
+    .wheel-caption.ok   { color:#0f5132; border-color:#badbcc; background:#e9f7ef; }
+    .wheel-caption.adv  { color:#664d03; border-color:#ffecb5; background:#fff7da; }
+    .wheel-caption.fail { color:#842029; border-color:#f5c2c7; background:#fde2e4; }
 
     /* Detail panel (screen) */
     .detail-card .list-group-item{ padding:.5rem .7rem; }
@@ -79,6 +117,9 @@
     .cond-fail{ background:var(--fail); }
 
     .hidden{ display:none !important; }
+
+    /* Tag badges in detail panel */
+    .tag-badge{ border:1px solid #ced4da; background:#f8f9fa; color:#212529; }
 
     /* PRINT */
     @media print {
@@ -115,7 +156,14 @@
   </div>
 
   <%
+    // --- helpers available to EJS template ---
     function fmt(v){ return (v ?? "") === "" ? "—" : v; }
+    function minTread(node){
+      const t = node?.treadDepth || {};
+      const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
+      if (!vals.length) return null;
+      return Math.min.apply(null, vals);
+    }
     function treadClass(v){
       if (v == null || v === "") return "badge text-bg-secondary";
       const n = Number(v);
@@ -153,14 +201,24 @@
       }
       return ""; // neutral
     }
+    function hasTags(node){
+      return Array.isArray(node?.tags) && node.tags.length > 0;
+    }
 
     const created = inspection.createdAt ? new Date(inspection.createdAt) : null;
-
     const tyres = {
       osf: inspection.offside?.front || {},
       nsf: inspection.nearside?.front || {},
       osr: inspection.offside?.rear  || {},
       nsr: inspection.nearside?.rear || {},
+    };
+
+    // Pre-compute per-wheel UI info
+    const wheelMeta = {
+      osf: { title: "Offside Front (OSF)", left: "86%", top: "19%", node: tyres.osf },
+      nsf: { title: "Nearside Front (NSF)", left: "14%", top: "19%", node: tyres.nsf },
+      osr: { title: "Offside Rear (OSR)",  left: "86%", top: "81%", node: tyres.osr },
+      nsr: { title: "Nearside Rear (NSR)", left: "14%", top: "81%", node: tyres.nsr }
     };
   %>
 
@@ -198,13 +256,21 @@
               <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
             </svg>
 
-            <!-- Wheels (absolute, % coords) -->
-            <div class="wheel <%= statusClass(tyres.osf) %>" data-key="osf" style="left:86%; top:19%;">OSF</div>
-            <div class="wheel <%= statusClass(tyres.nsf) %>" data-key="nsf" style="left:14%; top:19%;">NSF</div>
-            <div class="wheel <%= statusClass(tyres.osr) %>" data-key="osr" style="left:86%; top:81%;">OSR</div>
-            <div class="wheel <%= statusClass(tyres.nsr) %>" data-key="nsr" style="left:14%; top:81%;">NSR</div>
+            <% for (const key of Object.keys(wheelMeta)) { 
+                 const m = wheelMeta[key];
+                 const st = statusClass(m.node);
+                 const mt = minTread(m.node);
+                 const hasTag = hasTags(m.node);
+            %>
+              <div class="wheel <%= st %> <%= hasTag ? 'has-tag' : '' %>" data-key="<%= key %>" style="left:<%= m.left %>; top:<%= m.top %>;"><%= key.toUpperCase() %></div>
+              <% if (mt !== null) { %>
+                <div class="wheel-caption <%= st || '' %>" style="left:<%= m.left %>; top:calc(<%= m.top %> + 11%);">
+                  <%= mt %> mm
+                </div>
+              <% } %>
+            <% } %>
           </div>
-          <div class="small text-muted mt-2">Click a wheel to view its details.</div>
+          <div class="small text-muted mt-2">Click a wheel to view its details. Dot on a wheel indicates notes/tags present.</div>
         </div>
       </div>
     </aside>
@@ -253,6 +319,12 @@
               <span id="d-tout" class="tread-pill badge text-bg-secondary">Out —</span>
             </div>
           </li>
+          <!-- Tags -->
+          <li class="list-group-item" id="tags-row" style="display:none;">
+            <div class="small-label mb-1">Tags</div>
+            <div id="d-tags" class="d-flex flex-wrap gap-2"></div>
+          </li>
+          <!-- Notes -->
           <li class="list-group-item" id="notes-row" style="display:none;">
             <div class="small-label mb-1">Notes</div>
             <div id="d-notes" class="clamp-3"></div>
@@ -307,6 +379,16 @@
               <span class="tread-pill <%= treadClass(node?.treadDepth?.outer) %>">Out <%= fmt(node?.treadDepth?.outer) %></span>
             </div>
           </li>
+          <% if (Array.isArray(node?.tags) && node.tags.length) { %>
+            <li class="list-group-item">
+              <div class="small-label mb-1">Tags</div>
+              <div class="d-flex flex-wrap gap-1">
+                <% for (const t of node.tags) { %>
+                  <span class="badge text-bg-light"><%= t %></span>
+                <% } %>
+              </div>
+            </li>
+          <% } %>
           <% if (node?.notes) { %>
             <li class="list-group-item">
               <div class="small-label mb-1">Notes</div>
@@ -332,10 +414,18 @@
         <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
         <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
       </svg>
-      <div class="wheel <%= statusClass(tyres.osf) %>" style="left:86%; top:19%;">OSF</div>
-      <div class="wheel <%= statusClass(tyres.nsf) %>" style="left:14%; top:19%;">NSF</div>
-      <div class="wheel <%= statusClass(tyres.osr) %>" style="left:86%; top:81%;">OSR</div>
-      <div class="wheel <%= statusClass(tyres.nsr) %>" style="left:14%; top:81%;">NSR</div>
+      <% for (const key of Object.keys(wheelMeta)) {
+           const m = wheelMeta[key];
+           const st = statusClass(m.node);
+           const mt = minTread(m.node);
+      %>
+        <div class="wheel <%= st %>" style="left:<%= m.left %>; top:<%= m.top %>;"><%= key.toUpperCase() %></div>
+        <% if (mt !== null) { %>
+          <div class="wheel-caption <%= st || '' %>" style="left:<%= m.left %>; top:calc(<%= m.top %> + 11%);">
+            <%= mt %> mm
+          </div>
+        <% } %>
+      <% } %>
     </div>
   </div>
 
@@ -347,7 +437,7 @@
 
   <!-- Screen data + interactions -->
   <script>
-    const TYRES = {
+    const DATA = {
       osf: <%- JSON.stringify(tyres.osf || {}) %>,
       nsf: <%- JSON.stringify(tyres.nsf || {}) %>,
       osr: <%- JSON.stringify(tyres.osr || {}) %>,
@@ -384,7 +474,7 @@
     }
 
     function renderDetail(key){
-      const t = TYRES[key] || {};
+      const t = DATA[key] || {};
       document.getElementById('detail-title').textContent = TITLES[key];
       document.getElementById('detail-badge').innerHTML = badgeFor(t);
 
@@ -402,11 +492,28 @@
       elMid.className = 'tread-pill ' + treadBadgeClass(tmid); elMid.textContent = 'Mid ' + fmt(tmid);
       elOut.className = 'tread-pill ' + treadBadgeClass(tout); elOut.textContent = 'Out ' + fmt(tout);
 
+      // Tags
+      const tagsRow = document.getElementById('tags-row');
+      const tagsWrap = document.getElementById('d-tags');
+      tagsWrap.innerHTML = '';
+      if (Array.isArray(t.tags) && t.tags.length){
+        tagsRow.style.display = '';
+        t.tags.forEach(tag => {
+          const span = document.createElement('span');
+          span.className = 'badge tag-badge';
+          span.textContent = tag;
+          tagsWrap.appendChild(span);
+        });
+      } else {
+        tagsRow.style.display = 'none';
+      }
+
+      // Notes
       const notesRow = document.getElementById('notes-row');
       if (t?.notes){ notesRow.style.display = ''; document.getElementById('d-notes').textContent = t.notes; }
       else { notesRow.style.display = 'none'; document.getElementById('d-notes').textContent = ''; }
 
-      // Show the detail card if hidden
+      // Show card
       document.getElementById('detail-card').classList.remove('hidden');
     }
 
