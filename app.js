@@ -1,5 +1,6 @@
 import express from "express";
-import inspectionRouter from "./routes/inspection.routes.js";
+import vrmRoutes from "./routes/vrm.routes.js"
+import inspectionRoutes from "./routes/inspection.routes.js";
 
 const app = express();
 
@@ -12,6 +13,7 @@ app.get("/", (req, res) => {
   res.render("index");
 });
 
-app.use("/inspections", inspectionRouter);
+app.use('/vrm', vrmRoutes)
+app.use("/inspections", inspectionRoutes);
 
 export default app;
