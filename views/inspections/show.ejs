@@ -9,15 +9,24 @@
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    /* ---------- Car diagram + wheels ---------- */
-    .layout{
-      display:grid; gap:1rem;
-      grid-template-columns: 1fr;            /* mobile: stack */
-      align-items:start;
+    /* ---------- Screen/Print visibility ---------- */
+    .screen-only { display: block; }
+    .print-only  { display: none; }
+
+    /* Strong print clamp: only .print-root becomes visible on paper */
+    @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+      body * { visibility: hidden !important; }
+      .print-root, .print-root * { visibility: visible !important; }
+      .print-root { position: relative !important; }
+      .screen-only { display: none !important; }
+      /* Hide any wheel captions if present anywhere */
+      .wheel-caption { display: none !important; }
     }
-    @media (min-width: 1024px){
-      .layout{ grid-template-columns: .85fr 1.15fr; }
-    }
+
+    /* ---------- Car & Wheels (screen) ---------- */
+    .layout{ display:grid; gap:1rem; grid-template-columns: 1fr; align-items:start; }
+    @media (min-width: 1024px){ .layout{ grid-template-columns: .85fr 1.15fr; } }
 
     .car-wrap{ position:relative; max-width:280px; margin-inline:auto; }
     @media (min-width: 640px){ .car-wrap{ max-width:320px; } }
@@ -25,93 +34,53 @@
     .car-svg{ width:100%; height:auto; display:block; }
 
     .wheel{
-      position:absolute;
-      width:22%; aspect-ratio:1/1; border-radius:9999px;
+      position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
       transform: translate(-50%,-50%);
-      border:2px solid #adb5bd;
-      background:#fff;
+      border:2px solid #94a3b8; background:#fff;
       display:flex; align-items:center; justify-content:center;
-      font-weight:700; font-size:.8rem; color:#0f172a; /* slate-900 */
-      box-shadow:none;
+      font-weight:700; font-size:.8rem; color:#0f172a;
       transition: box-shadow .15s, transform .05s, background-color .15s, border-color .15s, color .15s;
       cursor:pointer; user-select:none;
     }
-    .wheel:hover{ box-shadow: inset 0 0 0 .55rem rgba(14,165,233,.25); } /* sky-500 ring-ish */
+    .wheel:hover{ box-shadow: inset 0 0 0 .6rem rgba(14,165,233,.25); }
     .wheel:active{ transform: translate(-50%,-50%) scale(0.985); }
-
-    /* Color by status */
-    .wheel.ok    { border-color:#15803d; background:#e7f6ec; color:#14532d; }  /* green-700 / -100ish */
-    .wheel.adv   { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }  /* amber */
-    .wheel.fail  { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }  /* rose-600 */
-
-    /* Active ring */
-    .wheel.active{ box-shadow: inset 0 0 0 .6rem rgba(14,165,233,.35); } /* sky-500 */
-
-    /* Tag indicator (small dot at top-right) */
+    .wheel.ok    { border-color:#15803d; background:#e7f6ec; color:#14532d; }
+    .wheel.adv   { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
+    .wheel.fail  { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
+    .wheel.active{ box-shadow: inset 0 0 0 .6rem rgba(14,165,233,.35); }
     .wheel.has-tag::after{
-      content:"";
-      position:absolute;
-      right:-4%;
-      top:-4%;
-      width:.75rem; height:.75rem;
-      border-radius:9999px;
-      background:#2563eb;             /* blue-600 */
-      border:2px solid #fff;
-      box-shadow:0 0 0 2px rgba(37,99,235,.2);
+      content:""; position:absolute; right:-4%; top:-4%;
+      width:.75rem; height:.75rem; border-radius:9999px;
+      background:#2563eb; border:2px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.25);
     }
 
-    /* Small caption under each wheel for min tread */
-    .wheel-caption{
-      position:absolute;
-      transform: translate(-50%, 0);
-      margin-top: 6px;
-      font-size:.75rem;
-      font-weight:700;
-      background:rgba(255,255,255,.9);
-      padding:.1rem .25rem;
-      border-radius:.25rem;
-      border:1px solid #e2e8f0; /* slate-200 */
-      color:#0f172a;            /* slate-900 */
-      backdrop-filter: blur(2px);
+    /* Print car wheels (coloured, no tread captions) */
+    .wheel-print{
+      position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
+      transform: translate(-50%,-50%);
+      border:2px solid #94a3b8; background:#fff;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:10px; color:#0f172a;
     }
-    .wheel-caption.ok   { color:#14532d; border-color:#bbf7d0; background:#e7f6ec; } /* green-ish */
-    .wheel-caption.adv  { color:#78350f; border-color:#fde68a; background:#fff7d6; } /* amber-ish */
-    .wheel-caption.fail { color:#7f1d1d; border-color:#fecdd3; background:#fde2e4; } /* rose-ish */
+    .wheel-print.ok   { border-color:#15803d; background:#e7f6ec; color:#14532d; }
+    .wheel-print.adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
+    .wheel-print.fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
 
-    /* Badges in detail panel */
-    .pill {
-      display:inline-block; min-width:2.6rem; text-align:center;
-      border-radius:9999px; padding:.15rem .5rem; font-weight:600;
-    }
+    .pill{ display:inline-block; min-width:2.6rem; text-align:center; border-radius:9999px; padding:.15rem .5rem; font-weight:600; }
 
-    .hidden{ display:none !important; }
-
-    /* Print */
+    /* Print table visuals */
     @media print {
-      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .no-print { display:none !important; }
-      @page { size: A4 portrait; margin: 10mm; }
-
-      html, body { font-size: 11px; }
-      .print-grid{
-        display:grid; gap:8px;
-        grid-template-columns: 1fr 1fr;
-        align-items:start;
-      }
-      .print-car{ margin-top: 6mm; display: flex; justify-content:center; }
-      .print-car .car-wrap{ max-width:240px !important; }
-      .break-avoid { break-inside: avoid; page-break-inside: avoid; }
-      .clamp-3 {
-        display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-      }
+      .print-table { border-collapse: collapse; width: 100%; }
+      .print-table th, .print-table td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
+      .print-muted { color: #475569; }
     }
   </style>
 </head>
 <body class="h-full">
   <div class="mx-auto max-w-5xl px-4 py-6">
 
-    <!-- Top actions -->
-    <div class="mb-3 no-print">
+    <!-- Top actions (screen only) -->
+    <div class="mb-3 screen-only">
       <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
         Home
@@ -119,14 +88,8 @@
     </div>
 
     <%
-      // --- helpers available to EJS template ---
+      // ---------- Helpers ----------
       function fmt(v){ return (v ?? "") === "" ? "—" : v; }
-      function minTread(node){
-        const t = node?.treadDepth || {};
-        const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-        if (!vals.length) return null;
-        return Math.min.apply(null, vals);
-      }
       function treadPillClass(v){
         if (v == null || v === "") return "bg-slate-200 text-slate-700";
         const n = Number(v);
@@ -140,7 +103,6 @@
         if (c === "fail") return '<span class="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-rose-600"></span>Fail</span>';
         if (c === "advisory") return '<span class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>Advisory</span>';
         if (c === "ok") return '<span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>OK</span>';
-        // fallback using tread depths
         const t = node?.treadDepth || {};
         const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
         if (vals.length){
@@ -162,11 +124,9 @@
           if (vals.some(v => v < 4)) return "adv";
           return "ok";
         }
-        return ""; // neutral
+        return "";
       }
-      function hasTags(node){
-        return Array.isArray(node?.tags) && node.tags.length > 0;
-      }
+      function hasTags(node){ return Array.isArray(node?.tags) && node.tags.length > 0; }
 
       const created = inspection.createdAt ? new Date(inspection.createdAt) : null;
       const tyres = {
@@ -175,7 +135,6 @@
         osr: inspection.offside?.rear  || {},
         nsr: inspection.nearside?.rear || {},
       };
-
       const wheelMeta = {
         osf: { title: "Offside Front (OSF)", left: "86%", top: "19%", node: tyres.osf },
         nsf: { title: "Nearside Front (NSF)", left: "14%", top: "19%", node: tyres.nsf },
@@ -184,219 +143,144 @@
       };
     %>
 
-    <!-- Header -->
-    <header class="mb-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-slate-900">Tyre Inspection Report</h1>
-        <span class="inline-flex items-center rounded-md bg-slate-100 text-slate-900 font-mono text-lg font-extrabold tracking-widest px-2.5 py-1">
-          <%= inspection.code %>
-        </span>
-      </div>
-      <div class="mt-1 flex flex-wrap gap-4 text-sm text-slate-600">
-        <div><span class="font-semibold">VRM:</span> <%= inspection.vrm %></div>
-        <% if (typeof inspection.mileage === "number") { %>
-          <div><span class="font-semibold">Mileage:</span> <%= inspection.mileage %></div>
-        <% } %>
-        <% if (created) { %>
-          <div><span class="font-semibold">Date:</span> <%= created.toLocaleString() %></div>
-        <% } %>
-      </div>
-    </header>
 
-    <!-- SCREEN: car left, detail panel right -->
-    <section class="layout no-print">
-      <!-- Left: Car -->
-      <aside class="break-avoid">
-        <div class="rounded-2xl border border-slate-200 bg-white shadow">
-          <div class="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Tyre overview</div>
-          <div class="p-4">
-            <div class="car-wrap">
-              <!-- Car silhouette -->
-              <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
-                <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-                <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-                <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-                <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
-              </svg>
-
-              <% for (const key of Object.keys(wheelMeta)) {
-                   const m = wheelMeta[key];
-                   const st = statusClass(m.node);
-                   const mt = minTread(m.node);
-                   const tagged = hasTags(m.node);
-              %>
-                <div class="wheel <%= st %> <%= tagged ? 'has-tag' : '' %>" data-key="<%= key %>" style="left:<%= m.left %>; top:<%= m.top %>;"><%= key.toUpperCase() %></div>
-                <% if (mt !== null) { %>
-                  <div class="wheel-caption <%= st || '' %>" style="left:<%= m.left %>; top:calc(<%= m.top %> + 11%);">
-                    <%= mt %> mm
-                  </div>
-                <% } %>
-              <% } %>
-            </div>
-            <p class="mt-2 text-xs text-slate-500">Click a wheel to view its details. A small dot on a wheel indicates tags/notes present.</p>
-          </div>
+    <!-- PRINT ROOT: only this block is visible when printing -->
+    <section class="print-root">
+      <!-- Print header (only once) -->
+      <div class="mb-3">
+        <h1 class="text-xl font-semibold">Tyre Inspection Report</h1>
+        <div class="print-muted text-sm">
+          <span><strong>Code:</strong> <%= inspection.code %></span>
+          &nbsp;|&nbsp;<span><strong>VRM:</strong> <%= inspection.vrm %></span>
+          <% if (typeof inspection.mileage === "number") { %>
+            &nbsp;|&nbsp;<span><strong>Mileage:</strong> <%= inspection.mileage %></span>
+          <% } %>
+          <% if (inspection.createdAt) { %>
+            &nbsp;|&nbsp;<span><strong>Date:</strong> <%= new Date(inspection.createdAt).toLocaleString() %></span>
+          <% } %>
         </div>
-      </aside>
-
-      <!-- Right: detail panel -->
-      <article id="detail" class="break-avoid">
-        <div id="detail-card" class="hidden rounded-2xl border border-slate-200 bg-white shadow">
-          <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-            <span id="detail-title" class="font-semibold text-slate-900"></span>
-            <span id="detail-badge"></span>
+        <% if (inspection.vehicle) { %>
+          <div class="print-muted text-sm">
+            <strong>Vehicle:</strong>
+            <%= inspection.vehicle.make %> <%= inspection.vehicle.model %>
+            <% if (inspection.vehicle.year) { %>(<%= inspection.vehicle.year %>)<% } %>
+            <% if (inspection.vehicle.torque) { %> &nbsp;|&nbsp; <strong>Torque:</strong> <%= inspection.vehicle.torque %> Nm <% } %>
           </div>
+        <% } %>
+      </div>
 
-          <div class="p-4 space-y-3">
-            <div>
-              <div class="text-xs uppercase tracking-wide text-slate-500">Size</div>
-              <div id="d-size" class="text-slate-900 font-medium">—</div>
-            </div>
+      <%
+        function fmtP(v){ return (v ?? "") === "" ? "—" : v; }
+        function plainCondition(node){
+          const c = node?.condition ? String(node.condition).toLowerCase() : null;
+          if (c === "ok" || c === "advisory" || c === "fail") return c;
+          const t = node?.treadDepth || {};
+          const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
+          if (!vals.length) return "—";
+          if (vals.some(v => v < 2.5)) return "fail";
+          if (vals.some(v => v < 4)) return "advisory";
+          return "ok";
+        }
+        const tyresPrint = {
+          "Offside Front (OSF)": inspection.offside?.front || {},
+          "Nearside Front (NSF)": inspection.nearside?.front || {},
+          "Offside Rear (OSR)":  inspection.offside?.rear  || {},
+          "Nearside Rear (NSR)": inspection.nearside?.rear || {},
+        };
+      %>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Pressure (psi)</div>
-                <div id="d-press" class="text-slate-900 font-medium">—</div>
-              </div>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">DOT</div>
-                <div id="d-dot" class="text-slate-900 font-medium">—</div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Brand</div>
-                <div id="d-brand" class="text-slate-900 font-medium">—</div>
-              </div>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Model</div>
-                <div id="d-model" class="text-slate-900 font-medium">—</div>
-              </div>
-            </div>
-
-            <div>
-              <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Tread depth (mm)</div>
-              <div class="flex flex-wrap gap-2">
-                <span id="d-tin"  class="pill bg-slate-200 text-slate-700">In —</span>
-                <span id="d-tmid" class="pill bg-slate-200 text-slate-700">Mid —</span>
-                <span id="d-tout" class="pill bg-slate-200 text-slate-700">Out —</span>
-              </div>
-            </div>
-
-            <div id="tags-row" style="display:none;">
-              <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Tags</div>
-              <div id="d-tags" class="flex flex-wrap gap-2"></div>
-            </div>
-
-            <div id="notes-row" style="display:none;">
-              <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Notes</div>
-              <div id="d-notes" class="text-slate-800"></div>
-            </div>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <!-- PRINT LAYOUT -->
-    <section class="print-grid hidden print:block">
-      <% function tyreCardPrint(title, node){ %>
-        <div class="rounded-xl border border-slate-200 bg-white p-3 break-avoid">
-          <div class="mb-2 flex items-center justify-between">
-            <span class="font-semibold text-slate-900"><%= title %></span>
-            <span><%- badgeFor(node) %></span>
-          </div>
-
-          <div class="space-y-2">
-            <div>
-              <div class="text-xs uppercase tracking-wide text-slate-500">Size</div>
-              <div class="text-slate-900"><%= fmt(node?.size) %></div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Pressure (psi)</div>
-                <div class="text-slate-900"><%= fmt(node?.pressure) %></div>
-              </div>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">DOT</div>
-                <div class="text-slate-900"><%= fmt(node?.dot) %></div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Brand</div>
-                <div class="text-slate-900"><%= fmt(node?.brand) %></div>
-              </div>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500">Model</div>
-                <div class="text-slate-900"><%= fmt(node?.model) %></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Tread depth (mm)</div>
-              <div class="flex flex-wrap gap-2">
-                <span class="pill <%= treadPillClass(node?.treadDepth?.inner) %>">In <%= fmt(node?.treadDepth?.inner) %></span>
-                <span class="pill <%= treadPillClass(node?.treadDepth?.middle) %>">Mid <%= fmt(node?.treadDepth?.middle) %></span>
-                <span class="pill <%= treadPillClass(node?.treadDepth?.outer) %>">Out <%= fmt(node?.treadDepth?.outer) %></span>
-              </div>
-            </div>
-
-            <% if (Array.isArray(node?.tags) && node.tags.length) { %>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Tags</div>
-                <div class="flex flex-wrap gap-1">
-                  <% for (const t of node.tags) { %>
-                    <span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 text-slate-800 px-2 py-0.5 text-xs"><%= t %></span>
+      <!-- Print table -->
+      <table class="print-table text-sm">
+        <thead>
+          <tr style="background:#f1f5f9">
+            <th style="width:16%;">Position</th>
+            <th style="width:18%;">Size</th>
+            <th style="width:14%;">Brand</th>
+            <th style="width:18%;">Model</th>
+            <th style="width:10%;">DOT</th>
+            <th style="width:14%;">Tread (In / Mid / Out)</th>
+            <th style="width:10%;">Condition</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const [pos, t] of Object.entries(tyresPrint)) { %>
+            <tr>
+              <td><%= pos %></td>
+              <td><%= fmtP(t.size) %></td>
+              <td><%= fmtP(t.brand) %></td>
+              <td><%= fmtP(t.model) %></td>
+              <td><%= fmtP(t.dot) %></td>
+              <td>
+                <%= fmtP(t?.treadDepth?.inner) %> /
+                <%= fmtP(t?.treadDepth?.middle) %> /
+                <%= fmtP(t?.treadDepth?.outer) %>
+              </td>
+              <td style="text-transform: capitalize;"><%= plainCondition(t) %></td>
+            </tr>
+            <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
+              <tr>
+                <td colspan="7">
+                  <% if (Array.isArray(t?.tags) && t.tags.length) { %>
+                    <div class="mb-1"><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
                   <% } %>
-                </div>
-              </div>
+                  <% if (t?.notes) { %>
+                    <div><strong>Notes:</strong> <%= t.notes %></div>
+                  <% } %>
+                </td>
+              </tr>
             <% } %>
+          <% } %>
+        </tbody>
+      </table>
 
-            <% if (node?.notes) { %>
-              <div>
-                <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Notes</div>
-                <div class="clamp-3 text-slate-800"><%= node.notes %></div>
-              </div>
-            <% } %>
-          </div>
+      <!-- Print car with coloured wheels (no tread captions) -->
+      <div class="mt-4" style="display:flex;justify-content:center;">
+        <div style="position:relative; max-width:220px;">
+          <svg viewBox="0 0 400 800" style="width:100%;height:auto;">
+            <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
+            <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0" />
+            <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0" />
+            <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb" />
+            <line x1="60" y1="400" x2="340" y2="400" stroke="#cbd5e1" stroke-dasharray="4 6"/>
+          </svg>
+          <%
+            function cls(n){
+              const c = n?.condition ? String(n.condition).toLowerCase() : null;
+              if (c === "fail") return "fail";
+              if (c === "advisory") return "adv";
+              if (c === "ok") return "ok";
+              const t = n?.treadDepth || {};
+              const vals = [t.inner, t.middle, t.outer].map(Number).filter(x => !isNaN(x));
+              if (vals.length){
+                if (vals.some(v => v < 3)) return "fail";
+                if (vals.some(v => v < 4)) return "adv";
+                return "ok";
+              }
+              return "";
+            }
+            const wp = [
+              {k:"OSF", node: tyresPrint["Offside Front (OSF)"], left:"86%", top:"19%"},
+              {k:"NSF", node: tyresPrint["Nearside Front (NSF)"], left:"14%", top:"19%"},
+              {k:"OSR", node: tyresPrint["Offside Rear (OSR)"],  left:"86%", top:"81%"},
+              {k:"NSR", node: tyresPrint["Nearside Rear (NSR)"], left:"14%", top:"81%"},
+            ];
+          %>
+          <% for (const w of wp) { %>
+            <div class="wheel-print <%= cls(w.node) %>" style="left:<%= w.left %>; top:<%= w.top %>;"><%= w.k %></div>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (inspection.notes) { %>
+        <div class="mt-4">
+          <div class="font-semibold mb-1">General notes</div>
+          <div><%= inspection.notes %></div>
         </div>
       <% } %>
-
-      <%- tyreCardPrint("Offside Front (OSF)", tyres.osf) %>
-      <%- tyreCardPrint("Nearside Front (NSF)", tyres.nsf) %>
-      <%- tyreCardPrint("Offside Rear (OSR)",  tyres.osr) %>
-      <%- tyreCardPrint("Nearside Rear (NSR)", tyres.nsr) %>
     </section>
 
-    <div class="print-car hidden print:block">
-      <div class="car-wrap">
-        <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
-          <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-          <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-          <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-          <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
-        </svg>
-        <% for (const key of Object.keys(wheelMeta)) {
-             const m = wheelMeta[key];
-             const st = statusClass(m.node);
-             const mt = minTread(m.node);
-        %>
-          <div class="wheel <%= st %>" style="left:<%= m.left %>; top:<%= m.top %>;"><%= key.toUpperCase() %></div>
-          <% if (mt !== null) { %>
-            <div class="wheel-caption <%= st || '' %>" style="left:<%= m.left %>; top:calc(<%= m.top %> + 11%);">
-              <%= mt %> mm
-            </div>
-          <% } %>
-        <% } %>
-      </div>
-    </div>
-
-    <!-- Actions -->
-    <section class="mt-4 flex items-center gap-2 no-print">
+    <!-- Actions (screen only) -->
+    <section class="mt-4 flex items-center gap-2 screen-only">
       <button type="button" id="copyLink"
               class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50">
         Copy link
@@ -451,7 +335,6 @@
       document.getElementById('detail-badge').innerHTML = badgeFor(t);
 
       document.getElementById('d-size').textContent  = fmt(t.size);
-      document.getElementById('d-press').textContent = fmt(t.pressure);
       document.getElementById('d-dot').textContent   = fmt(t.dot);
       document.getElementById('d-brand').textContent = fmt(t.brand);
       document.getElementById('d-model').textContent = fmt(t.model);
@@ -485,11 +368,10 @@
       if (t?.notes){ notesRow.style.display = ''; document.getElementById('d-notes').textContent = t.notes; }
       else { notesRow.style.display = 'none'; document.getElementById('d-notes').textContent = ''; }
 
-      // Show card
       document.getElementById('detail-card').classList.remove('hidden');
     }
 
-    // Wheel click -> render detail and mark active
+    // Click wheels
     document.querySelectorAll('.wheel').forEach(w => {
       w.addEventListener('click', () => {
         document.querySelectorAll('.wheel').forEach(x=>x.classList.remove('active'));
@@ -498,7 +380,7 @@
       });
     });
 
-    // Copy share URL
+    // Copy link
     (function(){
       const btn = document.getElementById('copyLink');
       if (!btn) return;
