@@ -1,11 +1,13 @@
+// models/inspection.model.js
 import mongoose from "mongoose";
+import { customAlphabet } from "nanoid";
+
 const { Schema } = mongoose;
 
-// tiny helpers
-const depthNum = { type: Number, min: 0, max: 20 }; // mm (adjust if you want)
-const pressureNum = { type: Number, min: 0, max: 500 }; // kPa or psi depending on what you store
+// ---- helpers ----
+const depthNum = { type: Number, min: 0, max: 20 };     // mm
+const pressureNum = { type: Number, min: 0, max: 500 }; // psi or kPa (pick one)
 
-// make it a real sub-schema so we can disable _id and add trims/validators
 const TyreSubSchema = new Schema(
   {
     treadDepth: {
@@ -19,33 +21,54 @@ const TyreSubSchema = new Schema(
     model: { type: String, trim: true },
     size: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 2000 },
+    condition: {
+      type: String,
+      enum: ["ok", "advisory", "fail"],
+      default: "ok",
+    },
   },
   { _id: false }
 );
 
+// ---- short share code ----
+// exclude look-alikes O/0 and I/1; use A–Z, 2–9
+const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const nanoid = customAlphabet(alphabet, 6);
+
+// ---- inspection schema ----
 const inspectionSchema = new Schema(
   {
+    code: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true,
+      minlength: 6,
+      maxlength: 6,
+      match: /^[A-Z0-9]{6}$/,
+    },
     vrm: { type: String, required: true, trim: true },
     mileage: { type: Number, min: 0 },
     notes: { type: String, trim: true },
 
-    offside: {
-      front: TyreSubSchema,
-      rear: TyreSubSchema,
-    },
-    nearside: {
-      front: TyreSubSchema,
-      rear: TyreSubSchema,
-    },
+    offside: { front: TyreSubSchema, rear: TyreSubSchema },
+    nearside: { front: TyreSubSchema, rear: TyreSubSchema },
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true, versionKey: false }
 );
 
-// handy for "latest inspection per plate"
+// indexes
 inspectionSchema.index({ vrm: 1, createdAt: -1 });
+
+// unique code generator (with retries)
+inspectionSchema.statics.generateUniqueCode = async function () {
+  for (let i = 0; i < 5; i++) {
+    const candidate = nanoid();
+    const exists = await this.exists({ code: candidate });
+    if (!exists) return candidate;
+  }
+  throw new Error("Could not generate unique code");
+};
 
 const Inspection = mongoose.model("Inspection", inspectionSchema);
 export default Inspection;

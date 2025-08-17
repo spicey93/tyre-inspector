@@ -1,32 +1,483 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>New Inspection</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    .tyre-tab { flex: 1 1 25%; text-align: center; }
+    .tyre-tab button { width: 100%; }
+    .hidden { display: none !important; }
+    .muted { color: #6c757d; }
+    .btn-ghost { background: transparent; border: 1px dashed #ced4da; }
+    /* Tread depth: tidy on mobile */
+    .tread-row .input-group-text { min-width: 3.25rem; justify-content: center; }
+    .tread-row .form-control { text-align: center; }
+    .tread-row .col-4 { padding-right: .375rem; padding-left: .375rem; }
+  </style>
 </head>
-<body>
-  <a href="/">Back to home</a>
-  <h1>New Inspection</h1>
-  <p>
-    <%= vehicle.vrm %>
-  </p>
-  <p>
-    <%= vehicle.make %>
-    <%= vehicle.model %>
-    <%= vehicle.year %>
-  </p>
-  <p>
-    <%= vehicle.torque %>Nm
-  </p>
-  <% for (let record of vehicle.tyreRecords) { %>
-    <p><%= record.front.size %></p>
-    <p><%= record.front.pressure %>psi | <%= record.rear.pressure %>psi</p>
-  <% } %>
+<body class="container py-3">
+  <a href="/" class="d-inline-block mb-2">← Back</a>
 
-      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
-      
+  <!-- Vehicle summary -->
+  <header class="mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+      <h1 class="h4 mb-0">New Inspection</h1>
+      <span class="badge text-bg-light"><%= vehicle.vrm %></span>
+    </div>
+    <div class="muted mt-1">
+      <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
+      <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
+    </div>
+    <% if (vehicle.tyreRecords?.length) { %>
+      <div class="mt-1 small text-muted">
+        Last pressures: F <%= defaults.pressures.front %> psi • R <%= defaults.pressures.rear %> psi
+      </div>
+    <% } %>
+  </header>
 
+  <form method="POST" action="/inspections" id="inspection-form">
+    <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
+
+    <!-- Tyre switcher -->
+    <div class="btn-group mb-3 w-100" role="tablist" aria-label="Tyre selector">
+      <div class="tyre-tab"><button type="button" class="btn btn-outline-primary active" data-panel="panel-osf">OSF</button></div>
+      <div class="tyre-tab"><button type="button" class="btn btn-outline-primary" data-panel="panel-nsf">NSF</button></div>
+      <div class="tyre-tab"><button type="button" class="btn btn-outline-primary" data-panel="panel-osr">OSR</button></div>
+      <div class="tyre-tab"><button type="button" class="btn btn-outline-primary" data-panel="panel-nsr">NSR</button></div>
+    </div>
+
+    <!-- ========= OSF ========= -->
+    <section id="panel-osf" class="tyre-panel">
+      <div class="card mb-3">
+        <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <span class="fw-bold">Offside Front (OSF)</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-ghost" data-copy-from="osf" data-copy-to="osr">Copy → OSR</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-copy-all="osf" title="Copy this tyre to all others">Copy to all</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Size</label>
+              <input name="offside.front.size" class="form-control" value="<%= defaults.frontSize %>" placeholder="e.g. 225/45R17 91W" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Pressure (psi)</label>
+              <input name="offside.front.pressure" type="number" inputmode="decimal" step="0.1" class="form-control" value="<%= defaults.pressures.front %>"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label">DOT (WWYY in code)</label>
+              <input name="offside.front.dot" class="form-control" placeholder="e.g. 2423"/>
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Brand</label>
+              <input name="offside.front.brand" class="form-control brand-input" list="brand-list" autocomplete="off" data-model-list="models-osf" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Model</label>
+              <input name="offside.front.model" class="form-control model-input" list="models-osf" autocomplete="off" />
+              <datalist id="models-osf"></datalist>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Condition</label>
+              <select name="offside.front.condition" class="form-select">
+                <option value="ok" selected>OK</option>
+                <option value="advisory">Advisory</option>
+                <option value="fail">Fail</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Tread depth (mm)</label>
+              <div class="row tread-row">
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">In</span>
+                    <input name="offside.front.treadDepth.inner" type="number" inputmode="decimal" step="0.1" class="form-control" aria-label="Inner tread depth (mm)"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Mid</span>
+                    <input name="offside.front.treadDepth.middle" type="number" inputmode="decimal" step="0.1" class="form-control" aria-label="Middle tread depth (mm)"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Out</span>
+                    <input name="offside.front.treadDepth.outer" type="number" inputmode="decimal" step="0.1" class="form-control" aria-label="Outer tread depth (mm)"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="offside.front.notes" rows="2" class="form-control" placeholder="Damage, age cracks, nails, uneven wear…"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========= NSF ========= -->
+    <section id="panel-nsf" class="tyre-panel hidden">
+      <div class="card mb-3">
+        <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <span class="fw-bold">Nearside Front (NSF)</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-ghost" data-copy-from="nsf" data-copy-to="nsr">Copy → NSR</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-copy-all="nsf">Copy to all</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Size</label>
+              <input name="nearside.front.size" class="form-control" value="<%= defaults.frontSize %>" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Pressure (psi)</label>
+              <input name="nearside.front.pressure" type="number" inputmode="decimal" step="0.1" class="form-control" value="<%= defaults.pressures.front %>"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label">DOT</label>
+              <input name="nearside.front.dot" class="form-control" />
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Brand</label>
+              <input name="nearside.front.brand" class="form-control brand-input" list="brand-list" autocomplete="off" data-model-list="models-nsf" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Model</label>
+              <input name="nearside.front.model" class="form-control model-input" list="models-nsf" autocomplete="off" />
+              <datalist id="models-nsf"></datalist>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Condition</label>
+              <select name="nearside.front.condition" class="form-select">
+                <option value="ok" selected>OK</option>
+                <option value="advisory">Advisory</option>
+                <option value="fail">Fail</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Tread depth (mm)</label>
+              <div class="row tread-row">
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">In</span>
+                    <input name="nearside.front.treadDepth.inner" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Mid</span>
+                    <input name="nearside.front.treadDepth.middle" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Out</span>
+                    <input name="nearside.front.treadDepth.outer" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="nearside.front.notes" rows="2" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========= OSR ========= -->
+    <section id="panel-osr" class="tyre-panel hidden">
+      <div class="card mb-3">
+        <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <span class="fw-bold">Offside Rear (OSR)</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-ghost" data-copy-from="osf" data-copy-to="osr">Copy from OSF</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-copy-all="osr">Copy to all</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Size</label>
+              <input name="offside.rear.size" class="form-control" value="<%= defaults.rearSize %>" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Pressure (psi)</label>
+              <input name="offside.rear.pressure" type="number" inputmode="decimal" step="0.1" class="form-control" value="<%= defaults.pressures.rear %>"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label">DOT</label>
+              <input name="offside.rear.dot" class="form-control" />
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Brand</label>
+              <input name="offside.rear.brand" class="form-control brand-input" list="brand-list" autocomplete="off" data-model-list="models-osr" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Model</label>
+              <input name="offside.rear.model" class="form-control model-input" list="models-osr" autocomplete="off" />
+              <datalist id="models-osr"></datalist>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Condition</label>
+              <select name="offside.rear.condition" class="form-select">
+                <option value="ok" selected>OK</option>
+                <option value="advisory">Advisory</option>
+                <option value="fail">Fail</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Tread depth (mm)</label>
+              <div class="row tread-row">
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">In</span>
+                    <input name="offside.rear.treadDepth.inner" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Mid</span>
+                    <input name="offside.rear.treadDepth.middle" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Out</span>
+                    <input name="offside.rear.treadDepth.outer" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="offside.rear.notes" rows="2" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========= NSR ========= -->
+    <section id="panel-nsr" class="tyre-panel hidden">
+      <div class="card mb-3">
+        <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <span class="fw-bold">Nearside Rear (NSR)</span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-ghost" data-copy-from="nsf" data-copy-to="nsr">Copy from NSF</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-copy-all="nsr">Copy to all</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label">Size</label>
+              <input name="nearside.rear.size" class="form-control" value="<%= defaults.rearSize %>" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Pressure (psi)</label>
+              <input name="nearside.rear.pressure" type="number" inputmode="decimal" step="0.1" class="form-control" value="<%= defaults.pressures.rear %>"/>
+            </div>
+            <div class="col-6">
+              <label class="form-label">DOT</label>
+              <input name="nearside.rear.dot" class="form-control" />
+            </div>
+
+            <div class="col-6">
+              <label class="form-label">Brand</label>
+              <input name="nearside.rear.brand" class="form-control brand-input" list="brand-list" autocomplete="off" data-model-list="models-nsr" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Model</label>
+              <input name="nearside.rear.model" class="form-control model-input" list="models-nsr" autocomplete="off" />
+              <datalist id="models-nsr"></datalist>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Condition</label>
+              <select name="nearside.rear.condition" class="form-select">
+                <option value="ok" selected>OK</option>
+                <option value="advisory">Advisory</option>
+                <option value="fail">Fail</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Tread depth (mm)</label>
+              <div class="row tread-row">
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">In</span>
+                    <input name="nearside.rear.treadDepth.inner" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Mid</span>
+                    <input name="nearside.rear.treadDepth.middle" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="input-group">
+                    <span class="input-group-text">Out</span>
+                    <input name="nearside.rear.treadDepth.outer" type="number" inputmode="decimal" step="0.1" class="form-control"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="nearside.rear.notes" rows="2" class="form-control"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- General notes + Save -->
+    <div class="mb-3">
+      <label class="form-label">General notes</label>
+      <textarea name="notes" class="form-control" rows="3" placeholder="Overall findings, advisories, etc."></textarea>
+    </div>
+    <div class="mb-5">
+      <button class="btn btn-primary w-100">Save inspection</button>
+    </div>
+
+    <!-- global brand list (manual entry allowed) -->
+    <datalist id="brand-list">
+      <% for (const b of brandOptions) { %>
+        <option value="<%= b %>"></option>
+      <% } %>
+    </datalist>
+  </form>
+
+  <script>
+    // ---- tabs: show one panel at a time ----
+    const tabs = document.querySelectorAll('[data-panel]');
+    const panels = document.querySelectorAll('.tyre-panel');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        panels.forEach(p => p.classList.add('hidden'));
+        document.getElementById(btn.dataset.panel).classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // ---- brand -> models (per-tyre) ----
+    async function fetchModels(brand) {
+      if (!brand) return [];
+      try {
+        const res = await fetch(`/inspections/api/tyres/models?brand=${encodeURIComponent(brand)}`);
+        return await res.json();
+      } catch { return []; }
+    }
+
+    document.querySelectorAll('.brand-input').forEach(input => {
+      input.addEventListener('input', async e => {
+        const brand = e.target.value.trim();
+        const listId = e.target.getAttribute('data-model-list');
+        const dl = document.getElementById(listId);
+        const modelInput = e.target.closest('.row').querySelector(`.model-input[list="${listId}"]`);
+        if (!dl) return;
+        dl.innerHTML = '';
+        if (modelInput) modelInput.value = '';
+        const models = await fetchModels(brand);
+        for (const m of models) {
+          const opt = document.createElement('option');
+          opt.value = m;
+          dl.appendChild(opt);
+        }
+      });
+    });
+
+    // ---- field paths for each tyre ----
+    const PATHS = { osf: 'offside.front', osr: 'offside.rear', nsf: 'nearside.front', nsr: 'nearside.rear' };
+
+    // Read a tyre's values
+    function readTyre(path) {
+      const q = (name, sel='input') => document.querySelector(`${sel}[name="${path}.${name}"]`);
+      return {
+        size: q('size')?.value ?? '',
+        pressure: q('pressure')?.value ?? '',
+        dot: q('dot')?.value ?? '',
+        brand: q('brand')?.value ?? '',
+        model: q('model')?.value ?? '',
+        condition: document.querySelector(`select[name="${path}.condition"]`)?.value ?? 'ok',
+        tdIn: q('treadDepth.inner')?.value ?? '',
+        tdMid: q('treadDepth.middle')?.value ?? '',
+        tdOut: q('treadDepth.outer')?.value ?? '',
+        notes: q('notes','textarea')?.value ?? '',
+      };
+    }
+
+    // Write values to a tyre
+    function writeTyre(path, d) {
+      const set = (name, val, sel='input') => {
+        const el = document.querySelector(`${sel}[name="${path}.${name}"]`);
+        if (el) el.value = val;
+      };
+      set('size', d.size);
+      set('pressure', d.pressure);
+      set('dot', d.dot);
+      set('brand', d.brand);
+      set('model', d.model);
+      const sel = document.querySelector(`select[name="${path}.condition"]`);
+      if (sel) sel.value = d.condition || 'ok';
+      set('treadDepth.inner', d.tdIn);
+      set('treadDepth.middle', d.tdMid);
+      set('treadDepth.outer', d.tdOut);
+      set('notes', d.notes, 'textarea');
+    }
+
+    // Copy one tyre to another
+    function copyTyre(fromKey, toKey) {
+      const from = PATHS[fromKey], to = PATHS[toKey];
+      if (!from || !to) return;
+      writeTyre(to, readTyre(from));
+    }
+
+    // Inline copy buttons (OSF → OSR etc.)
+    document.querySelectorAll('[data-copy-from][data-copy-to]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        copyTyre(btn.getAttribute('data-copy-from'), btn.getAttribute('data-copy-to'));
+      });
+    });
+
+    // Copy-to-all buttons
+    document.querySelectorAll('[data-copy-all]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fromKey = btn.getAttribute('data-copy-all');
+        const snapshot = readTyre(PATHS[fromKey]);
+        Object.keys(PATHS).forEach(k => { if (k !== fromKey) writeTyre(PATHS[k], snapshot); });
+      });
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
