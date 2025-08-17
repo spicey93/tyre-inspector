@@ -20,14 +20,10 @@
       .print-root, .print-root * { visibility: visible !important; }
       .print-root { position: relative !important; }
       .screen-only { display: none !important; }
-      /* Hide any wheel captions if present anywhere */
       .wheel-caption { display: none !important; }
     }
 
-    /* ---------- Car & Wheels (screen) ---------- */
-    .layout{ display:grid; gap:1rem; grid-template-columns: 1fr; align-items:start; }
-    @media (min-width: 1024px){ .layout{ grid-template-columns: .85fr 1.15fr; } }
-
+    /* Car & wheel styling */
     .car-wrap{ position:relative; max-width:280px; margin-inline:auto; }
     @media (min-width: 640px){ .car-wrap{ max-width:320px; } }
     @media (min-width: 1024px){ .car-wrap{ max-width:360px; } }
@@ -42,19 +38,10 @@
       transition: box-shadow .15s, transform .05s, background-color .15s, border-color .15s, color .15s;
       cursor:pointer; user-select:none;
     }
-    .wheel:hover{ box-shadow: inset 0 0 0 .6rem rgba(14,165,233,.25); }
-    .wheel:active{ transform: translate(-50%,-50%) scale(0.985); }
     .wheel.ok    { border-color:#15803d; background:#e7f6ec; color:#14532d; }
     .wheel.adv   { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
     .wheel.fail  { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
     .wheel.active{ box-shadow: inset 0 0 0 .6rem rgba(14,165,233,.35); }
-    .wheel.has-tag::after{
-      content:""; position:absolute; right:-4%; top:-4%;
-      width:.75rem; height:.75rem; border-radius:9999px;
-      background:#2563eb; border:2px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.25);
-    }
-
-    /* Print car wheels (coloured, no tread captions) */
     .wheel-print{
       position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
       transform: translate(-50%,-50%);
@@ -65,8 +52,6 @@
     .wheel-print.ok   { border-color:#15803d; background:#e7f6ec; color:#14532d; }
     .wheel-print.adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
     .wheel-print.fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
-
-    .pill{ display:inline-block; min-width:2.6rem; text-align:center; border-radius:9999px; padding:.15rem .5rem; font-weight:600; }
 
     /* Print table visuals */
     @media print {
@@ -88,65 +73,28 @@
     </div>
 
     <%
-      // ---------- Helpers ----------
       function fmt(v){ return (v ?? "") === "" ? "—" : v; }
-      function treadPillClass(v){
-        if (v == null || v === "") return "bg-slate-200 text-slate-700";
-        const n = Number(v);
-        if (isNaN(n)) return "bg-slate-200 text-slate-700";
-        if (n < 3) return "bg-rose-100 text-rose-800";
-        if (n < 4) return "bg-amber-100 text-amber-800";
-        return "bg-emerald-100 text-emerald-800";
-      }
-      function badgeFor(node){
-        const c = (node && node.condition) ? String(node.condition).toLowerCase() : null;
-        if (c === "fail") return '<span class="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-rose-600"></span>Fail</span>';
-        if (c === "advisory") return '<span class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>Advisory</span>';
-        if (c === "ok") return '<span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>OK</span>';
+      function plainCondition(node){
+        const c = node?.condition ? String(node.condition).toLowerCase() : null;
+        if (c === "ok" || c === "advisory" || c === "fail") return c;
         const t = node?.treadDepth || {};
         const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-        if (vals.length){
-          if (vals.some(v => v < 3)) return '<span class="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-rose-600"></span>Fail</span>';
-          if (vals.some(v => v < 4)) return '<span class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>Advisory</span>';
-          return '<span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>OK</span>';
-        }
-        return '<span class="inline-flex items-center gap-2 rounded-full bg-slate-200 text-slate-800 px-2 py-0.5 text-sm font-semibold">—</span>';
+        if (!vals.length) return "—";
+        if (vals.some(v => v < 2.5)) return "fail";
+        if (vals.some(v => v < 4)) return "advisory";
+        return "ok";
       }
-      function statusClass(node){
-        const c = (node && node.condition) ? String(node.condition).toLowerCase() : null;
-        if (c === "fail") return "fail";
-        if (c === "advisory") return "adv";
-        if (c === "ok") return "ok";
-        const t = node?.treadDepth || {};
-        const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-        if (vals.length){
-          if (vals.some(v => v < 3)) return "fail";
-          if (vals.some(v => v < 4)) return "adv";
-          return "ok";
-        }
-        return "";
-      }
-      function hasTags(node){ return Array.isArray(node?.tags) && node.tags.length > 0; }
-
-      const created = inspection.createdAt ? new Date(inspection.createdAt) : null;
-      const tyres = {
-        osf: inspection.offside?.front || {},
-        nsf: inspection.nearside?.front || {},
-        osr: inspection.offside?.rear  || {},
-        nsr: inspection.nearside?.rear || {},
-      };
-      const wheelMeta = {
-        osf: { title: "Offside Front (OSF)", left: "86%", top: "19%", node: tyres.osf },
-        nsf: { title: "Nearside Front (NSF)", left: "14%", top: "19%", node: tyres.nsf },
-        osr: { title: "Offside Rear (OSR)",  left: "86%", top: "81%", node: tyres.osr },
-        nsr: { title: "Nearside Rear (NSR)", left: "14%", top: "81%", node: tyres.nsr }
+      const tyresPrint = {
+        "Offside Front (OSF)": inspection.offside?.front || {},
+        "Nearside Front (NSF)": inspection.nearside?.front || {},
+        "Offside Rear (OSR)":  inspection.offside?.rear  || {},
+        "Nearside Rear (NSR)": inspection.nearside?.rear || {},
       };
     %>
 
-
-    <!-- PRINT ROOT: only this block is visible when printing -->
+    <!-- PRINT ROOT -->
     <section class="print-root">
-      <!-- Print header (only once) -->
+      <!-- Header -->
       <div class="mb-3">
         <h1 class="text-xl font-semibold">Tyre Inspection Report</h1>
         <div class="print-muted text-sm">
@@ -169,81 +117,106 @@
         <% } %>
       </div>
 
-      <%
-        function fmtP(v){ return (v ?? "") === "" ? "—" : v; }
-        function plainCondition(node){
-          const c = node?.condition ? String(node.condition).toLowerCase() : null;
-          if (c === "ok" || c === "advisory" || c === "fail") return c;
-          const t = node?.treadDepth || {};
-          const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-          if (!vals.length) return "—";
-          if (vals.some(v => v < 2.5)) return "fail";
-          if (vals.some(v => v < 4)) return "advisory";
-          return "ok";
-        }
-        const tyresPrint = {
-          "Offside Front (OSF)": inspection.offside?.front || {},
-          "Nearside Front (NSF)": inspection.nearside?.front || {},
-          "Offside Rear (OSR)":  inspection.offside?.rear  || {},
-          "Nearside Rear (NSR)": inspection.nearside?.rear || {},
-        };
-      %>
-
-      <!-- Print table -->
-      <table class="print-table text-sm">
-        <thead>
-          <tr style="background:#f1f5f9">
-            <th style="width:16%;">Position</th>
-            <th style="width:18%;">Size</th>
-            <th style="width:14%;">Brand</th>
-            <th style="width:18%;">Model</th>
-            <th style="width:10%;">DOT</th>
-            <th style="width:14%;">Tread (In / Mid / Out)</th>
-            <th style="width:10%;">Condition</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (const [pos, t] of Object.entries(tyresPrint)) { %>
-            <tr>
-              <td><%= pos %></td>
-              <td><%= fmtP(t.size) %></td>
-              <td><%= fmtP(t.brand) %></td>
-              <td><%= fmtP(t.model) %></td>
-              <td><%= fmtP(t.dot) %></td>
-              <td>
-                <%= fmtP(t?.treadDepth?.inner) %> /
-                <%= fmtP(t?.treadDepth?.middle) %> /
-                <%= fmtP(t?.treadDepth?.outer) %>
-              </td>
-              <td style="text-transform: capitalize;"><%= plainCondition(t) %></td>
-            </tr>
+      <!-- Responsive tyre details -->
+      <!-- Mobile: cards -->
+      <div class="space-y-3 md:hidden print:hidden">
+        <% for (const [pos, t] of Object.entries(tyresPrint)) { %>
+          <div class="rounded-xl border border-slate-200 bg-white p-3">
+            <div class="flex items-start justify-between">
+              <div class="font-semibold text-slate-900"><%= pos %></div>
+              <div class="text-xs capitalize px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                <%= plainCondition(t) %>
+              </div>
+            </div>
+            <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+              <dt class="text-slate-500">Size</dt>
+              <dd class="text-slate-900 text-right"><%= fmt(t.size) %></dd>
+              <dt class="text-slate-500">Brand</dt>
+              <dd class="text-slate-900 text-right"><%= fmt(t.brand) %></dd>
+              <dt class="text-slate-500">Model</dt>
+              <dd class="text-slate-900 text-right"><%= fmt(t.model) %></dd>
+              <dt class="text-slate-500">DOT</dt>
+              <dd class="text-slate-900 text-right"><%= fmt(t.dot) %></dd>
+              <dt class="text-slate-500">Tread</dt>
+              <dd class="text-slate-900 text-right">
+                <%= fmt(t?.treadDepth?.inner) %> /
+                <%= fmt(t?.treadDepth?.middle) %> /
+                <%= fmt(t?.treadDepth?.outer) %>
+              </dd>
+            </dl>
             <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
-              <tr>
-                <td colspan="7">
-                  <% if (Array.isArray(t?.tags) && t.tags.length) { %>
-                    <div class="mb-1"><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
-                  <% } %>
-                  <% if (t?.notes) { %>
-                    <div><strong>Notes:</strong> <%= t.notes %></div>
-                  <% } %>
-                </td>
-              </tr>
+              <div class="mt-2 space-y-1">
+                <% if (Array.isArray(t?.tags) && t.tags.length) { %>
+                  <div class="text-xs"><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
+                <% } %>
+                <% if (t?.notes) { %>
+                  <div class="text-xs"><strong>Notes:</strong> <%= t.notes %></div>
+                <% } %>
+              </div>
             <% } %>
-          <% } %>
-        </tbody>
-      </table>
+          </div>
+        <% } %>
+      </div>
 
-      <!-- Print car with coloured wheels (no tread captions) -->
-      <div class="mt-4" style="display:flex;justify-content:center;">
+      <!-- Desktop/Print: table -->
+      <div class="hidden md:block">
+        <div class="overflow-x-auto -mx-4 md:mx-0">
+          <table class="min-w-[760px] w-full text-sm print-table hidden md:table print:table">
+            <thead>
+              <tr class="bg-slate-100">
+                <th class="text-left px-3 py-2">Position</th>
+                <th class="text-left px-3 py-2">Size</th>
+                <th class="text-left px-3 py-2">Brand</th>
+                <th class="text-left px-3 py-2">Model</th>
+                <th class="text-left px-3 py-2">DOT</th>
+                <th class="text-left px-3 py-2">Tread (In / Mid / Out)</th>
+                <th class="text-left px-3 py-2">Condition</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (const [pos, t] of Object.entries(tyresPrint)) { %>
+                <tr class="border-t border-slate-200">
+                  <td class="px-3 py-2"><%= pos %></td>
+                  <td class="px-3 py-2"><%= fmt(t.size) %></td>
+                  <td class="px-3 py-2"><%= fmt(t.brand) %></td>
+                  <td class="px-3 py-2"><%= fmt(t.model) %></td>
+                  <td class="px-3 py-2"><%= fmt(t.dot) %></td>
+                  <td class="px-3 py-2"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
+                  <td class="px-3 py-2 capitalize"><%= plainCondition(t) %></td>
+                </tr>
+                <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
+                  <tr class="border-b border-slate-200">
+                    <td class="px-3 py-2 text-slate-700" colspan="7">
+                      <% if (Array.isArray(t?.tags) && t.tags.length) { %>
+                        <div class="mb-1"><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
+                      <% } %>
+                      <% if (t?.notes) { %>
+                        <div><strong>Notes:</strong> <%= t.notes %></div>
+                      <% } %>
+                    </td>
+                  </tr>
+                <% } %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Print car -->
+      <div class="mt-4 flex justify-center">
         <div style="position:relative; max-width:220px;">
           <svg viewBox="0 0 400 800" style="width:100%;height:auto;">
             <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
             <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0" />
             <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0" />
             <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb" />
-            <line x1="60" y1="400" x2="340" y2="400" stroke="#cbd5e1" stroke-dasharray="4 6"/>
           </svg>
-          <%
+          <% const wp = [
+              {k:"OSF", node: tyresPrint["Offside Front (OSF)"], left:"86%", top:"19%"},
+              {k:"NSF", node: tyresPrint["Nearside Front (NSF)"], left:"14%", top:"19%"},
+              {k:"OSR", node: tyresPrint["Offside Rear (OSR)"],  left:"86%", top:"81%"},
+              {k:"NSR", node: tyresPrint["Nearside Rear (NSR)"], left:"14%", top:"81%"},
+            ];
             function cls(n){
               const c = n?.condition ? String(n.condition).toLowerCase() : null;
               if (c === "fail") return "fail";
@@ -258,28 +231,15 @@
               }
               return "";
             }
-            const wp = [
-              {k:"OSF", node: tyresPrint["Offside Front (OSF)"], left:"86%", top:"19%"},
-              {k:"NSF", node: tyresPrint["Nearside Front (NSF)"], left:"14%", top:"19%"},
-              {k:"OSR", node: tyresPrint["Offside Rear (OSR)"],  left:"86%", top:"81%"},
-              {k:"NSR", node: tyresPrint["Nearside Rear (NSR)"], left:"14%", top:"81%"},
-            ];
           %>
           <% for (const w of wp) { %>
             <div class="wheel-print <%= cls(w.node) %>" style="left:<%= w.left %>; top:<%= w.top %>;"><%= w.k %></div>
           <% } %>
         </div>
       </div>
-
-      <% if (inspection.notes) { %>
-        <div class="mt-4">
-          <div class="font-semibold mb-1">General notes</div>
-          <div><%= inspection.notes %></div>
-        </div>
-      <% } %>
     </section>
 
-    <!-- Actions (screen only) -->
+    <!-- Screen actions -->
     <section class="mt-4 flex items-center gap-2 screen-only">
       <button type="button" id="copyLink"
               class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50">
@@ -293,94 +253,6 @@
   </div>
 
   <script>
-    const DATA = {
-      osf: <%- JSON.stringify(tyres.osf || {}) %>,
-      nsf: <%- JSON.stringify(tyres.nsf || {}) %>,
-      osr: <%- JSON.stringify(tyres.osr || {}) %>,
-      nsr: <%- JSON.stringify(tyres.nsr || {}) %>,
-    };
-    const TITLES = {
-      osf: "Offside Front (OSF)",
-      nsf: "Nearside Front (NSF)",
-      osr: "Offside Rear (OSR)",
-      nsr: "Nearside Rear (NSR)"
-    };
-
-    function fmt(v){ return (v ?? "") === "" ? "—" : v; }
-    function treadPillClass(n){
-      const val = Number(n);
-      if (isNaN(val)) return "bg-slate-200 text-slate-700";
-      if (val < 3) return "bg-rose-100 text-rose-800";
-      if (val < 4) return "bg-amber-100 text-amber-800";
-      return "bg-emerald-100 text-emerald-800";
-    }
-    function badgeFor(node){
-      const c = node?.condition ? String(node.condition).toLowerCase() : null;
-      if (c === "fail") return '<span class="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-rose-600"></span>Fail</span>';
-      if (c === "advisory") return '<span class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>Advisory</span>';
-      if (c === "ok") return '<span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>OK</span>';
-      const t = node?.treadDepth || {};
-      const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-      if (vals.length){
-        if (vals.some(v => v < 3)) return '<span class="inline-flex items-center gap-2 rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-rose-600"></span>Fail</span>';
-        if (vals.some(v => v < 4)) return '<span class="inline-flex items-center gap-2 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>Advisory</span>';
-        return '<span class="inline-flex items-center gap-2 rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-sm font-semibold"><span class="inline-block w-2 h-2 rounded-full bg-emerald-600"></span>OK</span>';
-      }
-      return '<span class="inline-flex items-center gap-2 rounded-full bg-slate-200 text-slate-800 px-2 py-0.5 text-sm font-semibold">—</span>';
-    }
-
-    function renderDetail(key){
-      const t = DATA[key] || {};
-      document.getElementById('detail-title').textContent = TITLES[key];
-      document.getElementById('detail-badge').innerHTML = badgeFor(t);
-
-      document.getElementById('d-size').textContent  = fmt(t.size);
-      document.getElementById('d-dot').textContent   = fmt(t.dot);
-      document.getElementById('d-brand').textContent = fmt(t.brand);
-      document.getElementById('d-model').textContent = fmt(t.model);
-
-      const tin  = t?.treadDepth?.inner, tmid = t?.treadDepth?.middle, tout = t?.treadDepth?.outer;
-      const elIn  = document.getElementById('d-tin');
-      const elMid = document.getElementById('d-tmid');
-      const elOut = document.getElementById('d-tout');
-      elIn.className  = 'pill ' + treadPillClass(tin);  elIn.textContent  = 'In '  + fmt(tin);
-      elMid.className = 'pill ' + treadPillClass(tmid); elMid.textContent = 'Mid ' + fmt(tmid);
-      elOut.className = 'pill ' + treadPillClass(tout); elOut.textContent = 'Out ' + fmt(tout);
-
-      // Tags
-      const tagsRow = document.getElementById('tags-row');
-      const tagsWrap = document.getElementById('d-tags');
-      tagsWrap.innerHTML = '';
-      if (Array.isArray(t.tags) && t.tags.length){
-        tagsRow.style.display = '';
-        t.tags.forEach(tag => {
-          const span = document.createElement('span');
-          span.className = 'inline-flex items-center rounded-full border border-slate-300 bg-slate-100 text-slate-800 px-2 py-0.5 text-xs';
-          span.textContent = tag;
-          tagsWrap.appendChild(span);
-        });
-      } else {
-        tagsRow.style.display = 'none';
-      }
-
-      // Notes
-      const notesRow = document.getElementById('notes-row');
-      if (t?.notes){ notesRow.style.display = ''; document.getElementById('d-notes').textContent = t.notes; }
-      else { notesRow.style.display = 'none'; document.getElementById('d-notes').textContent = ''; }
-
-      document.getElementById('detail-card').classList.remove('hidden');
-    }
-
-    // Click wheels
-    document.querySelectorAll('.wheel').forEach(w => {
-      w.addEventListener('click', () => {
-        document.querySelectorAll('.wheel').forEach(x=>x.classList.remove('active'));
-        w.classList.add('active');
-        renderDetail(w.dataset.key);
-      });
-    });
-
-    // Copy link
     (function(){
       const btn = document.getElementById('copyLink');
       if (!btn) return;
