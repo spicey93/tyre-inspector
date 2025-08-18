@@ -70,12 +70,15 @@ export const showByCode = async (req, res) => {
   const { code } = req.query;
   if (!code) return res.status(400).send("Missing code");
   const norm = String(code).toUpperCase().trim();
-  if (!/^[A-Z0-9]{6}$/.test(norm))
-    return res.status(400).send("Invalid code format");
+  if (!/^[A-Z0-9]{6}$/.test(norm)) return res.status(400).send("Invalid code format");
+
   const inspection = await Inspection.findOne({ code: norm }).lean();
   if (!inspection) return res.status(404).send("Inspection not found");
-  return res.render("inspections/show", { inspection });
+
+  const vehicle = await Vehicle.findOne({ vrm: inspection.vrm }).lean().catch(() => null);
+  return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
 };
+
 
 export const createInspection = async (req, res) => {
   try {
@@ -93,7 +96,7 @@ export const createInspection = async (req, res) => {
           pressure: toNum(req.body["offside.front.pressure"]),
           brand:
             req.body["offside.front.brandValue"]?.trim() ||
-            req.body["offside.front.brand"]?.trim(), // manual fallback
+            req.body["offside.front.brand"]?.trim(),
           model:
             req.body["offside.front.modelValue"]?.trim() ||
             req.body["offside.front.model"]?.trim(),
@@ -111,11 +114,11 @@ export const createInspection = async (req, res) => {
           size: req.body["offside.rear.size"]?.trim(),
           pressure: toNum(req.body["offside.rear.pressure"]),
           brand:
-            req.body["offside.front.brandValue"]?.trim() ||
-            req.body["offside.front.brand"]?.trim(),
+            req.body["offside.rear.brandValue"]?.trim() ||
+            req.body["offside.rear.brand"]?.trim(),
           model:
-            req.body["offside.front.modelValue"]?.trim() ||
-            req.body["offside.front.model"]?.trim(),
+            req.body["offside.rear.modelValue"]?.trim() ||
+            req.body["offside.rear.model"]?.trim(),
           dot: req.body["offside.rear.dot"]?.trim(),
           treadDepth: {
             inner: toNum(req.body["offside.rear.treadDepth.inner"]),
@@ -124,9 +127,10 @@ export const createInspection = async (req, res) => {
           },
           condition: req.body["offside.rear.condition"],
           notes: req.body["offside.rear.notes"],
-          tags: toArr(req.body["offside.front.tags"]),
+          tags: toArr(req.body["offside.rear.tags"]),
         },
       },
+
       nearside: {
         front: {
           size: req.body["nearside.front.size"]?.trim(),

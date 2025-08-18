@@ -1,3 +1,4 @@
+// routes/inspection.routes.js
 import express from "express";
 import { showByCode, newInspection, listBrands, listModelsByBrand, createInspection } from "../controllers/inspection.controller.js";
 

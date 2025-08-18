@@ -1,3 +1,4 @@
+// app.js
 import express from "express";
 import vrmRoutes from "./routes/vrm.routes.js";
 import inspectionRoutes from "./routes/inspection.routes.js";
