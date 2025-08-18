@@ -20,22 +20,26 @@
       transform:translate(-50%,-50%);
       border:2px solid rgb(173,181,189); background:#fff;
       display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem;
-      transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s;
+      transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
       cursor:pointer; user-select:none;
     }
     .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
-    .wheel-hotspot.completed{ border-color:#198754; background:#e6f4ea; }
+
+    /* Condition colours (applied ONLY when completed) */
+    .wheel-hotspot.cond-ok    { border-color:#15803d; background:#e6f4ea; color:#14532d; }
+    .wheel-hotspot.cond-adv   { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
+    .wheel-hotspot.cond-fail  { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
 
     /* Tag chips */
     .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
     .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
 
-    /* Flash highlight when copied */
+    /* Copy feedback flash */
     .flash-updated{ box-shadow: 0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
   </style>
 </head>
 <body class="h-full">
-  <div class="mx-auto max-w-3xl px-4 py-6">
+  <div class="mx-auto max-w-5xl px-4 py-6">
     <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
       Home
@@ -65,180 +69,188 @@
                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"/>
       </div>
 
-      <!-- PICK SCREEN -->
-      <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow">
-        <div class="px-4 py-3 border-b border-slate-200 font-semibold">Select a wheel to enter details</div>
-        <div class="p-4">
-          <div class="car-wrap">
-            <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
-              <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-              <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-              <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-              <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
-            </svg>
+      <!-- Workspace: lg = split view -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
 
-            <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
-            <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
-            <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
-            <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
-          </div>
-          <p class="mt-2 text-xs text-slate-500">
-            Use the header copy button to copy Size, DOT, Brand &amp; Model to other wheels that haven’t had tread recorded yet.
-          </p>
-        </div>
-      </section>
+        <!-- LEFT: Car / wheel picker (always visible) -->
+        <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow">
+          <div class="px-4 py-3 border-b border-slate-200 font-semibold">Select a wheel to enter details</div>
+          <div class="p-4">
+            <div class="car-wrap">
+              <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
+                <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
+                <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
+                <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
+                <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
+              </svg>
 
-      <% const panels = [
-        {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize},
-        {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize},
-        {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize},
-        {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize},
-      ];
-
-      // Tread depth options (8 → 2 in 0.5 steps, plus 1.6)
-      const TREADS = [];
-      for (let v = 8.0; v >= 2.0; v -= 0.5) TREADS.push(v.toFixed(v % 1 ? 1 : 0));
-      TREADS.push("1.6");
-
-      const QUICK_TAGS = [
-        "Bald on inner edge",
-        "Bald on outer edge",
-        "Perished",
-        "Bulge",
-        "Puncture",
-        "Uneven wear",
-        "Cracked sidewall",
-        "Cord exposed"
-      ];
-      %>
-
-      <% function panelMarkup(p){ %>
-        <section id="panel-<%= p.key %>" class="hidden">
-          <div class="rounded-2xl border border-slate-200 bg-white shadow">
-            <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-              <h2 class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
-
-              <!-- Single copy button in header -->
-              <div class="flex items-center gap-2">
-                <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5"></span>
-                <button type="button" title="Copy Size, DOT, Brand & Model to other wheels not yet treaded"
-                        class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
-                        data-copy-all-from="<%= p.key %>">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                    <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                  </svg>
-                </button>
-              </div>
+              <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
+              <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
+              <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
+              <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
             </div>
-
-            <div class="p-4">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                <!-- Size + DOT row -->
-                <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <!-- Size -->
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700">Size</label>
-                    <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
-                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                           data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
-                  </div>
-
-                  <!-- DOT -->
-                  <div>
-                    <label class="block text-sm font-medium text-slate-700">DOT (WWYY in code)</label>
-                    <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
-                           class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                           data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
-                  </div>
-                </div>
-
-                <!-- Brand -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">Brand</label>
-                  <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field brand-select"
-                          data-tyre-key="<%= p.key %>"
-                          name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>">
-                    <option value="">Select brand</option>
-                    <% for (const b of brandOptions) { %>
-                      <option value="<%= b %>"><%= b %></option>
-                    <% } %>
-                  </select>
-                </div>
-
-                <!-- Model -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-700">Model</label>
-                  <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
-                          data-tyre-key="<%= p.key %>"
-                          name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
-                    <option value="">Select model</option>
-                  </select>
-                </div>
-
-                <!-- Tread depth -->
-                <div class="sm:col-span-2">
-                  <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
-                  <div class="mt-1 grid grid-cols-3 gap-2">
-                    <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
-                      <option value="">Inner</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
-                    </select>
-
-                    <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
-                      <option value="">Middle</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
-                    </select>
-
-                    <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
-                      <option value="">Outer</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
-                    </select>
-                  </div>
-                  <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
-                </div>
-
-                <!-- Tags -->
-                <div class="sm:col-span-2">
-                  <label class="block text-sm font-medium text-slate-700">Tags</label>
-                  <div class="mt-1 flex flex-wrap gap-2">
-                    <% for (const tag of QUICK_TAGS) { 
-                         const id = `${p.key}-tag-${tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}`; %>
-                      <label class="chip inline-flex items-center gap-1" for="<%= id %>">
-                        <input id="<%= id %>" type="checkbox" class="hidden tag-input"
-                               name="<%= p.key==='osf'?'offside.front.tags': p.key==='nsf'?'nearside.front.tags': p.key==='osr'?'offside.rear.tags':'nearside.rear.tags' %>"
-                               value="<%= tag %>"/>
-                        <span class="text-sm"><%= tag %></span>
-                      </label>
-                    <% } %>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Footer actions (full-width Save) -->
-              <div class="mt-4">
-                <button type="button"
-                        class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
-                        data-save-back="<%= p.key %>">
-                  Save <%= p.key.toUpperCase() %>
-                </button>
-              </div>
-            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              Use the header copy button to copy Size, DOT, Brand &amp; Model to other wheels that haven’t had tread recorded yet.
+            </p>
           </div>
         </section>
-      <% } %>
 
-      <% for (const p of panels) { %>
-        <%- panelMarkup(p) %>
-      <% } %>
+        <!-- RIGHT: Panels wrapper -->
+        <div id="panels-wrapper" class="space-y-4 lg:space-y-0">
+          <% const panels = [
+            {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize},
+            {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize},
+            {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize},
+            {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize},
+          ];
+
+          // Tread depth options (8 → 2 in 0.5 steps, plus 1.6)
+          const TREADS = [];
+          for (let v = 8.0; v >= 2.0; v -= 0.5) TREADS.push(v.toFixed(v % 1 ? 1 : 0));
+          TREADS.push("1.6");
+
+          const QUICK_TAGS = [
+            "Bald on inner edge",
+            "Bald on outer edge",
+            "Perished",
+            "Bulge",
+            "Puncture",
+            "Uneven wear",
+            "Cracked sidewall",
+            "Cord exposed"
+          ];
+          %>
+
+          <% function panelMarkup(p){ %>
+            <!-- All panels hidden initially; shown only when its wheel is clicked -->
+            <section id="panel-<%= p.key %>" class="hidden">
+              <div class="rounded-2xl border border-slate-200 bg-white shadow">
+                <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                  <h2 class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
+
+                  <!-- Single copy button in header -->
+                  <div class="flex items-center gap-2">
+                    <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5"></span>
+                    <button type="button" title="Copy Size, DOT, Brand & Model to other wheels not yet treaded"
+                            class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
+                            data-copy-all-from="<%= p.key %>">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                        <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="p-4">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    <!-- Size + DOT row -->
+                    <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <!-- Size -->
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700">Size</label>
+                        <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
+                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
+                      </div>
+
+                      <!-- DOT -->
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700">DOT (WWYY in code)</label>
+                        <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
+                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
+                      </div>
+                    </div>
+
+                    <!-- Brand -->
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700">Brand</label>
+                      <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field brand-select"
+                              data-tyre-key="<%= p.key %>"
+                              name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>">
+                        <option value="">Select brand</option>
+                        <% for (const b of brandOptions) { %>
+                          <option value="<%= b %>"><%= b %></option>
+                        <% } %>
+                      </select>
+                    </div>
+
+                    <!-- Model -->
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700">Model</label>
+                      <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
+                              data-tyre-key="<%= p.key %>"
+                              name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
+                        <option value="">Select model</option>
+                      </select>
+                    </div>
+
+                    <!-- Tread depth -->
+                    <div class="sm:col-span-2">
+                      <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
+                      <div class="mt-1 grid grid-cols-3 gap-2">
+                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                                data-tyre-key="<%= p.key %>"
+                                name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
+                          <option value="">Inner</option>
+                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                        </select>
+
+                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                                data-tyre-key="<%= p.key %>"
+                                name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
+                          <option value="">Middle</option>
+                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                        </select>
+
+                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                                data-tyre-key="<%= p.key %>"
+                                name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
+                          <option value="">Outer</option>
+                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                        </select>
+                      </div>
+                      <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
+                    </div>
+
+                    <!-- Tags -->
+                    <div class="sm:col-span-2">
+                      <label class="block text-sm font-medium text-slate-700">Tags</label>
+                      <div class="mt-1 flex flex-wrap gap-2">
+                        <% for (const tag of QUICK_TAGS) { 
+                             const id = `${p.key}-tag-${tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}`; %>
+                          <label class="chip inline-flex items-center gap-1" for="<%= id %>">
+                            <input id="<%= id %>" type="checkbox" class="hidden tag-input"
+                                   name="<%= p.key==='osf'?'offside.front.tags': p.key==='nsf'?'nearside.front.tags': p.key==='osr'?'offside.rear.tags':'nearside.rear.tags' %>"
+                                   value="<%= tag %>"/>
+                            <span class="text-sm"><%= tag %></span>
+                          </label>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer actions (full-width Save) -->
+                  <div class="mt-4">
+                    <button type="button"
+                            class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
+                            data-save-back="<%= p.key %>">
+                      Save <%= p.key.toUpperCase() %>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          <% } %>
+
+          <% for (const p of panels) { %>
+            <%- panelMarkup(p) %>
+          <% } %>
+        </div>
+      </div>
 
       <!-- General notes + Save (only when all tyres complete) -->
       <div id="notes-block" class="hidden">
@@ -258,6 +270,8 @@
 
   <script>
     const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
+    const FAIL_TAGS = new Set(['Bulge','Cord exposed','Puncture']);
+    const ADV_TAGS  = new Set(['Perished','Cracked sidewall','Uneven wear','Bald on inner edge','Bald on outer edge']);
 
     // brand -> models
     async function fetchModels(brand) {
@@ -284,69 +298,112 @@
       }
     });
 
-    // Tag chips toggle
+    // Helpers
+    function isLarge(){ return window.matchMedia('(min-width: 1024px)').matches; }
+    function isNum(v){ return v !== "" && !isNaN(Number(v)); }
+    function filled(v){ return v != null && String(v).trim() !== ""; }
+    function q(name){ return document.querySelector(`[name="${name}"]`); }
+
+    // Completion & condition
+    function hasAllTreads(path){
+      const gi = (s)=>document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? "";
+      return isNum(gi('inner')) && isNum(gi('middle')) && isNum(gi('outer'));
+    }
+    function tyreComplete(path){
+      const g = (n)=>document.querySelector(`[name="${path}.${n}"]`)?.value ?? "";
+      return filled(g('size'))
+          && filled(g('brand')) && filled(g('model'))
+          && hasAllTreads(path);
+    }
+    function readTagsFor(path){
+      const prefix = path.replace(/\./g,'\\.');
+      const inputs = document.querySelectorAll(`input[name="${prefix}.tags"]`);
+      const out = [];
+      inputs.forEach(i=>{ if(i.checked) out.push(i.value); });
+      return out;
+    }
+    function determineCondition(path){
+      // Only called after complete; but still robust
+      const tags = new Set(readTagsFor(path));
+      for (const t of tags){ if (FAIL_TAGS.has(t)) return 'fail'; }
+      let advisoryFromTags = false;
+      for (const t of tags){ if (ADV_TAGS.has(t)) advisoryFromTags = true; }
+
+      const gi = (s)=>Number(document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? NaN);
+      const vals = ['inner','middle','outer'].map(gi).filter(n=>!isNaN(n));
+      if (vals.length){
+        if (vals.some(v => v < 3)) return 'fail';
+        if (vals.some(v => v < 4)) return 'advisory';
+      }
+      if (advisoryFromTags) return 'advisory';
+      return 'ok';
+    }
+
+    function applyWheelColour(key){
+      const el = document.querySelector(`.wheel-hotspot[data-key="${key}"]`);
+      if (!el) return;
+      // Always reset first
+      el.classList.remove('cond-ok','cond-adv','cond-fail');
+
+      // Only colour AFTER completion
+      if (tyreComplete(PATHS[key])){
+        const cond = determineCondition(PATHS[key]);
+        if (cond === 'ok')       el.classList.add('cond-ok');
+        else if (cond === 'advisory') el.classList.add('cond-adv');
+        else if (cond === 'fail')     el.classList.add('cond-fail');
+      }
+    }
+
+    function markWheel(key){
+      // Mark/save-visibility and colour if complete
+      applyWheelColour(key);
+      updateSaveVisibility();
+    }
+
+    function updateSaveVisibility(){
+      const allDone = Object.values(PATHS).every(tyreComplete);
+      document.getElementById('notes-block').classList.toggle('hidden', !allDone);
+      document.getElementById('save-block').classList.toggle('hidden', !allDone);
+    }
+
+    // Tag chips toggle + update colour (colour only if complete)
     document.querySelectorAll('.chip').forEach(ch => {
       ch.addEventListener('click', (e) => {
         const input = ch.querySelector('.tag-input');
         if (!input) return;
         input.checked = !input.checked;
         ch.classList.toggle('active', input.checked);
+        const panel = ch.closest('section[id^="panel-"]');
+        const key = panel ? panel.id.replace('panel-','') : null;
+        if (key){ markWheel(key); }
         e.preventDefault();
       });
     });
 
-    const pickScreen = document.getElementById('pick-screen');
-    const notesBlock = document.getElementById('notes-block');
-    const saveBlock = document.getElementById('save-block');
+    // Show a panel when wheel clicked; keep car on left always
+    function showPanel(key){
+      // Hide all panels then show the requested one
+      document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
+      document.getElementById('panel-'+key)?.classList.remove('hidden');
 
-    // Open panel from car
+      // Active ring on hotspot
+      document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
+      document.querySelector(`.wheel-hotspot[data-key="${key}"]`)?.classList.add('active');
+    }
+
     document.querySelectorAll('.wheel-hotspot').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.dataset.key;
-        pickScreen.classList.add('hidden');
-        document.getElementById('panel-'+key).classList.remove('hidden');
-        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
-        btn.classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+      btn.addEventListener('click', () => showPanel(btn.dataset.key));
     });
 
-    // Completion rules (derived; no explicit condition select)
-    function isNum(v){ return v !== "" && !isNaN(Number(v)); }
-    function filled(v){ return v != null && String(v).trim() !== ""; }
-    function tyreComplete(path){
-      const g = (n)=>document.querySelector(`[name="${path}.${n}"]`)?.value ?? "";
-      return filled(g('size'))
-          && filled(g('brand')) && filled(g('model'))
-          && isNum(g('treadDepth.inner')) && isNum(g('treadDepth.middle')) && isNum(g('treadDepth.outer'));
-    }
-    function hasAllTreads(path){
-      const gi = (s)=>document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? "";
-      return isNum(gi('inner')) && isNum(gi('middle')) && isNum(gi('outer'));
-    }
-
-    function markWheel(key){
-      const hotspot = document.querySelector(`.wheel-hotspot[data-key="${key}"]`);
-      if (!hotspot) return;
-      if (tyreComplete(PATHS[key])) hotspot.classList.add('completed');
-      else hotspot.classList.remove('completed');
-    }
-
-    function updateSaveVisibility(){
-      const allDone = Object.values(PATHS).every(tyreComplete);
-      notesBlock.classList.toggle('hidden', !allDone);
-      saveBlock.classList.toggle('hidden', !allDone);
-    }
-
-    // Track inputs
+    // Track inputs (brand/model/size/dot/treads) -> recalc completion/colour
     document.querySelectorAll('.tyre-field').forEach(el => {
       el.addEventListener('input', e => {
         const key = e.target.getAttribute('data-tyre-key');
-        if (key) { markWheel(key); updateSaveVisibility(); }
+        if (key) markWheel(key);
       });
       el.addEventListener('change', e => {
         const key = e.target.getAttribute('data-tyre-key');
-        if (key) { markWheel(key); updateSaveVisibility(); }
+        if (key) markWheel(key);
       });
     });
 
@@ -358,13 +415,16 @@
           if (!sel.value) return;
           selects.forEach(other => { if (other !== sel && !other.value) other.value = sel.value; });
           const key = panel.id.replace('panel-','');
-          markWheel(key); updateSaveVisibility();
+          markWheel(key);
         });
       });
     });
 
-    // ---------- Single "copy all core" button (header) ----------
-    function q(name){ return document.querySelector(`[name="${name}"]`); }
+    // ---------- Single "copy core" button (header) ----------
+    function hasAllTreadsPath(path){
+      const gi = (s)=>document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? "";
+      return isNum(gi('inner')) && isNum(gi('middle')) && isNum(gi('outer'));
+    }
 
     async function copyCoreFrom(fromKey){
       const src = PATHS[fromKey];
@@ -379,25 +439,20 @@
       for (const [k, p] of Object.entries(PATHS)) {
         if (k === fromKey) continue;
 
-        // Only copy to wheels that do NOT have all tread depths filled
-        if (hasAllTreads(p)) continue;
+        // Only copy to wheels that do NOT have all tread depths filled (i.e., not yet completed)
+        if (hasAllTreadsPath(p)) continue;
 
         // Size & DOT overwrite
-        const sizeEl = q(`${p}.size`);
-        if (sizeEl) sizeEl.value = size;
-
-        const dotEl = q(`${p}.dot`);
-        if (dotEl) dotEl.value = dot;
+        const sizeEl = q(`${p}.size`); if (sizeEl) sizeEl.value = size;
+        const dotEl  = q(`${p}.dot`);  if (dotEl)  dotEl.value  = dot;
 
         // Brand & Model overwrite
         const bSel = q(`${p}.brand`);
         const mSel = q(`${p}.model`);
         if (bSel && mSel) {
-          // Set brand
           bSel.value = "";
           [...bSel.options].forEach(o => { if (o.value === brand) bSel.value = brand; });
 
-          // Populate and set model
           mSel.innerHTML = `<option value="">Select model</option>`;
           if (brand) {
             const models = await fetchModels(brand);
@@ -410,7 +465,6 @@
           [...mSel.options].forEach(o => { if (o.value === model) mSel.value = model; });
         }
 
-        // Visual feedback on hotspots copied-to
         const hotspot = document.querySelector(`.wheel-hotspot[data-key="${k}"]`);
         if (hotspot) { hotspot.classList.add('flash-updated'); flashed.push(hotspot); }
 
@@ -418,14 +472,10 @@
         markWheel(k);
       }
 
-      // Remove flash after a moment
       setTimeout(()=> flashed.forEach(h=>h.classList.remove('flash-updated')), 900);
-
-      updateSaveVisibility();
       return affected;
     }
 
-    // Hook header buttons
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-copy-all-from]');
       if (!btn) return;
@@ -435,7 +485,6 @@
 
       const n = await copyCoreFrom(fromKey);
 
-      // header pill feedback
       const pill = document.getElementById(`copy-pill-${fromKey}`);
       if (pill) {
         pill.textContent = n ? `Copied to ${n} wheel${n===1?'':'s'}` : 'No wheels eligible';
@@ -443,28 +492,20 @@
         setTimeout(()=> pill.classList.add('hidden'), 1400);
       }
 
-      // tiny press feedback on the button
       btn.classList.add('bg-slate-100');
       setTimeout(()=> { btn.classList.remove('bg-slate-100'); btn.disabled = false; }, 350);
     });
 
-    // Save & return to car (full-width Save button)
+    // Save button: mark/colour (only if now complete); on mobile we don't auto-switch views anymore
     document.querySelectorAll('[data-save-back]').forEach(btn => {
       btn.addEventListener('click', () => {
         const key = btn.getAttribute('data-save-back');
         markWheel(key);
-        updateSaveVisibility();
-
-        // Return to pick screen
-        document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
-        pickScreen.classList.remove('hidden');
-        document.querySelectorAll('.wheel-hotspot').forEach(h => h.classList.remove('active'));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
 
-    // Initial state
-    Object.keys(PATHS).forEach(markWheel);
+    // Initial: all panels hidden; car visible; wheels neutral
+    Object.keys(PATHS).forEach(k => applyWheelColour(k)); // will keep neutral unless complete
     updateSaveVisibility();
   </script>
 </body>
