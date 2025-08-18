@@ -266,245 +266,360 @@
     </div>
 
 
-  <script>
-    const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
-    const FAIL_TAGS = new Set(['Bulge','Cord exposed','Puncture']);
-    const ADV_TAGS  = new Set(['Perished','Cracked sidewall','Uneven wear','Bald on inner edge','Bald on outer edge']);
+    <script>
+  // =========================
+  // Tyre Inspector — Page JS
+  // =========================
 
-    // brand -> models
-    async function fetchModels(brand) {
-      if (!brand) return [];
-      try {
-        const res = await fetch(`/inspections/api/tyres/models?brand=${encodeURIComponent(brand)}`);
-        return await res.json();
-      } catch { return []; }
-    }
+  // ---------- Config / constants ----------
+  var PATHS = {
+    osf: 'offside.front',
+    nsf: 'nearside.front',
+    osr: 'offside.rear',
+    nsr: 'nearside.rear'
+  };
 
-    // Populate models when a brand changes (same panel)
-    document.addEventListener('change', async (e) => {
+  // Tags that force a FAIL / ADVISORY when present
+  var FAIL_TAGS = new Set(['Bulge', 'Cord exposed', 'Puncture']);
+  var ADV_TAGS  = new Set(['Perished', 'Cracked sidewall', 'Uneven wear', 'Bald on inner edge', 'Bald on outer edge']);
+
+  // ---------- Small helpers ----------
+  function isLarge(){ return window.matchMedia('(min-width: 1024px)').matches; }
+  function isNum(v){ return v !== '' && !isNaN(Number(v)); }
+  function filled(v){ return v != null && String(v).trim() !== ''; }
+  function q(name){ return document.querySelector('[name="'+name+'"]'); }
+
+  // ---------- API ----------
+  function fetchModels(brand){
+    if (!brand) return Promise.resolve([]);
+    return fetch('/inspections/api/tyres/models?brand=' + encodeURIComponent(brand))
+      .then(function(res){ return res.json(); })
+      .catch(function(){ return []; });
+  }
+
+  // Populate models when a brand changes (same panel)
+  function bindBrandChange(){
+    document.addEventListener('change', function(e){
       if (!e.target.classList.contains('brand-select')) return;
-      const sel = e.target;
-      const key = sel.getAttribute('data-tyre-key');
-      const modelSel = document.querySelector(`#panel-${key} .model-select`);
-      modelSel.innerHTML = `<option value="">Select model</option>`;
-      if (sel.value) {
-        const models = await fetchModels(sel.value);
-        for (const m of models) {
-          const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
-          modelSel.appendChild(opt);
-        }
+      var sel = e.target;
+      var key = sel.getAttribute('data-tyre-key');
+      var modelSel = document.querySelector('#panel-' + key + ' .model-select');
+      if (!modelSel) return;
+      modelSel.innerHTML = '<option value="">Select model</option>';
+      if (sel.value){
+        fetchModels(sel.value).then(function(models){
+          for (var i=0;i<models.length;i++){
+            var opt = document.createElement('option');
+            opt.value = models[i]; opt.textContent = models[i];
+            modelSel.appendChild(opt);
+          }
+        });
       }
     });
+  }
 
-    // Helpers
-    function isLarge(){ return window.matchMedia('(min-width: 1024px)').matches; }
-    function isNum(v){ return v !== "" && !isNaN(Number(v)); }
-    function filled(v){ return v != null && String(v).trim() !== ""; }
-    function q(name){ return document.querySelector(`[name="${name}"]`); }
+  // ---------- Completion & condition ----------
+  function hasAllTreads(path){
+    var i = q(path + '.treadDepth.inner');  i = i ? i.value : '';
+    var m = q(path + '.treadDepth.middle'); m = m ? m.value : '';
+    var o = q(path + '.treadDepth.outer');  o = o ? o.value : '';
+    return isNum(i) && isNum(m) && isNum(o);
+  }
 
-    // Completion & condition
-    function hasAllTreads(path){
-      const gi = (s)=>document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? "";
-      return isNum(gi('inner')) && isNum(gi('middle')) && isNum(gi('outer'));
+  function tyreComplete(path){
+    var size  = q(path + '.size');  size  = size  ? size.value  : '';
+    var brand = q(path + '.brand'); brand = brand ? brand.value : '';
+    var model = q(path + '.model'); model = model ? model.value : '';
+    return filled(size) && filled(brand) && filled(model) && hasAllTreads(path);
+  }
+
+  function readTagsFor(path){
+    var safe = path.replace(/\./g, '\\.');
+    var inputs = document.querySelectorAll('input[name="'+safe+'.tags"]');
+    var out = [];
+    for (var i=0;i<inputs.length;i++){ if (inputs[i].checked) out.push(inputs[i].value); }
+    return out;
+  }
+
+  function determineCondition(path){
+    // Tags
+    var tags = readTagsFor(path);
+    for (var i=0;i<tags.length;i++){ if (FAIL_TAGS.has(tags[i])) return 'fail'; }
+    var advisoryFromTags = false;
+    for (var j=0;j<tags.length;j++){ if (ADV_TAGS.has(tags[j])) advisoryFromTags = true; }
+
+    // Treads
+    var iv = q(path + '.treadDepth.inner');  iv = iv ? Number(iv.value) : NaN;
+    var mv = q(path + '.treadDepth.middle'); mv = mv ? Number(mv.value) : NaN;
+    var ov = q(path + '.treadDepth.outer');  ov = ov ? Number(ov.value) : NaN;
+    var vals = [];
+    if (!isNaN(iv)) vals.push(iv);
+    if (!isNaN(mv)) vals.push(mv);
+    if (!isNaN(ov)) vals.push(ov);
+
+    if (vals.length){
+      for (var k=0;k<vals.length;k++){ if (vals[k] < 3) return 'fail'; }
+      for (var k2=0;k2<vals.length;k2++){ if (vals[k2] < 4) return 'advisory'; }
     }
-    function tyreComplete(path){
-      const g = (n)=>document.querySelector(`[name="${path}.${n}"]`)?.value ?? "";
-      return filled(g('size'))
-          && filled(g('brand')) && filled(g('model'))
-          && hasAllTreads(path);
-    }
-    function readTagsFor(path){
-      const prefix = path.replace(/\./g,'\\.');
-      const inputs = document.querySelectorAll(`input[name="${prefix}.tags"]`);
-      const out = [];
-      inputs.forEach(i=>{ if(i.checked) out.push(i.value); });
-      return out;
-    }
-    function determineCondition(path){
-      // Only called after complete; but still robust
-      const tags = new Set(readTagsFor(path));
-      for (const t of tags){ if (FAIL_TAGS.has(t)) return 'fail'; }
-      let advisoryFromTags = false;
-      for (const t of tags){ if (ADV_TAGS.has(t)) advisoryFromTags = true; }
+    if (advisoryFromTags) return 'advisory';
+    return 'ok';
+  }
 
-      const gi = (s)=>Number(document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? NaN);
-      const vals = ['inner','middle','outer'].map(gi).filter(n=>!isNaN(n));
-      if (vals.length){
-        if (vals.some(v => v < 3)) return 'fail';
-        if (vals.some(v => v < 4)) return 'advisory';
-      }
-      if (advisoryFromTags) return 'advisory';
-      return 'ok';
+  function applyWheelColour(key){
+    var el = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
+    if (!el) return;
+    el.classList.remove('cond-ok','cond-adv','cond-fail');
+    // Only colour AFTER completion
+    if (tyreComplete(PATHS[key])){
+      var c = determineCondition(PATHS[key]);
+      if (c === 'ok') el.classList.add('cond-ok');
+      else if (c === 'advisory') el.classList.add('cond-adv');
+      else if (c === 'fail') el.classList.add('cond-fail');
     }
+  }
 
-    function applyWheelColour(key){
-      const el = document.querySelector(`.wheel-hotspot[data-key="${key}"]`);
-      if (!el) return;
-      // Always reset first
-      el.classList.remove('cond-ok','cond-adv','cond-fail');
+  function markWheel(key){
+    applyWheelColour(key);
+    updateSaveVisibility();
+  }
 
-      // Only colour AFTER completion
-      if (tyreComplete(PATHS[key])){
-        const cond = determineCondition(PATHS[key]);
-        if (cond === 'ok')       el.classList.add('cond-ok');
-        else if (cond === 'advisory') el.classList.add('cond-adv');
-        else if (cond === 'fail')     el.classList.add('cond-fail');
-      }
+  function updateSaveVisibility(){
+    var keys = Object.keys(PATHS);
+    var allDone = keys.every(function(k){ return tyreComplete(PATHS[k]); });
+    var nb = document.getElementById('notes-block');
+    var sb = document.getElementById('save-block');
+    if (nb) nb.classList.toggle('hidden', !allDone);
+    if (sb) sb.classList.toggle('hidden', !allDone);
+  }
+
+  // ---------- Panels / navigation ----------
+  function showPanel(key){
+    // Hide all panels
+    document.querySelectorAll('section[id^="panel-"]').forEach(function(s){ s.classList.add('hidden'); });
+    // Show requested
+    var panel = document.getElementById('panel-' + key);
+    if (panel) panel.classList.remove('hidden');
+
+    // Active ring on hotspot
+    document.querySelectorAll('.wheel-hotspot').forEach(function(h){ h.classList.remove('active'); });
+    var spot = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
+    if (spot) spot.classList.add('active');
+
+    // Mobile: hide car area while editing the form
+    if (!isLarge()){
+      var pick = document.getElementById('pick-screen');
+      if (pick) pick.classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
 
-    function markWheel(key){
-      // Mark/save-visibility and colour if complete
-      applyWheelColour(key);
-      updateSaveVisibility();
-    }
-
-    function updateSaveVisibility(){
-      const allDone = Object.values(PATHS).every(tyreComplete);
-      document.getElementById('notes-block').classList.toggle('hidden', !allDone);
-      document.getElementById('save-block').classList.toggle('hidden', !allDone);
-    }
-
-    // Tag chips toggle + update colour (colour only if complete)
-    document.querySelectorAll('.chip').forEach(ch => {
-      ch.addEventListener('click', (e) => {
-        const input = ch.querySelector('.tag-input');
-        if (!input) return;
-        input.checked = !input.checked;
-        ch.classList.toggle('active', input.checked);
-        const panel = ch.closest('section[id^="panel-"]');
-        const key = panel ? panel.id.replace('panel-','') : null;
-        if (key){ markWheel(key); }
-        e.preventDefault();
-      });
+  function bindWheelClicks(){
+    var wheels = document.querySelectorAll('.wheel-hotspot');
+    wheels.forEach(function(btn){
+      var go = function(){ showPanel(btn.dataset.key); };
+      btn.addEventListener('click', go);
+      // iOS sometimes needs touchstart for immediacy
+      btn.addEventListener('touchstart', function(e){ e.preventDefault(); go(); }, {passive:false});
     });
+  }
 
-    // Show a panel when wheel clicked; keep car on left always
-    function showPanel(key){
-      // Hide all panels then show the requested one
-      document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
-      document.getElementById('panel-'+key)?.classList.remove('hidden');
-
-      // Active ring on hotspot
-      document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
-      document.querySelector(`.wheel-hotspot[data-key="${key}"]`)?.classList.add('active');
-    }
-
-    document.querySelectorAll('.wheel-hotspot').forEach(btn => {
-      btn.addEventListener('click', () => showPanel(btn.dataset.key));
-    });
-
-    // Track inputs (brand/model/size/dot/treads) -> recalc completion/colour
-    document.querySelectorAll('.tyre-field').forEach(el => {
-      el.addEventListener('input', e => {
-        const key = e.target.getAttribute('data-tyre-key');
+  // ---------- Track inputs (brand/model/size/dot/treads) ----------
+  function bindFieldTracking(){
+    document.querySelectorAll('.tyre-field').forEach(function(el){
+      el.addEventListener('input', function(e){
+        var key = e.target.getAttribute('data-tyre-key');
         if (key) markWheel(key);
       });
-      el.addEventListener('change', e => {
-        const key = e.target.getAttribute('data-tyre-key');
+      el.addEventListener('change', function(e){
+        var key = e.target.getAttribute('data-tyre-key');
         if (key) markWheel(key);
       });
     });
+  }
 
-    // Auto-fill tread depths if one chosen and others blank
-    document.querySelectorAll('section[id^="panel-"]').forEach(panel => {
-      const selects = panel.querySelectorAll('select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]');
-      selects.forEach(sel => {
-        sel.addEventListener('change', () => {
+  // Auto-fill treads if one chosen and the others blank (per panel)
+  function bindTreadAutofill(){
+    document.querySelectorAll('section[id^="panel-"]').forEach(function(panel){
+      var selects = panel.querySelectorAll('select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]');
+      selects.forEach(function(sel){
+        sel.addEventListener('change', function(){
           if (!sel.value) return;
-          selects.forEach(other => { if (other !== sel && !other.value) other.value = sel.value; });
-          const key = panel.id.replace('panel-','');
+          selects.forEach(function(other){
+            if (other !== sel && !other.value) other.value = sel.value;
+          });
+          var key = panel.id.replace('panel-','');
           markWheel(key);
         });
       });
     });
+  }
 
-    // ---------- Single "copy core" button (header) ----------
-    function hasAllTreadsPath(path){
-      const gi = (s)=>document.querySelector(`[name="${path}.treadDepth.${s}"]`)?.value ?? "";
-      return isNum(gi('inner')) && isNum(gi('middle')) && isNum(gi('outer'));
-    }
+  // ---------- Tags (chips) ----------
+  function bindTagChips(){
+    document.querySelectorAll('.chip').forEach(function(ch){
+      ch.addEventListener('click', function(e){
+        var input = ch.querySelector('.tag-input');
+        if (!input) return;
+        input.checked = !input.checked;
+        ch.classList.toggle('active', input.checked);
+        var panel = ch.closest('section[id^="panel-"]');
+        var key = panel ? panel.id.replace('panel-','') : null;
+        if (key) markWheel(key);
+        e.preventDefault();
+      });
+    });
+  }
 
-    async function copyCoreFrom(fromKey){
-      const src = PATHS[fromKey];
-      const size  = q(`${src}.size`)?.value ?? "";
-      const dot   = q(`${src}.dot`)?.value ?? "";
-      const brand = q(`${src}.brand`)?.value ?? "";
-      const model = q(`${src}.model`)?.value ?? "";
+  // ---------- Single header "Copy to others" ----------
+  function hasAllTreadsPath(path){
+    var i = q(path + '.treadDepth.inner');  i = i ? i.value : '';
+    var m = q(path + '.treadDepth.middle'); m = m ? m.value : '';
+    var o = q(path + '.treadDepth.outer');  o = o ? o.value : '';
+    return isNum(i) && isNum(m) && isNum(o);
+  }
 
-      let affected = 0;
-      const flashed = [];
+  function bindCopyCore(){
+    function copyCoreFrom(fromKey){
+      var src = PATHS[fromKey];
+      var size  = q(src + '.size');  size  = size  ? size.value  : '';
+      var dot   = q(src + '.dot');   dot   = dot   ? dot.value   : '';
+      var brand = q(src + '.brand'); brand = brand ? brand.value : '';
+      var model = q(src + '.model'); model = model ? model.value : '';
 
-      for (const [k, p] of Object.entries(PATHS)) {
-        if (k === fromKey) continue;
+      var affected = 0;
+      var flashed = [];
 
-        // Only copy to wheels that do NOT have all tread depths filled (i.e., not yet completed)
-        if (hasAllTreadsPath(p)) continue;
+      function doOne(k, p){
+        if (k === fromKey) return Promise.resolve();
+        // Only copy to wheels that do NOT already have all tread depths filled
+        if (hasAllTreadsPath(p)) return Promise.resolve();
 
-        // Size & DOT overwrite
-        const sizeEl = q(`${p}.size`); if (sizeEl) sizeEl.value = size;
-        const dotEl  = q(`${p}.dot`);  if (dotEl)  dotEl.value  = dot;
+        // Size & DOT
+        var sEl = q(p + '.size'); if (sEl) sEl.value = size;
+        var dEl = q(p + '.dot');  if (dEl) dEl.value = dot;
 
-        // Brand & Model overwrite
-        const bSel = q(`${p}.brand`);
-        const mSel = q(`${p}.model`);
-        if (bSel && mSel) {
-          bSel.value = "";
-          [...bSel.options].forEach(o => { if (o.value === brand) bSel.value = brand; });
+        // Brand & Model (overwrite)
+        var bSel = q(p + '.brand');
+        var mSel = q(p + '.model');
 
-          mSel.innerHTML = `<option value="">Select model</option>`;
-          if (brand) {
-            const models = await fetchModels(brand);
-            for (const m of models) {
-              const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
-              mSel.appendChild(opt);
+        function setModelOptions(models){
+          if (!mSel) return;
+          mSel.innerHTML = '<option value="">Select model</option>';
+          for (var i=0;i<models.length;i++){
+            var opt = document.createElement('option');
+            opt.value = models[i]; opt.textContent = models[i];
+            mSel.appendChild(opt);
+          }
+          // set model if present in the list
+          if (model){
+            mSel.value = '';
+            for (var j=0;j<mSel.options.length;j++){
+              if (mSel.options[j].value === model){ mSel.value = model; break; }
             }
           }
-          mSel.value = "";
-          [...mSel.options].forEach(o => { if (o.value === model) mSel.value = model; });
         }
 
-        const hotspot = document.querySelector(`.wheel-hotspot[data-key="${k}"]`);
-        if (hotspot) { hotspot.classList.add('flash-updated'); flashed.push(hotspot); }
+        if (bSel){
+          // set brand
+          if (brand){
+            bSel.value = '';
+            for (var bi=0; bi<bSel.options.length; bi++){
+              if (bSel.options[bi].value === brand){ bSel.value = brand; break; }
+            }
+          }
+          // fetch models for that brand (or clear)
+          if (bSel.value){
+            return fetchModels(bSel.value).then(function(models){
+              setModelOptions(models);
+            });
+          } else {
+            setModelOptions([]);
+          }
+        }
+
+        var hotspot = document.querySelector('.wheel-hotspot[data-key="'+k+'"]');
+        if (hotspot){ hotspot.classList.add('flash-updated'); flashed.push(hotspot); }
 
         affected++;
         markWheel(k);
+        return Promise.resolve();
       }
 
-      setTimeout(()=> flashed.forEach(h=>h.classList.remove('flash-updated')), 900);
-      return affected;
+      var chain = Promise.resolve();
+      Object.keys(PATHS).forEach(function(k){
+        chain = chain.then(function(){ return doOne(k, PATHS[k]); });
+      });
+
+      return chain.then(function(){
+        setTimeout(function(){ flashed.forEach(function(h){ h.classList.remove('flash-updated'); }); }, 900);
+        return affected;
+      });
     }
 
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('[data-copy-all-from]');
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-copy-all-from]');
       if (!btn) return;
 
-      const fromKey = btn.getAttribute('data-copy-all-from');
+      var fromKey = btn.getAttribute('data-copy-all-from');
       btn.disabled = true;
 
-      const n = await copyCoreFrom(fromKey);
+      copyCoreFrom(fromKey).then(function(n){
+        var pill = document.getElementById('copy-pill-' + fromKey);
+        if (pill){
+          pill.textContent = n ? ('Copied to ' + n + ' wheel' + (n===1?'':'s')) : 'No wheels eligible';
+          pill.classList.remove('hidden');
+          setTimeout(function(){ pill.classList.add('hidden'); }, 1400);
+        }
 
-      const pill = document.getElementById(`copy-pill-${fromKey}`);
-      if (pill) {
-        pill.textContent = n ? `Copied to ${n} wheel${n===1?'':'s'}` : 'No wheels eligible';
-        pill.classList.remove('hidden');
-        setTimeout(()=> pill.classList.add('hidden'), 1400);
-      }
-
-      btn.classList.add('bg-slate-100');
-      setTimeout(()=> { btn.classList.remove('bg-slate-100'); btn.disabled = false; }, 350);
-    });
-
-    // Save button: mark/colour (only if now complete); on mobile we don't auto-switch views anymore
-    document.querySelectorAll('[data-save-back]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.getAttribute('data-save-back');
-        markWheel(key);
+        btn.classList.add('bg-slate-100');
+        setTimeout(function(){
+          btn.classList.remove('bg-slate-100');
+          btn.disabled = false;
+        }, 350);
       });
     });
+  }
 
-    // Initial: all panels hidden; car visible; wheels neutral
-    Object.keys(PATHS).forEach(k => applyWheelColour(k)); // will keep neutral unless complete
+  // ---------- Mobile Save: hide form, show car ----------
+  function bindMobileSave(){
+    document.querySelectorAll('[data-save-back]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var key = btn.getAttribute('data-save-back');
+        markWheel(key);
+        if (!isLarge()){
+          var panel = document.getElementById('panel-' + key);
+          if (panel) panel.classList.add('hidden');
+          var pick = document.getElementById('pick-screen');
+          if (pick) pick.classList.remove('hidden');
+          document.querySelectorAll('.wheel-hotspot').forEach(function(h){ h.classList.remove('active'); });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+  }
+
+  // ---------- Init ----------
+  function initTyreInspector(){
+    bindBrandChange();
+    bindWheelClicks();
+    bindFieldTracking();
+    bindTreadAutofill();
+    bindTagChips();
+    bindCopyCore();
+    bindMobileSave();
+
+    // Initial state: keep car visible, all panels hidden, wheels neutral until completed
+    Object.keys(PATHS).forEach(function(k){ applyWheelColour(k); });
     updateSaveVisibility();
-  </script>
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initTyreInspector);
+  } else {
+    initTyreInspector();
+  }
+</script>
+
+  
 </body>
 </html>
