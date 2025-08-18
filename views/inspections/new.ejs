@@ -1,128 +1,117 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>New Inspection</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>New Inspection</title>
 
-  <!-- Tailwind (CDN) -->
-  <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <style>
-    /* Car + wheels */
-    .car-wrap{ position:relative; max-width:200px; margin-inline:auto; }
-    @media (min-width:576px){ .car-wrap{ max-width:220px; } }
-    @media (min-width:992px){ .car-wrap{ max-width:260px; } }
-    .car-svg{ width:100%; height:auto; display:block; }
+    <style>
+      /* Car + wheels */
+      .car-wrap{ position:relative; max-width:200px; margin-inline:auto; }
+      @media (min-width:576px){ .car-wrap{ max-width:220px; } }
+      @media (min-width:992px){ .car-wrap{ max-width:260px; } }
+      .car-svg{ width:100%; height:auto; display:block; }
 
-    .wheel-hotspot{
-      position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
-      transform:translate(-50%,-50%);
-      border:2px solid rgb(173,181,189); background:#fff;
-      display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem;
-      transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
-      cursor:pointer; user-select:none;
-    }
-    .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
+      .wheel-hotspot{
+        position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
+        transform:translate(-50%,-50%);
+        border:2px solid rgb(173,181,189); background:#fff;
+        display:flex; align-items:center; justify-content:center;
+        font-weight:700; font-size:.8rem;
+        transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
+        cursor:pointer; user-select:none;
+      }
+      .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
 
-    /* Condition colours (applied ONLY when completed) */
-    .wheel-hotspot.cond-ok    { border-color:#15803d; background:#e6f4ea; color:#14532d; }
-    .wheel-hotspot.cond-adv   { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
-    .wheel-hotspot.cond-fail  { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
+      /* Condition colours (applied ONLY when completed) */
+      .wheel-hotspot.cond-ok   { border-color:#15803d; background:#e6f4ea; color:#14532d; }
+      .wheel-hotspot.cond-adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
+      .wheel-hotspot.cond-fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
 
-    /* Tag chips */
-    .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
-    .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
+      /* Tag chips */
+      .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
+      .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
 
-    /* Copy feedback flash */
-    .flash-updated{ box-shadow: 0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
-  </style>
-</head>
-<body class="h-full">
-  <div class="mx-auto max-w-5xl px-4 py-6">
-    <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
-      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
-      Home
-    </a>
+      /* Copy feedback flash */
+      .flash-updated{ box-shadow:0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
+    </style>
+  </head>
+  <body class="h-full">
+    <div class="mx-auto max-w-5xl px-4 py-6">
+      <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
+        Home
+      </a>
 
-    <!-- Header -->
-    <header class="mb-4">
-      <div class="flex items-center justify-between">
-        <h1 class="text-lg font-semibold text-slate-900">New Inspection</h1>
-        <span class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1 text-sm font-mono text-slate-800">
-          <%= vehicle.vrm %>
-        </span>
-      </div>
-      <div class="text-sm text-slate-600 mt-1">
-        <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
-        <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
-      </div>
-    </header>
+      <!-- Header -->
+      <header class="mb-4">
+        <div class="flex items-center justify-between">
+          <h1 class="text-lg font-semibold text-slate-900">New Inspection</h1>
+          <span class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1 text-sm font-mono text-slate-800">
+            <%= vehicle.vrm %>
+          </span>
+        </div>
+        <div class="text-sm text-slate-600 mt-1">
+          <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
+          <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
+        </div>
+      </header>
 
-    <form method="POST" action="/inspections" id="inspection-form" class="space-y-4">
-      <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
+      <form method="POST" action="/inspections" id="inspection-form" class="space-y-4">
+        <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
 
-      <!-- Mileage -->
-      <div>
-        <label class="block text-sm font-medium text-slate-700">Mileage</label>
-        <input type="number" step="1" name="mileage" inputmode="numeric" placeholder="e.g. 45678"
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"/>
-      </div>
+        <!-- Mileage -->
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Mileage</label>
+          <input type="number" step="1" name="mileage" inputmode="numeric" placeholder="e.g. 45678"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"/>
+        </div>
 
-      <!-- Workspace: lg = split view -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <!-- Workspace: lg = split view -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          <!-- LEFT: Car / wheel picker (always visible) -->
+          <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow">
+            <div class="px-4 py-3 border-b border-slate-200 font-semibold">Select a wheel to enter details</div>
+            <div class="p-4">
+              <div class="car-wrap">
+                <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
+                  <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
+                  <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
+                  <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
+                  <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
+                </svg>
 
-        <!-- LEFT: Car / wheel picker (always visible) -->
-        <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow">
-          <div class="px-4 py-3 border-b border-slate-200 font-semibold">Select a wheel to enter details</div>
-          <div class="p-4">
-            <div class="car-wrap">
-              <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
-                <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-                <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-                <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-                <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
-              </svg>
-
-              <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
-              <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
-              <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
-              <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
+                <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
+                <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
+                <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
+                <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">
+                Use the header copy button to copy Size, DOT, Brand &amp; Model to other wheels that haven’t had tread recorded yet.
+              </p>
             </div>
-            <p class="mt-2 text-xs text-slate-500">
-              Use the header copy button to copy Size, DOT, Brand &amp; Model to other wheels that haven’t had tread recorded yet.
-            </p>
-          </div>
-        </section>
+          </section>
 
-        <!-- RIGHT: Panels wrapper -->
-        <div id="panels-wrapper" class="space-y-4 lg:space-y-0">
-          <% const panels = [
-            {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize},
-            {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize},
-            {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize},
-            {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize},
-          ];
-
-          // Tread depth options (8 → 2 in 0.5 steps, plus 1.6)
-          const TREADS = [];
-          for (let v = 8.0; v >= 2.0; v -= 0.5) TREADS.push(v.toFixed(v % 1 ? 1 : 0));
-          TREADS.push("1.6");
-
-          const QUICK_TAGS = [
-            "Bald on inner edge",
-            "Bald on outer edge",
-            "Perished",
-            "Bulge",
-            "Puncture",
-            "Uneven wear",
-            "Cracked sidewall",
-            "Cord exposed"
-          ];
-          %>
-
-          <% function panelMarkup(p){ %>
+          <!-- RIGHT: Panels wrapper -->
+          <div id="panels-wrapper" class="space-y-4 lg:space-y-0">
+            <% 
+              var panels = [
+                {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize},
+                {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize},
+                {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize},
+                {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize}
+              ];
+              // Tread depth options (8 -> 2 in 0.5 steps, plus 1.6)
+              var TREADS = [];
+              for (var v = 8.0; v >= 2.0; v -= 0.5) { TREADS.push((v % 1 ? v.toFixed(1) : v.toFixed(0))); }
+              TREADS.push("1.6");
+              var QUICK_TAGS = ["Bald on inner edge","Bald on outer edge","Perished","Bulge","Puncture","Uneven wear","Cracked sidewall","Cord exposed"];
+              function panelMarkup(p){ 
+            %>
             <!-- All panels hidden initially; shown only when its wheel is clicked -->
             <section id="panel-<%= p.key %>" class="hidden">
               <div class="rounded-2xl border border-slate-200 bg-white shadow">
@@ -145,23 +134,22 @@
 
                 <div class="p-4">
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
                     <!-- Size + DOT row -->
                     <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
                       <!-- Size -->
                       <div>
                         <label class="block text-sm font-medium text-slate-700">Size</label>
                         <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
-                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                              data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
+                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                               data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W"/>
                       </div>
 
                       <!-- DOT -->
                       <div>
                         <label class="block text-sm font-medium text-slate-700">DOT (WWYY in code)</label>
                         <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
-                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                              data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
+                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                               data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
                       </div>
                     </div>
 
@@ -172,7 +160,7 @@
                               data-tyre-key="<%= p.key %>"
                               name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>">
                         <option value="">Select brand</option>
-                        <% for (const b of brandOptions) { %>
+                        <% for (var bi=0; bi<brandOptions.length; bi++) { var b = brandOptions[bi]; %>
                           <option value="<%= b %>"><%= b %></option>
                         <% } %>
                       </select>
@@ -196,21 +184,27 @@
                                 data-tyre-key="<%= p.key %>"
                                 name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
                           <option value="">Inner</option>
-                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                          <% for (var ti=0; ti<TREADS.length; ti++) { var tv = TREADS[ti]; %>
+                            <option value="<%= tv %>"><%= tv %> mm</option>
+                          <% } %>
                         </select>
 
                         <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
                                 data-tyre-key="<%= p.key %>"
                                 name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
                           <option value="">Middle</option>
-                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                          <% for (var tm=0; tm<TREADS.length; tm++) { var tvm = TREADS[tm]; %>
+                            <option value="<%= tvm %>"><%= tvm %> mm</option>
+                          <% } %>
                         </select>
 
                         <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
                                 data-tyre-key="<%= p.key %>"
                                 name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
                           <option value="">Outer</option>
-                          <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %> mm</option><% } %>
+                          <% for (var to=0; to<TREADS.length; to++) { var tvo = TREADS[to]; %>
+                            <option value="<%= tvo %>"><%= tvo %> mm</option>
+                          <% } %>
                         </select>
                       </div>
                       <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
@@ -220,8 +214,10 @@
                     <div class="sm:col-span-2">
                       <label class="block text-sm font-medium text-slate-700">Tags</label>
                       <div class="mt-1 flex flex-wrap gap-2">
-                        <% for (const tag of QUICK_TAGS) { 
-                             const id = `${p.key}-tag-${tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}`; %>
+                        <% for (var qi=0; qi<QUICK_TAGS.length; qi++) { 
+                             var tag = QUICK_TAGS[qi];
+                             var id = (p.key + '-tag-' + tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase());
+                        %>
                           <label class="chip inline-flex items-center gap-1" for="<%= id %>">
                             <input id="<%= id %>" type="checkbox" class="hidden tag-input"
                                    name="<%= p.key==='osf'?'offside.front.tags': p.key==='nsf'?'nearside.front.tags': p.key==='osr'?'offside.rear.tags':'nearside.rear.tags' %>"
@@ -234,39 +230,41 @@
                   </div>
 
                   <!-- Footer actions (full-width Save) -->
-                  <div class="mt-4">
-                    <button type="button"
-                            class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
-                            data-save-back="<%= p.key %>">
-                      Save <%= p.key.toUpperCase() %>
-                    </button>
-                  </div>
+<div class="mt-4 block lg:hidden">
+  <button type="button"
+          class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
+          data-save-back="<%= p.key %>">
+    Save <%= p.key.toUpperCase() %>
+  </button>
+</div>
+
                 </div>
               </div>
             </section>
-          <% } %>
+            <% } %>
 
-          <% for (const p of panels) { %>
-            <%- panelMarkup(p) %>
-          <% } %>
+            <% for (var pi=0; pi<panels.length; pi++) { %>
+              <%- panelMarkup(panels[pi]) %>
+            <% } %>
+          </div>
         </div>
-      </div>
 
-      <!-- General notes + Save (only when all tyres complete) -->
-      <div id="notes-block" class="hidden">
-        <label class="block text-sm font-medium text-slate-700">General notes</label>
-        <textarea name="notes" rows="3"
-                  class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  placeholder="Overall findings, advisories, etc."></textarea>
-      </div>
+        <!-- General notes + Save (only when all tyres complete) -->
+        <div id="notes-block" class="hidden">
+          <label class="block text-sm font-medium text-slate-700">General notes</label>
+          <textarea name="notes" rows="3"
+                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="Overall findings, advisories, etc."></textarea>
+        </div>
 
-      <div id="save-block" class="hidden">
-        <button class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          Save inspection
-        </button>
-      </div>
-    </form>
-  </div>
+        <div id="save-block" class="hidden">
+          <button class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            Save inspection
+          </button>
+        </div>
+      </form>
+    </div>
+
 
   <script>
     const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
