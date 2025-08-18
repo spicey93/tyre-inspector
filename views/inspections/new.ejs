@@ -81,7 +81,7 @@
             <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
           </div>
           <p class="mt-2 text-xs text-slate-500">
-            Sizes are blank unless provided in the URL. Use “Copy to all” to speed up size/brand/model.
+            Use the small copy icons beside Size, DOT, and Model to copy to the other wheels.
           </p>
         </div>
       </section>
@@ -119,20 +119,40 @@
             <div class="p-4">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                <!-- Size -->
+                <!-- Size + icon copy -->
                 <div class="sm:col-span-2">
                   <label class="block text-sm font-medium text-slate-700">Size</label>
-                  <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
-                         class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                         data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
+                  <div class="mt-1 relative">
+                    <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
+                           class="w-full rounded-lg border border-slate-300 pr-10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                           data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W" />
+                    <button type="button" title="Copy size to other wheels"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-slate-100"
+                            data-copy="size" data-from="<%= p.key %>">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                        <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- DOT -->
+                <!-- DOT + icon copy -->
                 <div class="sm:col-span-2">
                   <label class="block text-sm font-medium text-slate-700">DOT (WWYY in code)</label>
-                  <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
-                         class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                         data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
+                  <div class="mt-1 relative">
+                    <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
+                           class="w-full rounded-lg border border-slate-300 pr-10 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                           data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
+                    <button type="button" title="Copy DOT to other wheels"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-slate-100"
+                            data-copy="dot" data-from="<%= p.key %>">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                        <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Brand -->
@@ -148,17 +168,27 @@
                   </select>
                 </div>
 
-                <!-- Model -->
+                <!-- Model + icon copy (copies both brand+model) -->
                 <div>
                   <label class="block text-sm font-medium text-slate-700">Model</label>
-                  <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
-                          data-tyre-key="<%= p.key %>"
-                          name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
-                    <option value="">Select model</option>
-                  </select>
+                  <div class="mt-1 relative">
+                    <select class="w-full rounded-lg border border-slate-300 pr-10 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
+                            data-tyre-key="<%= p.key %>"
+                            name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
+                      <option value="">Select model</option>
+                    </select>
+                    <button type="button" title="Copy brand & model to other wheels"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-slate-100"
+                            data-copy="brandmodel" data-from="<%= p.key %>">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                        <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Condition (optional manual override; can be removed if using virtual only) -->
+                <!-- Condition (manual override) -->
                 <div class="sm:col-span-2">
                   <label class="block text-sm font-medium text-slate-700">Condition</label>
                   <select name="<%= p.key==='osf'?'offside.front.condition': p.key==='nsf'?'nearside.front.condition': p.key==='osr'?'offside.rear.condition':'nearside.rear.condition' %>"
@@ -170,32 +200,50 @@
                   </select>
                 </div>
 
-                <!-- Tread depth selects -->
+                <!-- Tread depth selects with I/M/O hints -->
                 <div class="sm:col-span-2">
                   <label class="block text-sm font-medium text-slate-700">Tread depth (mm)</label>
                   <div class="mt-1 grid grid-cols-3 gap-2">
-                    <select class="rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
-                      <option value="">Inner</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
-                    </select>
+                    <div>
+                      <div class="mb-1 flex items-center gap-2">
+                        <span class="text-slate-700 font-medium">Inner</span>
+                        <span class="rounded-full border border-slate-300 bg-slate-100 px-1.5 text-[10px] tracking-wider">I</span>
+                      </div>
+                      <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              data-tyre-key="<%= p.key %>"
+                              name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
+                        <option value="">—</option>
+                        <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                      </select>
+                    </div>
 
-                    <select class="rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
-                      <option value="">Middle</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
-                    </select>
+                    <div>
+                      <div class="mb-1 flex items-center gap-2">
+                        <span class="text-slate-700 font-medium">Middle</span>
+                        <span class="rounded-full border border-slate-300 bg-slate-100 px-1.5 text-[10px] tracking-wider">M</span>
+                      </div>
+                      <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              data-tyre-key="<%= p.key %>"
+                              name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
+                        <option value="">—</option>
+                        <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                      </select>
+                    </div>
 
-                    <select class="rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
-                      <option value="">Outer</option>
-                      <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
-                    </select>
+                    <div>
+                      <div class="mb-1 flex items-center gap-2">
+                        <span class="text-slate-700 font-medium">Outer</span>
+                        <span class="rounded-full border border-slate-300 bg-slate-100 px-1.5 text-[10px] tracking-wider">O</span>
+                      </div>
+                      <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              data-tyre-key="<%= p.key %>"
+                              name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
+                        <option value="">—</option>
+                        <% for (const v of TREADS) { %><option value="<%= v %>"><%= v %></option><% } %>
+                      </select>
+                    </div>
                   </div>
-                  <p class="mt-1 text-xs text-slate-500">If you select one value, the others auto-fill if blank.</p>
+                  <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
                 </div>
 
                 <!-- Tags -->
@@ -214,23 +262,12 @@
                   </div>
                 </div>
 
-                <!-- Notes -->
-                <div class="sm:col-span-2">
-                  <label class="block text-sm font-medium text-slate-700">Notes</label>
-                  <textarea rows="2"
-                            name="<%= p.key==='osf'?'offside.front.notes': p.key==='nsf'?'nearside.front.notes': p.key==='osr'?'offside.rear.notes':'nearside.rear.notes' %>"
-                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>" placeholder="Damage, age cracks, nails, uneven wear…"></textarea>
-                </div>
+                <!-- Per-tyre Notes REMOVED -->
               </div>
 
               <!-- Footer actions -->
               <div class="mt-4 flex flex-wrap items-center gap-2">
-                <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50"
-                        data-back>← Back to car</button>
                 <div class="ml-auto flex items-center gap-2">
-                  <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-sky-600 px-3 py-2 text-sky-700 hover:bg-sky-50"
-                          data-copy-all="<%= p.key %>">Copy to all (core)</button>
                   <button type="button" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white hover:bg-sky-700"
                           data-save-back="<%= p.key %>">Save <%= p.key.toUpperCase() %></button>
                 </div>
@@ -315,17 +352,6 @@
       });
     });
 
-    // Back to car
-    document.querySelectorAll('[data-back]').forEach(a => {
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
-        pickScreen.classList.remove('hidden');
-        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    });
-
     // Completion rules
     function isNum(v){ return v !== "" && !isNaN(Number(v)); }
     function filled(v){ return v != null && String(v).trim() !== ""; }
@@ -361,60 +387,6 @@
       });
     });
 
-    // Save & back to car
-    document.querySelectorAll('[data-save-back]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const key = btn.getAttribute('data-save-back');
-        markWheel(key);
-        updateSaveVisibility();
-        document.querySelectorAll('section[id^="panel-"]').forEach(s => s.classList.add('hidden'));
-        pickScreen.classList.remove('hidden');
-        document.querySelectorAll('.wheel-hotspot').forEach(h=>h.classList.remove('active'));
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    });
-
-    // Copy to all — only size/brand/model
-    async function copyCoreTo(pathFrom, pathTo){
-      const get = (n)=>document.querySelector(`[name="${pathFrom}.${n}"]`)?.value ?? "";
-      const core = { size:get('size'), brand:get('brand'), model:get('model') };
-
-      // size
-      const sizeEl = document.querySelector(`[name="${pathTo}.size"]`);
-      if (sizeEl) sizeEl.value = core.size;
-
-      // brand first
-      const bSel = document.querySelector(`[name="${pathTo}.brand"]`);
-      const mSel = document.querySelector(`[name="${pathTo}.model"]`);
-      if (bSel && mSel) {
-        bSel.value = "";
-        [...bSel.options].forEach(o=>{ if (o.value===core.brand) bSel.value = core.brand; });
-
-        // populate models for this brand
-        mSel.innerHTML = `<option value="">Select model</option>`;
-        if (core.brand) {
-          const models = await fetchModels(core.brand);
-          for (const m of models) {
-            const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
-            mSel.appendChild(opt);
-          }
-          mSel.value = "";
-          [...mSel.options].forEach(o=>{ if (o.value===core.model) mSel.value = core.model; });
-        }
-      }
-    }
-
-    document.querySelectorAll('[data-copy-all]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const fromKey = btn.getAttribute('data-copy-all');
-        for (const [k,p] of Object.entries(PATHS)) {
-          if (k !== fromKey) await copyCoreTo(PATHS[fromKey], p);
-        }
-        Object.keys(PATHS).forEach(markWheel);
-        updateSaveVisibility();
-      });
-    });
-
     // Auto-fill other tread depths if one selected and others blank (per panel)
     document.querySelectorAll('section[id^="panel-"]').forEach(panel => {
       const selects = panel.querySelectorAll('select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]');
@@ -425,6 +397,80 @@
           const key = panel.id.replace('panel-','');
           markWheel(key); updateSaveVisibility();
         });
+      });
+    });
+
+    // ---------- Icon "Copy to all" (size / dot / brand+model) - fill blanks only ----------
+    function q(name){ return document.querySelector(`[name="${name}"]`); }
+
+    async function copySize(fromKey){
+      const value = q(`${PATHS[fromKey]}.size`)?.value ?? "";
+      if (!value) return;
+      for (const [k,p] of Object.entries(PATHS)) {
+        if (k === fromKey) continue;
+        const el = q(`${p}.size`);
+        if (el && !el.value) el.value = value; // fill blanks only
+        markWheel(k);
+      }
+      updateSaveVisibility();
+    }
+
+    async function copyDOT(fromKey){
+      const value = q(`${PATHS[fromKey]}.dot`)?.value ?? "";
+      if (!value) return;
+      for (const [k,p] of Object.entries(PATHS)) {
+        if (k === fromKey) continue;
+        const el = q(`${p}.dot`);
+        if (el && !el.value) el.value = value; // fill blanks only
+        markWheel(k);
+      }
+      updateSaveVisibility();
+    }
+
+    async function copyBrandModel(fromKey){
+      const pathFrom = PATHS[fromKey];
+      const brand = q(`${pathFrom}.brand`)?.value ?? "";
+      const model = q(`${pathFrom}.model`)?.value ?? "";
+      if (!brand) return;
+
+      for (const [k,p] of Object.entries(PATHS)) {
+        if (k === fromKey) continue;
+
+        const brandSel = q(`${p}.brand`);
+        const modelSel = q(`${p}.model`);
+        if (!(brandSel && modelSel)) continue;
+
+        // Only fill if blank
+        if (!brandSel.value) {
+          brandSel.value = "";
+          [...brandSel.options].forEach(o=>{ if (o.value===brand) brandSel.value=brand; });
+        }
+
+        // Populate models for that brand if model is blank
+        if (!modelSel.value) {
+          modelSel.innerHTML = `<option value="">Select model</option>`;
+          const models = await fetchModels(brand);
+          for (const m of models) {
+            const opt = document.createElement('option'); opt.value = m; opt.textContent = m;
+            modelSel.appendChild(opt);
+          }
+          if (model) {
+            [...modelSel.options].forEach(o=>{ if (o.value===model) modelSel.value = model; });
+          }
+        }
+
+        markWheel(k);
+      }
+      updateSaveVisibility();
+    }
+
+    document.querySelectorAll('[data-copy]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const type = btn.getAttribute('data-copy');
+        const from = btn.getAttribute('data-from');
+        if (type === 'size') await copySize(from);
+        if (type === 'dot') await copyDOT(from);
+        if (type === 'brandmodel') await copyBrandModel(from);
       });
     });
 
