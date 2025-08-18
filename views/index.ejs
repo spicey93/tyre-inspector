@@ -11,9 +11,7 @@
       tailwind.config = {
         theme: {
           extend: {
-            boxShadow: {
-              soft: "0 6px 24px rgba(0,0,0,.06)",
-            },
+            boxShadow: { soft: "0 6px 24px rgba(0,0,0,.06)" },
           },
         },
       };
@@ -23,7 +21,6 @@
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js" integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm" crossorigin="anonymous"></script>
 
     <style>
-      /* Subtle background polish */
       body {
         background:
           radial-gradient(1000px 400px at 10% -10%, rgba(63, 135, 245, 0.08), transparent 60%),
@@ -37,23 +34,16 @@
   </head>
 
   <body class="h-full">
-    <!-- Top Nav -->
+    <!-- Top Nav (no CTA button) -->
     <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
       <div class="mx-auto max-w-6xl px-4 py-3 flex items-center">
         <a href="/" class="inline-flex items-center gap-2 font-semibold text-slate-800">
-          <!-- speedometer icon (heroicons-ish) -->
           <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 12a9 9 0 1 0-3.46 7.07l.71-.71"/>
             <path d="M14 10l7-7"/>
           </svg>
           Tyre Inspector
         </a>
-        <div class="ml-auto">
-          <a href="#vrmModal" data-open-modal class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white text-sm font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
-            Create Inspection
-          </a>
-        </div>
       </div>
     </nav>
 
@@ -75,69 +65,41 @@
     </header>
 
     <!-- Main -->
-    <main class="mx-auto max-w-6xl px-4 pb-16">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Card: Start -->
-        <section class="rounded-2xl bg-white border border-slate-200 shadow-soft">
-          <div class="p-6">
-            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              Start a new inspection
-            </h2>
-            <p class="mt-1 text-slate-600">Enter a UK VRM to fetch manufacturer tyre recommendations.</p>
-            <div class="mt-4">
-              <a href="#vrmModal" data-open-modal class="inline-flex items-center gap-2 rounded-lg border border-sky-600 text-sky-700 px-4 py-2 font-medium hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500">
-                Look up VRM
-              </a>
-            </div>
-          </div>
-        </section>
+    <main class="mx-auto max-w-4xl px-4 pb-16">
+      <!-- Single centered card: Open an inspection -->
+<section class="rounded-2xl bg-white border border-slate-200 shadow-soft">
+  <div class="p-6">
+    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+      <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
+      </svg>
+      Access your report
+    </h2>
+    <p class="mt-1 text-slate-600">If you’ve been given a code, enter it here to view and share the inspection details.</p>
 
-        <!-- Card: View -->
-        <section class="rounded-2xl bg-white border border-slate-200 shadow-soft">
-          <div class="p-6">
-            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-              </svg>
-              Open an inspection
-            </h2>
-            <p class="mt-1 text-slate-600">Have a code already? Jump straight back in.</p>
+    <form action="/inspections" method="get" class="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <label for="code" class="sr-only">Report code</label>
+      <input
+        id="code"
+        name="code"
+        type="text"
+        placeholder="Enter report code"
+        autocomplete="off"
+        class="sm:col-span-3 rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+      />
+      <button class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+        Open
+      </button>
+    </form>
+  </div>
+</section>
 
-            <form action="/inspections" method="get" class="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <label for="code" class="sr-only">Inspection code</label>
-              <input
-                id="code"
-                name="code"
-                type="text"
-                placeholder="Enter code"
-                autocomplete="off"
-                class="sm:col-span-3 rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
-              <button class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
-                Go
-              </button>
-            </form>
-          </div>
-        </section>
-      </div>
-
-      <div class="my-10 h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
-
-      <p class="text-center text-sm text-slate-500">
-        Tip: If the suggested tyre sizes don’t match the vehicle, choose
-        <em>None of the above</em> and you can enter sizes manually on the next step.
-      </p>
     </main>
 
     <!-- VRM Modal (Tailwind) -->
     <div id="vrmModal" class="fixed inset-0 z-50 hidden" aria-labelledby="vrmModalLabel" aria-modal="true" role="dialog">
-      <!-- Overlay -->
       <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-modal-overlay></div>
 
-      <!-- Panel -->
       <div class="absolute inset-0 flex items-center justify-center p-4">
         <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-soft border border-slate-200 opacity-0 translate-y-4 transition-all" data-modal-panel>
           <div class="flex items-center justify-between p-4 border-b border-slate-200">
@@ -147,13 +109,7 @@
             </button>
           </div>
 
-          <!-- Body -->
-          <form
-            class="p-4 space-y-3"
-            hx-post="/vrm"
-            hx-target="#vrmResult"
-            hx-swap="innerHTML"
-          >
+          <form class="p-4 space-y-3" hx-post="/vrm" hx-target="#vrmResult" hx-swap="innerHTML">
             <div>
               <label for="vrmInput" class="block text-sm font-medium text-slate-700">Vehicle registration (VRM)</label>
               <div class="mt-1 flex gap-2">
@@ -170,7 +126,6 @@
                     class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   <div class="absolute inset-y-0 right-2 flex items-center">
-                    <!-- HTMX indicator -->
                     <svg class="htmx-indicator hidden w-5 h-5 animate-spin text-sky-600" viewBox="0 0 24 24" fill="none">
                       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
@@ -184,10 +139,7 @@
               <p class="mt-1 text-xs text-slate-500">We’ll fetch tyre sizes and (if available) pressures for this vehicle.</p>
             </div>
 
-            <div id="vrmResult" class="min-h-[3rem]">
-              <!-- Results from /vrm will be injected here -->
-            </div>
-
+            <div id="vrmResult" class="min-h-[3rem]"></div>
             <div id="vrmError" class="hidden rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm p-2"></div>
           </form>
 
@@ -200,7 +152,7 @@
 
     <!-- Interactions -->
     <script>
-      // --- Modal open/close (Tailwind-only) ---
+      // Modal open/close
       const modal = document.getElementById('vrmModal');
       const overlay = modal.querySelector('[data-modal-overlay]');
       const panel   = modal.querySelector('[data-modal-panel]');
@@ -209,7 +161,6 @@
         requestAnimationFrame(() => {
           overlay.classList.remove('opacity-0');
           panel.classList.remove('opacity-0', 'translate-y-4');
-          // focus VRM
           setTimeout(() => document.getElementById('vrmInput')?.focus(), 50);
         });
       }
@@ -219,15 +170,13 @@
         setTimeout(() => modal.classList.add('hidden'), 150);
       }
       document.querySelectorAll('[data-open-modal]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          e.preventDefault(); openModal();
-        });
+        btn.addEventListener('click', (e) => { e.preventDefault(); openModal(); });
       });
       modal.querySelectorAll('[data-close-modal]').forEach(btn => btn.addEventListener('click', closeModal));
       overlay.addEventListener('click', closeModal);
       window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 
-      // --- Uppercase VRM as you type (keep caret) ---
+      // Uppercase VRM while typing
       const vrmInput = document.getElementById('vrmInput');
       document.addEventListener('input', (e) => {
         if (e.target === vrmInput) {
@@ -237,21 +186,17 @@
         }
       });
 
-      // --- HTMX indicator toggling ---
-      document.body.addEventListener('htmx:beforeRequest', (evt) => {
-        const ind = document.querySelector('.htmx-indicator');
-        if (ind) ind.classList.remove('hidden');
-        // clear prior error
+      // HTMX indicator & error
+      document.body.addEventListener('htmx:beforeRequest', () => {
+        document.querySelector('.htmx-indicator')?.classList.remove('hidden');
         const err = document.getElementById('vrmError');
         if (err) { err.classList.add('hidden'); err.textContent = ''; }
       });
       document.body.addEventListener('htmx:afterOnLoad', () => {
-        const ind = document.querySelector('.htmx-indicator');
-        if (ind) ind.classList.add('hidden');
+        document.querySelector('.htmx-indicator')?.classList.add('hidden');
       });
       document.body.addEventListener('htmx:responseError', () => {
-        const ind = document.querySelector('.htmx-indicator');
-        if (ind) ind.classList.add('hidden');
+        document.querySelector('.htmx-indicator')?.classList.add('hidden');
         const el = document.getElementById('vrmError');
         if (el) { el.classList.remove('hidden'); el.textContent = "We couldn’t fetch data right now. Please check the VRM and try again."; }
       });
