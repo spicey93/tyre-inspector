@@ -10,7 +10,12 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     dailyLimit: { type: Number, default: 20, min: 0 },   // per-user limit
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    // role based access control
+    role: { type: String, enum: ["admin", "technician"], default: "technician" },
+    // when a technician is created by an admin, store the admin's id
+    admin: { type: Schema.Types.ObjectId, ref: "User" },
+    // subscription tier controls how many technicians an admin can create
+    accountStatus: { type: String, enum: ["free", "paid"], default: "free" },
   },
   { timestamps: true, versionKey: false }
 );
