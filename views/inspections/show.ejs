@@ -11,76 +11,76 @@
     <script>
       tailwind.config = {
         theme: {
-          extend: {
-            boxShadow: { soft: '0 6px 24px rgba(0,0,0,.06)' }
-          }
+          extend: { boxShadow: { soft: '0 6px 24px rgba(0,0,0,.06)' } }
         }
       }
     </script>
 
     <style>
-      /* Screen / Print visibility clamp */
+      /* Screen/print visibility */
       .screen-only { display: block; }
       .print-only  { display: none; }
 
-      /* Wheel diagram dots (shared) */
-      .wheel-print {
+      /* Wheel diagram dots — HIGHER CONTRAST */
+      .wheel-print{
         position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
         transform: translate(-50%,-50%);
         border:2px solid #94a3b8; background:#fff;
         display:flex; align-items:center; justify-content:center;
-        font-weight:700; font-size:10px; color:#0f172a;
+        font-weight:800; font-size:11px; color:#0f172a;
         left: var(--left); top: var(--top);
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,.8), 0 1px 2px rgba(0,0,0,.08);
       }
-      .wheel-print.ok   { border-color:#15803d; background:#e7f6ec; color:#14532d; }
-      .wheel-print.adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
-      .wheel-print.fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
+      .wheel-print.ok   { border-color:#16a34a; background:#bbf7d0; color:#065f46; }
+      .wheel-print.adv  { border-color:#f59e0b; background:#fde68a; color:#7c5206; }
+      .wheel-print.fail { border-color:#ef4444; background:#fecaca; color:#7f1d1d; }
 
-      /* Scroll-limited table container on desktop */
-      .table-scroll { max-height: 60vh; overflow: auto; -webkit-overflow-scrolling: touch; }
+      /* Row tinting — stronger but subtle */
+      .row-ok   { background: rgba(16,185,129,.14); }
+      .row-adv  { background: rgba(245,158,11,.16); }
+      .row-fail { background: rgba(239,68,68,.16); }
 
-      /* ---------- PRINT OPTIMIZATION ---------- */
+      /* Tiny colour tokens for legend */
+      .swatch{ width:10px; height:10px; border-radius:9999px; display:inline-block; box-shadow: inset 0 0 0 2px rgba(255,255,255,.9), 0 0 0 1px rgba(0,0,0,.06); }
+      .sw-ok   { background:#22c55e; }
+      .sw-adv  { background:#f59e0b; }
+      .sw-fail { background:#ef4444; }
+
+      .table-scroll { max-height: 60vh; overflow:auto; -webkit-overflow-scrolling: touch; }
+
+      /* ---------- PRINT (fit on one A4 page) ---------- */
       @media print {
         @page { size: A4 portrait; margin: 10mm; }
-        html, body { background: #fff !important; }
+        html, body { background:#fff !important; }
         body * { visibility: hidden !important; }
         .print-root, .print-root * { visibility: visible !important; }
         .screen-only { display: none !important; }
 
-        /* Compact typography + spacing for one-page fit */
+        /* compact type + spacing */
         .print-root { font-size: 11px; line-height: 1.25; }
         .print-title { font-size: 16px; }
-        .print-small { font-size: 11px; }
-
-        /* Reduce paddings/margins */
         .p-print-compact { padding: 8px !important; }
-        .mt-print-0 { margin-top: 0 !important; }
         .mb-print-2 { margin-bottom: 8px !important; }
 
-        /* Table compaction */
+        /* table compaction */
+        .print-table { border-collapse: collapse; width:100%; table-layout: fixed; }
+        .print-table th, .print-table td { border:1px solid #cbd5e1; padding:4px 6px; vertical-align: top; word-wrap: break-word; }
+        .print-table th { background:#f1f5f9; }
         .table-scroll { max-height: none !important; overflow: visible !important; }
-        .print-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        .print-table th, .print-table td {
-          border: 1px solid #cbd5e1;
-          padding: 4px 6px;
-          vertical-align: top;
-          word-wrap: break-word;
-        }
-        .print-table th { background: #f1f5f9; }
 
-        /* Hide legend in print to save space */
-        .legend-print-hide { display: none !important; }
-
-        /* Layout: table + small diagram side-by-side */
+        /* layout: table wide + small diagram narrow */
         .print-grid {
-          display: grid;
-          grid-template-columns: 1fr 220px; /* table grows, diagram narrow */
-          gap: 10px;
-          align-items: start;
+          display:grid;
+          grid-template-columns: 1fr 200px;
+          gap:10px;
+          align-items:start;
         }
 
-        /* Trim header paddings and VRM plate size */
-        .vrm-plate { transform: scale(0.9); transform-origin: left top; }
+        /* keep legend, but tighten */
+        .legend { font-size: 10px !important; gap: 6px !important; }
+
+        /* Icons hidden in print (no need) */
+        .icon-btn { display:none !important; }
       }
     </style>
   </head>
@@ -90,7 +90,7 @@
       <!-- Back link -->
       <div class="screen-only mb-3 sm:mb-4">
         <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
           Home
         </a>
       </div>
@@ -99,19 +99,47 @@
       <%
         const fmt = (v) => (v ?? "") === "" ? "—" : v;
 
-        const computeCondition = (node) => {
-          const c = node?.condition ? String(node.condition).toLowerCase() : null;
-          if (c === "ok" || c === "advisory" || c === "fail") return c;
-          const t = node?.treadDepth || {};
-          const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-          if (!vals.length) return "—";
-          if (vals.some(v => v < 2.5)) return "fail";
-          if (vals.some(v => v < 4)) return "advisory";
-          return "ok";
+        const rank = (c) => c === 'fail' ? 3 : (c === 'advisory' ? 2 : (c === 'ok' ? 1 : 0));
+        const worstOf = (a, b) => {
+          const ra = rank(a), rb = rank(b);
+          if (ra === 0 && rb === 0) return "—";
+          return (rb > ra) ? b : a;
         };
 
-        const classForCondition = (cond) =>
-          cond === "ok" ? "ok" : cond === "advisory" ? "adv" : cond === "fail" ? "fail" : "";
+        const deriveFromData = (node) => {
+          const tags = Array.isArray(node?.tags) ? node.tags : [];
+          const failTags = new Set(["Bulge","Cord exposed","Puncture"]);
+          const advTags  = new Set(["Perished","Cracked sidewall","Uneven wear","Bald on inner edge","Bald on outer edge"]);
+
+          let tagCond = null;
+          if (tags.some(t => failTags.has(String(t)))) tagCond = "fail";
+          else if (tags.some(t => advTags.has(String(t)))) tagCond = "advisory";
+
+          const t = node?.treadDepth || {};
+          const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
+          let treadCond = null;
+          if (vals.length) {
+            if (vals.some(v => v < 3)) treadCond = "fail";
+            else if (vals.some(v => v < 4)) treadCond = "advisory";
+            else treadCond = "ok";
+          }
+
+          if (!tagCond && !treadCond) return "—";
+          if (tagCond && !treadCond) return tagCond;
+          if (!tagCond && treadCond) return treadCond;
+          return worstOf(tagCond, treadCond);
+        };
+
+        const finalCondition = (node) => {
+          const explicit = node?.condition ? String(node.condition).toLowerCase() : null;
+          const derived  = deriveFromData(node);
+          if (!explicit && derived !== "—") return derived;
+          if (explicit && derived === "—") return explicit;
+          if (!explicit && derived === "—") return "—";
+          return worstOf(explicit, derived);
+        };
+
+        const classForWheel = (cond) => cond === "ok" ? "ok" : (cond === "advisory" ? "adv" : (cond === "fail" ? "fail" : ""));
 
         const tyres = {
           "Offside Front (OSF)": inspection.offside?.front || {},
@@ -127,96 +155,65 @@
           {k:"NSR", label:"Nearside Rear (NSR)", left:"14%", top:"81%"},
         ];
 
-        const createdAtStr = inspection.createdAt
-          ? new Date(inspection.createdAt).toLocaleString()
-          : null;
+        const createdAtStr = inspection.createdAt ? new Date(inspection.createdAt).toLocaleString() : null;
 
-        const vehicleLine = inspection.vehicle
-          ? `${inspection.vehicle.make || ''} ${inspection.vehicle.model || ''} ${inspection.vehicle.year ? `(${inspection.vehicle.year})` : ''}`.trim()
-          : '';
+        var vehicleLine = "";
+        if (inspection.vehicle) {
+          vehicleLine = (inspection.vehicle.make || "") + " " + (inspection.vehicle.model || "");
+          vehicleLine = vehicleLine.trim();
+          if (inspection.vehicle.year) vehicleLine += " (" + inspection.vehicle.year + ")";
+        }
       %>
 
-      <!-- PRINT ROOT wraps all printable content -->
+      <!-- PRINT ROOT -->
       <section class="print-root">
 
-        <!-- Header / Summary -->
+        <!-- Top card: title + VRM + small icon buttons -->
         <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 p-print-compact mb-3 sm:mb-4 mb-print-2">
-          <div class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
-            <div class="flex items-start sm:items-center gap-3 sm:gap-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3 sm:gap-4">
               <!-- VRM plate -->
-              <span class="vrm-plate inline-flex items-center rounded-md text-black text-sm sm:text-base font-extrabold tracking-widest px-3 py-1 select-none"
+              <span class="inline-flex items-center rounded-md text-black text-sm sm:text-base font-extrabold tracking-widest px-3 py-1 select-none"
                     style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
                 <%= inspection.vrm %>
                 <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
               </span>
-
               <div class="min-w-0">
-                <div class="print-title text-lg sm:text-xl font-semibold text-slate-900 leading-tight truncate">Tyre Inspection Report</div>
-                <div class="print-small mt-0.5 text-xs sm:text-sm text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span><span class="font-medium text-slate-700">Code:</span> <span class="font-mono"><%= inspection.code %></span></span>
-                  <% if (typeof inspection.mileage === "number") { %>
-                    <span class="text-slate-400">•</span>
-                    <span><span class="font-medium text-slate-700">Mileage:</span> <%= inspection.mileage %></span>
-                  <% } %>
-                  <% if (createdAtStr) { %>
-                    <span class="text-slate-400">•</span>
-                    <span><span class="font-medium text-slate-700">Date:</span> <%= createdAtStr %></span>
-                  <% } %>
-                </div>
-                <% if (vehicleLine || inspection.vehicle?.torque) { %>
-                <div class="print-small text-xs sm:text-sm text-slate-600 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <% if (vehicleLine) { %><span><strong class="text-slate-700">Vehicle:</strong> <%= vehicleLine %></span><% } %>
-                  <% if (inspection.vehicle?.torque) { %>
-                    <span class="text-slate-400">•</span>
-                    <span><strong class="text-slate-700">Torque:</strong> <%= inspection.vehicle.torque %> Nm</span>
-                  <% } %>
-                </div>
-                <% } %>
+                <div class="print-title text-lg sm:text-xl font-semibold text-slate-900 leading-tight">Tyre Inspection Report</div>
               </div>
             </div>
 
-            <!-- Actions (screen only) -->
-            <div class="flex items-center gap-2 screen-only">
-              <button type="button" id="copyLink"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-slate-700 hover:bg-slate-50">
+            <!-- Icon-only actions (screen only) -->
+            <div class="screen-only flex items-center gap-1.5">
+              <button type="button" id="copyLink" class="icon-btn inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50" aria-label="Copy link" title="Copy link">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
-                Copy link
               </button>
-              <button type="button" id="printBtn"
-                class="inline-flex items-center gap-2 rounded-lg bg-slate-900 text-white px-3 py-2 hover:bg-slate-800">
+              <button type="button" id="printBtn" class="icon-btn inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-900 text-white hover:bg-slate-800" aria-label="Print" title="Print">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-                Print
               </button>
             </div>
           </div>
-
-          <!-- Legend (hidden on print to save space) -->
-          <div class="legend-print-hide mt-3 sm:mt-4 flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 px-2.5 py-1 border border-emerald-200">OK</span>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 text-amber-700 px-2.5 py-1 border border-amber-200">Advisory</span>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 text-rose-700 px-2.5 py-1 border border-rose-200">Fail</span>
-          </div>
         </div>
 
-        <!-- Content: screen = grid, print = compact grid with table + diagram -->
+        <!-- Content grid (print becomes two columns) -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6 print-grid">
 
-          <!-- Diagram (on print, right column) -->
+          <!-- Diagram -->
           <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 p-print-compact order-2 lg:order-1">
-            <h2 class="text-sm font-semibold text-slate-900 mb-3 mt-print-0">Tyre positions</h2>
-            <div class="relative" style="max-width:260px;margin:0 auto;">
+            <h2 class="text-sm font-semibold text-slate-900 mb-3">Tyre positions</h2>
+            <div class="relative" style="max-width:240px;margin:0 auto;">
               <svg viewBox="0 0 400 800" class="w-full h-auto">
                 <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
                 <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0"/>
                 <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
                 <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
               </svg>
-              <% for (const w of wheelPos) { 
+              <% for (const w of wheelPos) {
                    const node = tyres[w.label] || {};
-                   const cond = computeCondition(node);
+                   const cond = finalCondition(node);
               %>
                 <div
-                  class="wheel-print <%= classForCondition(cond) %>"
+                  class="wheel-print <%= classForWheel(cond) %>"
                   style="--left:<%= w.left %>; --top:<%= w.top %>;"
                   title="<%= w.label %> — <%= cond %>"
                 ><%= w.k %></div>
@@ -224,30 +221,53 @@
             </div>
           </div>
 
-          <!-- Details (on print, left column; spans two columns on screen) -->
+          <!-- Details card (table + meta + legend moved here) -->
           <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-0 order-1 lg:order-2">
+            <!-- Meta bar (moved from top card) -->
+            <div class="px-4 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/60 text-[13px] sm:text-sm text-slate-700 flex flex-wrap gap-x-4 gap-y-1">
+              <span><span class="font-medium">Code:</span> <span class="font-mono"><%= inspection.code %></span></span>
+              <% if (typeof inspection.mileage === "number") { %>
+                <span><span class="font-medium">Mileage:</span> <%= inspection.mileage %></span>
+              <% } %>
+              <% if (createdAtStr) { %>
+                <span><span class="font-medium">Date:</span> <%= createdAtStr %></span>
+              <% } %>
+              <% if (vehicleLine) { %>
+                <span><span class="font-medium">Vehicle:</span> <%= vehicleLine %></span>
+              <% } %>
+              <% if (inspection.vehicle?.torque) { %>
+                <span><span class="font-medium">Torque:</span> <%= inspection.vehicle.torque %> Nm</span>
+              <% } %>
+              <% if (inspection.notes) { %>
+                <span class="basis-full text-slate-600"><span class="font-medium">Notes:</span> <%= inspection.notes %></span>
+              <% } %>
+            </div>
+
+            <!-- Legend (moved here; stronger colours) -->
+            <div class="legend px-4 sm:px-5 py-2 border-b border-slate-200 bg-white text-[12px] sm:text-[13px] text-slate-700 flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-2"><span class="swatch sw-ok"></span> <span>OK</span></span>
+              <span class="inline-flex items-center gap-2"><span class="swatch sw-adv"></span> <span>Advisory</span></span>
+              <span class="inline-flex items-center gap-2"><span class="swatch sw-fail"></span> <span>Fail</span></span>
+            </div>
+
             <!-- Mobile cards -->
             <div class="md:hidden divide-y divide-slate-200">
-              <% for (const [pos, t] of Object.entries(tyres)) { const cond = computeCondition(t); %>
+              <% for (const [pos, t] of Object.entries(tyres)) { const cond = finalCondition(t); %>
                 <div class="p-4">
                   <div class="flex items-start justify-between gap-3">
                     <div class="font-semibold text-slate-900"><%= pos %></div>
                     <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-                      <%= cond==='ok'?'bg-emerald-50 text-emerald-700 border-emerald-200':
-                          cond==='advisory'?'bg-amber-50 text-amber-700 border-amber-200':
-                          cond==='fail'?'bg-rose-50 text-rose-700 border-rose-200':'bg-slate-50 text-slate-600 border-slate-200' %>"><%= cond %></span>
+                      <%= cond==='ok'?'bg-emerald-200 text-emerald-800 border-emerald-600':
+                          cond==='advisory'?'bg-amber-200 text-amber-800 border-amber-600':
+                          cond==='fail'?'bg-rose-200 text-rose-800 border-rose-600':'bg-slate-100 text-slate-700 border-slate-300' %>"><%= cond %></span>
                   </div>
                   <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
-                    <dt class="text-slate-500">Size</dt>
-                    <dd class="text-slate-900 text-right"><%= fmt(t.size) %></dd>
-                    <dt class="text-slate-500">Brand</dt>
-                    <dd class="text-slate-900 text-right"><%= fmt(t.brand) %></dd>
-                    <dt class="text-slate-500">Model</dt>
-                    <dd class="text-slate-900 text-right"><%= fmt(t.model) %></dd>
-                    <dt class="text-slate-500">DOT</dt>
-                    <dd class="text-slate-900 text-right"><%= fmt(t.dot) %></dd>
+                    <dt class="text-slate-500">Size</dt><dd class="text-right text-slate-900"><%= fmt(t.size) %></dd>
+                    <dt class="text-slate-500">Brand</dt><dd class="text-right text-slate-900"><%= fmt(t.brand) %></dd>
+                    <dt class="text-slate-500">Model</dt><dd class="text-right text-slate-900"><%= fmt(t.model) %></dd>
+                    <dt class="text-slate-500">DOT</dt><dd class="text-right text-slate-900"><%= fmt(t.dot) %></dd>
                     <dt class="text-slate-500">Tread</dt>
-                    <dd class="text-slate-900 text-right"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></dd>
+                    <dd class="text-right text-slate-900"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></dd>
                   </dl>
                   <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
                     <div class="mt-2 space-y-1 text-xs">
@@ -263,10 +283,10 @@
               <% } %>
             </div>
 
-            <!-- Desktop table (compact in print; scroll-limited on screen) -->
+            <!-- Desktop table -->
             <div class="hidden md:block">
               <div class="table-scroll rounded-2xl">
-                <table class="min-w-[820px] w-full text-sm print-table">
+                <table class="min-w-[860px] w-full text-sm print-table">
                   <thead class="bg-slate-100 sticky top-0 z-10">
                     <tr>
                       <th class="text-left px-4 py-2">Position</th>
@@ -275,31 +295,44 @@
                       <th class="text-left px-4 py-2">Model</th>
                       <th class="text-left px-4 py-2">DOT</th>
                       <th class="text-left px-4 py-2">Tread (In / Mid / Out)</th>
+                      <th class="text-left px-4 py-2">Tags</th>
                       <th class="text-left px-4 py-2">Condition</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-200">
-                    <% for (const [pos, t] of Object.entries(tyres)) { const cond = computeCondition(t); %>
-                      <tr class="<%= cond==='ok'?'bg-emerald-50/30':
-                                   cond==='advisory'?'bg-amber-50/30':
-                                   cond==='fail'?'bg-rose-50/30':'bg-white' %>">
+                    <% for (const [pos, t] of Object.entries(tyres)) {
+                         const cond = finalCondition(t);
+                         const tagStr = Array.isArray(t?.tags) && t.tags.length ? t.tags.join(", ") : "—";
+                         const rowCls = cond==='ok' ? 'row-ok' : cond==='advisory' ? 'row-adv' : cond==='fail' ? 'row-fail' : '';
+                    %>
+                      <tr class="<%= rowCls %>">
                         <td class="px-4 py-2 font-medium text-slate-900"><%= pos %></td>
                         <td class="px-4 py-2"><%= fmt(t.size) %></td>
                         <td class="px-4 py-2"><%= fmt(t.brand) %></td>
                         <td class="px-4 py-2"><%= fmt(t.model) %></td>
                         <td class="px-4 py-2"><%= fmt(t.dot) %></td>
                         <td class="px-4 py-2"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
+                        <td class="px-4 py-2"><%= tagStr %></td>
                         <td class="px-4 py-2">
                           <span class="inline-flex items-center text-xs capitalize px-2 py-0.5 rounded-full border
-                            <%= cond==='ok'?'bg-emerald-50 text-emerald-700 border-emerald-200':
-                                cond==='advisory'?'bg-amber-50 text-amber-700 border-amber-200':
-                                cond==='fail'?'bg-rose-50 text-rose-700 border-rose-200':'bg-slate-50 text-slate-600 border-slate-200' %>"><%= cond %></span>
+                            <%= cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
+                                cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
+                                cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= cond %></span>
                         </td>
                       </tr>
-                      <!-- NOTE: In print we do NOT render extra tag/notes rows to save space -->
                     <% } %>
                   </tbody>
                 </table>
+              </div>
+
+              <!-- Optional per-tyre notes (screen only) -->
+              <div class="screen-only p-4 text-sm text-slate-700 space-y-2">
+                <% for (const [pos, t] of Object.entries(tyres)) { if (t?.notes) { %>
+                  <div>
+                    <span class="font-medium"><%= pos %> notes:</span>
+                    <span><%= t.notes %></span>
+                  </div>
+                <% } } %>
               </div>
             </div>
           </div> <!-- /details -->
@@ -309,7 +342,7 @@
 
     <script>
       (function () {
-        // Copy link
+        // Copy link (icon button)
         const copyBtn = document.getElementById("copyLink");
         if (copyBtn) {
           copyBtn.addEventListener("click", async () => {
@@ -317,15 +350,21 @@
             url.searchParams.set("code", "<%= inspection.code %>");
             try {
               await navigator.clipboard.writeText(url.toString());
-              copyBtn.innerHTML = '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 6L9 17l-5-5"/></svg> Copied';
-              setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+              copyBtn.setAttribute("aria-label","Copied");
+              copyBtn.title = "Copied";
+              copyBtn.classList.add("ring-2","ring-emerald-400");
+              setTimeout(() => {
+                copyBtn.removeAttribute("aria-label");
+                copyBtn.title = "Copy link";
+                copyBtn.classList.remove("ring-2","ring-emerald-400");
+              }, 1200);
             } catch {
               prompt("Copy this link:", url.toString());
             }
           });
         }
 
-        // Robust print trigger
+        // Print (icon button)
         const printBtn = document.getElementById("printBtn");
         if (printBtn) {
           printBtn.addEventListener("click", (e) => {
