@@ -53,7 +53,10 @@
         </a>
 
         <!-- If your app expects POST for logout, convert this to a small form -->
-        <div class="text-sm">
+        <div class="text-sm flex gap-4 items-center">
+          <% if (user && user.role === 'admin') { %>
+            <a href="/technicians/new" class="text-slate-700 hover:text-slate-900">Add technician</a>
+          <% } %>
           <a href="/logout" class="text-slate-700 hover:text-slate-900">Logout</a>
         </div>
       </div>
