@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== 'undefined' ? title : 'Tyre Inspector' %></title>
+    <!-- Tailwind (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <% if (typeof headExtra !== 'undefined') { %>
+      <%- headExtra %>
+    <% } %>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body class="h-full">

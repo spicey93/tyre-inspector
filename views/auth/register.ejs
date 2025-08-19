@@ -1,36 +1,27 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-50">
-  <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Register</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="h-full">
-    <%- include('../partials/topnav') %>
+<%- include('../partials/head', { title: 'Register' }) %>
+<%- include('../partials/topnav') %>
 
-    <main class="mx-auto max-w-md px-4 py-10">
-      <h1 class="text-xl font-semibold text-slate-900 mb-4">Create account</h1>
+<main class="mx-auto max-w-md px-4 py-10">
+  <h1 class="text-xl font-semibold text-slate-900 mb-4">Create account</h1>
 
-      <% if (typeof error !== 'undefined') { %>
-        <div class="mb-3 rounded border border-rose-300 bg-rose-50 text-rose-700 px-3 py-2"><%= error %></div>
-      <% } %>
+  <% if (typeof error !== 'undefined') { %>
+    <div class="mb-3 rounded border border-rose-300 bg-rose-50 text-rose-700 px-3 py-2"><%= error %></div>
+  <% } %>
 
-      <form method="POST" action="/register" class="space-y-3">
-        <input name="name" type="text" placeholder="Name" class="w-full rounded border border-slate-300 px-3 py-2"/>
-        <input name="email" type="email" required placeholder="Email" class="w-full rounded border border-slate-300 px-3 py-2"/>
-        <input name="password" type="password" required placeholder="Password" class="w-full rounded border border-slate-300 px-3 py-2"/>
+  <form method="POST" action="/register" class="space-y-3">
+    <input name="name" type="text" placeholder="Name" class="w-full rounded border border-slate-300 px-3 py-2"/>
+    <input name="email" type="email" required placeholder="Email" class="w-full rounded border border-slate-300 px-3 py-2"/>
+    <input name="password" type="password" required placeholder="Password" class="w-full rounded border border-slate-300 px-3 py-2"/>
 
-        <!-- Daily limit is fixed at 5 (not user-editable) -->
-        <input type="hidden" name="dailyLimit" value="5"/>
+    <!-- Daily limit is fixed at 5 (not user-editable) -->
+    <input type="hidden" name="dailyLimit" value="5"/>
 
-        <button class="w-full rounded bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700">Register</button>
-      </form>
+    <button class="w-full rounded bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700">Register</button>
+  </form>
 
-      <p class="mt-3 text-sm text-slate-600">
-        Have an account?
-        <a href="/login" class="text-sky-700 underline">Log in</a>
-      </p>
-    </main>
-  </body>
-</html>
+  <p class="mt-3 text-sm text-slate-600">
+    Have an account?
+    <a href="/login" class="text-sky-700 underline">Log in</a>
+  </p>
+</main>
+<%- include('../partials/scripts') %>
