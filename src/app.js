@@ -1,11 +1,21 @@
 // app.js
+import path from "path";
+import { fileURLToPath } from "url";
+
 import express from "express";
 import helmet from "helmet";
-import vrmRoutes from "./routes/vrm.routes.js";
-import inspectionRoutes from "./routes/inspection.routes.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+
+import vrmRoutes from "./routes/vrm.routes.js";
+import inspectionRoutes from "./routes/inspection.routes.js";
 import User from "./models/user.model.js";
+import { getLogin, postLogin, getRegister, postRegister, postLogout } from "./controllers/auth.controller.js";
+import requireAuth from "./middleware/requireAuth.js";
+import { dashboard } from "./controllers/dashboard.controller.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
@@ -66,14 +76,10 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "..", "public")));
+app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-
-// routes
-import { getLogin, postLogin, getRegister, postRegister, postLogout } from "./controllers/auth.controller.js";
-import requireAuth from "./middleware/requireAuth.js";
-import { dashboard } from "./controllers/dashboard.controller.js";
 
 app.get("/login", getLogin);
 app.post("/login", postLogin);
