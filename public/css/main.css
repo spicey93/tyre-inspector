@@ -1,0 +1,11 @@
+body {
+  background:
+    radial-gradient(1000px 400px at 10% -10%, rgba(63,135,245,0.08), transparent 60%),
+    radial-gradient(900px 300px at 110% -20%, rgba(63,135,245,0.06), transparent 60%),
+    #f8fafc;
+}
+.brand-link svg { color: #0284c7; }
+.uk-plate { background: linear-gradient(90deg, #ffeb3b 0 74%, #1e88e5 74% 100%); }
+@media (prefers-reduced-motion: reduce){
+  *{ animation:none!important; transition:none!important; }
+}

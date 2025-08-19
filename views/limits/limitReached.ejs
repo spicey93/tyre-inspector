@@ -1,14 +1,11 @@
-<!DOCTYPE html><html lang="en" class="h-full bg-slate-50"><head>
-<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title><%= title %></title><script src="https://cdn.tailwindcss.com"></script></head>
-<body class="h-full">
-  <%- include('../partials/topnav') %>
-  <main class="mx-auto max-w-xl px-4 py-10">
-    <div class="rounded-2xl border border-amber-300 bg-amber-50 p-5">
-      <h1 class="text-lg font-semibold text-amber-900 mb-1">Daily limit reached</h1>
-      <p class="text-amber-800">You have used <strong><%= used %></strong> of <strong><%= limit %></strong> inspections today.</p>
-      <p class="mt-2 text-slate-700">Please try again tomorrow, or contact an admin to increase your limit.</p>
-      <a href="/dashboard" class="inline-block mt-4 rounded bg-slate-800 text-white px-4 py-2">Go to dashboard</a>
-    </div>
-  </main>
-</body></html>
+<%- include('../partials/head', { title: title }) %>
+<%- include('../partials/topnav') %>
+<main class="mx-auto max-w-xl px-4 py-10">
+  <div class="rounded-2xl border border-amber-300 bg-amber-50 p-5">
+    <h1 class="text-lg font-semibold text-amber-900 mb-1">Daily limit reached</h1>
+    <p class="text-amber-800">You have used <strong><%= used %></strong> of <strong><%= limit %></strong> inspections today.</p>
+    <p class="mt-2 text-slate-700">Please try again tomorrow, or contact an admin to increase your limit.</p>
+    <a href="/dashboard" class="inline-block mt-4 rounded bg-slate-800 text-white px-4 py-2">Go to dashboard</a>
+  </div>
+</main>
+<%- include('../partials/scripts') %>
