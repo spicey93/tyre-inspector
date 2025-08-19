@@ -1,0 +1,63 @@
+<%- include('partials/head', { title: 'Technicians — Tyre Inspector' }) %>
+<%- include('partials/topnav') %>
+
+<main class="mx-auto max-w-6xl px-4 py-10 space-y-8">
+  <h1 class="text-3xl font-bold">Technicians</h1>
+
+  <% if (technicians.length) { %>
+    <div class="overflow-x-auto">
+      <table class="min-w-[600px] w-full text-sm border border-slate-200 rounded-lg overflow-hidden">
+        <thead class="bg-slate-100">
+          <tr>
+            <th class="text-left px-3 py-2">Name</th>
+            <th class="text-left px-3 py-2">Email</th>
+            <th class="text-left px-3 py-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200">
+          <% technicians.forEach(function(t){ %>
+            <tr>
+              <form method="POST" action="/technicians/<%= t._id %>/update" class="contents">
+                <td class="px-3 py-2">
+                  <input type="text" name="name" value="<%= t.name %>" class="w-full rounded border border-slate-300 px-2 py-1" />
+                </td>
+                <td class="px-3 py-2">
+                  <input type="email" name="email" value="<%= t.email %>" class="w-full rounded border border-slate-300 px-2 py-1" />
+                </td>
+                <td class="px-3 py-2 flex gap-2">
+                  <button type="submit" class="rounded bg-sky-600 text-white px-3 py-1 hover:bg-sky-700">Update</button>
+                  <button type="submit" formaction="/technicians/<%= t._id %>/delete" formmethod="post" class="rounded bg-rose-600 text-white px-3 py-1 hover:bg-rose-700" onclick="return confirm('Delete technician?');">Delete</button>
+                </td>
+              </form>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <p>No technicians yet.</p>
+  <% } %>
+
+  <section class="max-w-md">
+    <h2 class="text-xl font-semibold mb-2">Add technician</h2>
+    <% if (limit && count >= limit) { %>
+      <p class="text-slate-600">Technician limit reached (<%= limit %>).</p>
+    <% } else { %>
+      <form method="POST" action="/technicians" class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Name</label>
+          <input type="text" name="name" required class="w-full rounded border border-slate-300 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Email</label>
+          <input type="email" name="email" required class="w-full rounded border border-slate-300 px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Password</label>
+          <input type="password" name="password" required class="w-full rounded border border-slate-300 px-3 py-2" />
+        </div>
+        <button type="submit" class="rounded bg-sky-600 text-white px-4 py-2 hover:bg-sky-700">Create</button>
+      </form>
+    <% } %>
+  </section>
+</main>

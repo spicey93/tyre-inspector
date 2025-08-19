@@ -8,6 +8,9 @@
     <div class="flex items-center gap-3">
       <% if (user) { %>
         <a href="/dashboard" class="text-slate-700 hover:text-slate-900">Dashboard</a>
+        <% if (user.role === 'admin') { %>
+          <a href="/technicians" class="text-slate-700 hover:text-slate-900">Technicians</a>
+        <% } %>
         <a href="/inspections/new" class="text-slate-700 hover:text-slate-900">New</a>
         <form method="POST" action="/logout" class="inline">
           <button class="rounded border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50">Logout</button>
