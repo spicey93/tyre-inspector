@@ -5,7 +5,13 @@ import Inspection from "../models/inspection.model.js";
 
 /* ----------------------------- helper utilities ---------------------------- */
 
-const toNum = (v) => (v === "" || v == null ? undefined : Number(v));
+// Convert value to a finite number or return undefined if it's empty or invalid
+const toNum = (v) => {
+  if (typeof v === "string") v = v.trim();
+  if (v === "" || v == null) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
 const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
 const trimOrEmpty = (v) => (typeof v === "string" ? v.trim() : "");
 const upperTrim = (v) => (typeof v === "string" ? v.toUpperCase().trim() : v);
