@@ -96,35 +96,51 @@ const buildInspectionPayload = (req, code) => ({
 
 export const newInspection = async (req, res) => {
   try {
-    const { vrm, tyreSize } = req.query;
+    const { vrm, tyreSize, mileage } = req.query;
     if (!vrm) return res.status(400).send("Missing vrm");
 
-    const vrmNorm = upperTrim(vrm);
-    const vehicle = await Vehicle.findOne({ vrm: vrmNorm }).lean();
+    const vehicle = await Vehicle.findOne({ vrm: vrm.toUpperCase() }).lean();
     if (!vehicle) return res.status(404).send("Vehicle not found");
 
     const last = vehicle.tyreRecords?.[vehicle.tyreRecords.length - 1];
 
-    const { frontSize, rearSize } = parseTyreSizeParam(tyreSize);
+    // Parse optional tyreSize
+    let frontSize = "";
+    let rearSize = "";
+    if (tyreSize && tyreSize !== "__none__") {
+      const decoded = decodeURIComponent(tyreSize);
+      const parts = decoded.split("|").map((s) => s.trim()).filter(Boolean);
+      if (parts.length === 1) {
+        frontSize = parts[0];
+        rearSize = parts[0];
+      } else if (parts.length >= 2) {
+        [frontSize, rearSize] = parts;
+      }
+    }
 
     const pressures = {
-      front:
-        typeof last?.front?.pressure === "number" ? last.front.pressure : "",
+      front: typeof last?.front?.pressure === "number" ? last.front.pressure : "",
       rear: typeof last?.rear?.pressure === "number" ? last.rear.pressure : "",
     };
 
-    const brandOptions = await getBrandOptions();
+    const brandsDocs = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
+    const brandOptions = brandsDocs.map((b) => b.brand);
+
+    // Pass mileage through for hidden input in the form
+    const safeMileage = String(mileage ?? "").replace(/[^\d]/g, "");
 
     return res.render("inspections/new", {
       vehicle,
       defaults: { frontSize, rearSize, pressures },
       brandOptions,
+      mileage: safeMileage, // <— NEW
     });
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
   }
 };
+
 
 export const listBrands = async (_req, res) => {
   try {

@@ -11,39 +11,47 @@
 
     <style>
       /* Car + wheels */
-      .car-wrap{ position:relative; max-width:200px; margin-inline:auto; }
-      @media (min-width:576px){ .car-wrap{ max-width:220px; } }
-      @media (min-width:992px){ .car-wrap{ max-width:260px; } }
-      .car-svg{ width:100%; height:auto; display:block; }
-
-      .wheel-hotspot{
-        position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
-        transform:translate(-50%,-50%);
-        border:2px solid rgb(173,181,189); background:#fff;
-        display:flex; align-items:center; justify-content:center;
-        font-weight:700; font-size:.8rem;
-        transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
-        cursor:pointer; user-select:none;
+      .car-wrap {
+        position: relative;
+        max-width: 200px;
+        margin-inline: auto;
       }
-      .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
+      @media (min-width: 576px) {
+        .car-wrap { max-width: 220px; }
+      }
+      @media (min-width: 992px) {
+        .car-wrap { max-width: 260px; }
+      }
+      .car-svg { width: 100%; height: auto; display: block; }
+
+      .wheel-hotspot {
+        position: absolute; width: 22%; aspect-ratio: 1/1; border-radius: 9999px;
+        transform: translate(-50%, -50%);
+        border: 2px solid rgb(173, 181, 189); background: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.8rem;
+        transition: box-shadow 0.15s, transform 0.05s, border-color 0.15s, background-color 0.15s, color 0.15s;
+        cursor: pointer; user-select: none;
+      }
+      .wheel-hotspot.active { box-shadow: inset 0 0 0 0.45rem rgba(13, 110, 253, 0.25); }
 
       /* Condition colours (applied ONLY when completed) */
-      .wheel-hotspot.cond-ok   { border-color:#15803d; background:#e6f4ea; color:#14532d; }
-      .wheel-hotspot.cond-adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
-      .wheel-hotspot.cond-fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
+      .wheel-hotspot.cond-ok   { border-color: #15803d; background: #e6f4ea; color: #14532d; }
+      .wheel-hotspot.cond-adv  { border-color: #f59e0b; background: #fff7d6; color: #7c5206; }
+      .wheel-hotspot.cond-fail { border-color: #e11d48; background: #fde2e4; color: #7f1d1d; }
 
       /* Tag chips */
-      .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
-      .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
+      .chip { border: 1px solid rgb(203 213 225); border-radius: 9999px; padding: 0.25rem 0.6rem; cursor: pointer; user-select: none; }
+      .chip.active { background: #e7f1ff; border-color: #9ec5fe; }
 
       /* Copy feedback flash */
-      .flash-updated{ box-shadow:0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
+      .flash-updated { box-shadow: 0 0 0 0.55rem rgba(16, 185, 129, 0.28) inset !important; }
     </style>
   </head>
   <body class="h-full">
     <div class="mx-auto max-w-5xl px-4 py-6">
       <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
         Home
       </a>
 
@@ -58,38 +66,72 @@
         <div class="text-sm text-slate-600 mt-1">
           <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
           <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
+          <% if (mileage) { %> • <strong>Mileage:</strong> <%= mileage %><% } %>
         </div>
       </header>
 
-      <form method="POST" action="/inspections" id="inspection-form" class="space-y-4">
+      <% /* ---------- EJS helpers (DRY names & options) ---------- */ %>
+      <%
+        const PATHS = {
+          osf: 'offside.front',
+          nsf: 'nearside.front',
+          osr: 'offside.rear',
+          nsr: 'nearside.rear'
+        };
+
+        // Avoid backticks in EJS blocks; simple concatenation is safest
+        const path = function (k, field) { return PATHS[k] + '.' + field; };
+
+        // Tread depth options (8 -> 2 step 0.5, plus 1.6)
+        const TREADS = [];
+        for (let v = 8.0; v >= 2.0; v -= 0.5) {
+          TREADS.push(v % 1 ? v.toFixed(1) : v.toFixed(0));
+        }
+        TREADS.push('1.6');
+
+        // No line breaks inside strings (prevents “Invalid or unexpected token”)
+        const QUICK_TAGS = [
+          'Bald on inner edge',
+          'Bald on outer edge',
+          'Perished',
+          'Bulge',
+          'Puncture',
+          'Uneven wear',
+          'Cracked sidewall',
+          'Cord exposed'
+        ];
+
+        const panels = [
+          { key: 'osf', title: 'Offside Front (OSF)',  sizeDefault: defaults.frontSize },
+          { key: 'nsf', title: 'Nearside Front (NSF)', sizeDefault: defaults.frontSize },
+          { key: 'osr', title: 'Offside Rear (OSR)',   sizeDefault: defaults.rearSize  },
+          { key: 'nsr', title: 'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize  }
+        ];
+      %>
+
+      <form method="POST" action="/inspections" id="inspection-form" class="space-y-4" novalidate>
         <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
+        <input type="hidden" name="mileage" value="<%= mileage || '' %>" />
 
-        <!-- Mileage -->
-        <div>
-          <label class="block text-sm font-medium text-slate-700">Mileage</label>
-          <input type="number" step="1" name="mileage" inputmode="numeric" placeholder="e.g. 45678"
-                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"/>
-        </div>
-
-        <!-- Workspace: lg = split view -->
+        <!-- Workspace -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          <!-- LEFT: Car / wheel picker (always visible) -->
-          <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow">
-            <div class="px-4 py-3 border-b border-slate-200 font-semibold">Select a wheel to enter details</div>
+          <!-- LEFT: Car / wheel picker -->
+          <section id="pick-screen" class="rounded-2xl border border-slate-200 bg-white shadow" aria-labelledby="pick-heading">
+            <div class="px-4 py-3 border-b border-slate-200 font-semibold" id="pick-heading">Select a wheel to enter details</div>
             <div class="p-4">
-              <div class="car-wrap">
-                <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da"/>
+              <div class="car-wrap" aria-hidden="true">
+                <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da" />
                   <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
                   <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
                   <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-                  <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6"/>
+                  <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6" />
                 </svg>
 
-                <button type="button" class="wheel-hotspot" data-key="osf" style="left:86%; top:19%;">OSF</button>
-                <button type="button" class="wheel-hotspot" data-key="nsf" style="left:14%; top:19%;">NSF</button>
-                <button type="button" class="wheel-hotspot" data-key="osr" style="left:86%; top:81%;">OSR</button>
-                <button type="button" class="wheel-hotspot" data-key="nsr" style="left:14%; top:81%;">NSR</button>
+                <button type="button" class="wheel-hotspot" data-key="osf" style="left: 86%; top: 19%;">OSF</button>
+                <button type="button" class="wheel-hotspot" data-key="nsf" style="left: 14%; top: 19%;">NSF</button>
+                <button type="button" class="wheel-hotspot" data-key="osr" style="left: 86%; top: 81%;">OSR</button>
+                <button type="button" class="wheel-hotspot" data-key="nsr" style="left: 14%; top: 81%;">NSR</button>
               </div>
               <p class="mt-2 text-xs text-slate-500">
                 Use the header copy button to copy Size, DOT, Brand &amp; Model to other wheels that haven’t had tread recorded yet.
@@ -97,165 +139,173 @@
             </div>
           </section>
 
-          <!-- RIGHT: Panels wrapper -->
+          <!-- RIGHT: Panels -->
           <div id="panels-wrapper" class="space-y-4 lg:space-y-0">
-            <% 
-              var panels = [
-                {key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize},
-                {key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize},
-                {key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize},
-                {key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize}
-              ];
-              // Tread depth options (8 -> 2 in 0.5 steps, plus 1.6)
-              var TREADS = [];
-              for (var v = 8.0; v >= 2.0; v -= 0.5) { TREADS.push((v % 1 ? v.toFixed(1) : v.toFixed(0))); }
-              TREADS.push("1.6");
-              var QUICK_TAGS = ["Bald on inner edge","Bald on outer edge","Perished","Bulge","Puncture","Uneven wear","Cracked sidewall","Cord exposed"];
-              function panelMarkup(p){ 
-            %>
-            <!-- All panels hidden initially; shown only when its wheel is clicked -->
-            <section id="panel-<%= p.key %>" class="hidden">
-              <div class="rounded-2xl border border-slate-200 bg-white shadow">
-                <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                  <h2 class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
+            <% panels.forEach(function(p){ %>
+              <section id="panel-<%= p.key %>" class="hidden" aria-labelledby="panel-title-<%= p.key %>">
+                <div class="rounded-2xl border border-slate-200 bg-white shadow">
+                  <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                    <h2 id="panel-title-<%= p.key %>" class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
 
-                  <!-- Single copy button in header -->
-                  <div class="flex items-center gap-2">
-                    <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5"></span>
-                    <button type="button" title="Copy Size, DOT, Brand & Model to other wheels not yet treaded"
-                            class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
-                            data-copy-all-from="<%= p.key %>">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                        <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div class="p-4">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <!-- Size + DOT row -->
-                    <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <!-- Size -->
-                      <div>
-                        <label class="block text-sm font-medium text-slate-700">Size</label>
-                        <input name="<%= p.key==='osf'?'offside.front.size': p.key==='nsf'?'nearside.front.size': p.key==='osr'?'offside.rear.size':'nearside.rear.size' %>"
-                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                               data-tyre-key="<%= p.key %>" value="<%= p.sizeDefault %>" placeholder="e.g. 225/45R17 91W"/>
-                      </div>
-
-                      <!-- DOT -->
-                      <div>
-                        <label class="block text-sm font-medium text-slate-700">DOT (WWYY in code)</label>
-                        <input name="<%= p.key==='osf'?'offside.front.dot': p.key==='nsf'?'nearside.front.dot': p.key==='osr'?'offside.rear.dot':'nearside.rear.dot' %>"
-                               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                               data-tyre-key="<%= p.key %>" placeholder="e.g. 2423"/>
-                      </div>
-                    </div>
-
-                    <!-- Brand -->
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">Brand</label>
-                      <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field brand-select"
-                              data-tyre-key="<%= p.key %>"
-                              name="<%= p.key==='osf'?'offside.front.brand': p.key==='nsf'?'nearside.front.brand': p.key==='osr'?'offside.rear.brand':'nearside.rear.brand' %>">
-                        <option value="">Select brand</option>
-                        <% for (var bi=0; bi<brandOptions.length; bi++) { var b = brandOptions[bi]; %>
-                          <option value="<%= b %>"><%= b %></option>
-                        <% } %>
-                      </select>
-                    </div>
-
-                    <!-- Model -->
-                    <div>
-                      <label class="block text-sm font-medium text-slate-700">Model</label>
-                      <select class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
-                              data-tyre-key="<%= p.key %>"
-                              name="<%= p.key==='osf'?'offside.front.model': p.key==='nsf'?'nearside.front.model': p.key==='osr'?'offside.rear.model':'nearside.rear.model' %>">
-                        <option value="">Select model</option>
-                      </select>
-                    </div>
-
-                    <!-- Tread depth -->
-                    <div class="sm:col-span-2">
-                      <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
-                      <div class="mt-1 grid grid-cols-3 gap-2">
-                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                data-tyre-key="<%= p.key %>"
-                                name="<%= p.key==='osf'?'offside.front.treadDepth.inner': p.key==='nsf'?'nearside.front.treadDepth.inner': p.key==='osr'?'offside.rear.treadDepth.inner':'nearside.rear.treadDepth.inner' %>">
-                          <option value="">Inner</option>
-                          <% for (var ti=0; ti<TREADS.length; ti++) { var tv = TREADS[ti]; %>
-                            <option value="<%= tv %>"><%= tv %> mm</option>
-                          <% } %>
-                        </select>
-
-                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                data-tyre-key="<%= p.key %>"
-                                name="<%= p.key==='osf'?'offside.front.treadDepth.middle': p.key==='nsf'?'nearside.front.treadDepth.middle': p.key==='osr'?'offside.rear.treadDepth.middle':'nearside.rear.treadDepth.middle' %>">
-                          <option value="">Middle</option>
-                          <% for (var tm=0; tm<TREADS.length; tm++) { var tvm = TREADS[tm]; %>
-                            <option value="<%= tvm %>"><%= tvm %> mm</option>
-                          <% } %>
-                        </select>
-
-                        <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                data-tyre-key="<%= p.key %>"
-                                name="<%= p.key==='osf'?'offside.front.treadDepth.outer': p.key==='nsf'?'nearside.front.treadDepth.outer': p.key==='osr'?'offside.rear.treadDepth.outer':'nearside.rear.treadDepth.outer' %>">
-                          <option value="">Outer</option>
-                          <% for (var to=0; to<TREADS.length; to++) { var tvo = TREADS[to]; %>
-                            <option value="<%= tvo %>"><%= tvo %> mm</option>
-                          <% } %>
-                        </select>
-                      </div>
-                      <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
-                    </div>
-
-                    <!-- Tags -->
-                    <div class="sm:col-span-2">
-                      <label class="block text-sm font-medium text-slate-700">Tags</label>
-                      <div class="mt-1 flex flex-wrap gap-2">
-                        <% for (var qi=0; qi<QUICK_TAGS.length; qi++) { 
-                             var tag = QUICK_TAGS[qi];
-                             var id = (p.key + '-tag-' + tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase());
-                        %>
-                          <label class="chip inline-flex items-center gap-1" for="<%= id %>">
-                            <input id="<%= id %>" type="checkbox" class="hidden tag-input"
-                                   name="<%= p.key==='osf'?'offside.front.tags': p.key==='nsf'?'nearside.front.tags': p.key==='osr'?'offside.rear.tags':'nearside.rear.tags' %>"
-                                   value="<%= tag %>"/>
-                            <span class="text-sm"><%= tag %></span>
-                          </label>
-                        <% } %>
-                      </div>
+                    <!-- Single copy button in header -->
+                    <div class="flex items-center gap-2">
+                      <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5"></span>
+                      <button
+                        type="button"
+                        title="Copy Size, DOT, Brand & Model to other wheels not yet treaded"
+                        class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
+                        data-copy-all-from="<%= p.key %>"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                          <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
+                        </svg>
+                      </button>
                     </div>
                   </div>
 
-                  <!-- Footer actions (full-width Save) -->
-<div class="mt-4 block lg:hidden">
-  <button type="button"
-          class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
-          data-save-back="<%= p.key %>">
-    Save <%= p.key.toUpperCase() %>
-  </button>
-</div>
+                  <div class="p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <!-- Size + DOT row -->
+                      <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Size -->
+                        <div>
+                          <label class="block text-sm font-medium text-slate-700" for="size-<%= p.key %>">Size</label>
+                          <input
+                            id="size-<%= p.key %>"
+                            name="<%= path(p.key,'size') %>"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            data-tyre-key="<%= p.key %>"
+                            value="<%= p.sizeDefault %>"
+                            placeholder="e.g. 225/45R17 91W"
+                          />
+                        </div>
 
+                        <!-- DOT -->
+                        <div>
+                          <label class="block text-sm font-medium text-slate-700" for="dot-<%= p.key %>">DOT (WWYY in code)</label>
+                          <input
+                            id="dot-<%= p.key %>"
+                            name="<%= path(p.key,'dot') %>"
+                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            data-tyre-key="<%= p.key %>"
+                            placeholder="e.g. 2423"
+                          />
+                        </div>
+                      </div>
+
+                      <!-- Brand -->
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700" for="brand-<%= p.key %>">Brand</label>
+                        <select
+                          id="brand-<%= p.key %>"
+                          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field brand-select"
+                          data-tyre-key="<%= p.key %>"
+                          name="<%= path(p.key,'brand') %>"
+                        >
+                          <option value="">Select brand</option>
+                          <% brandOptions.forEach(function(b){ %>
+                            <option value="<%= b %>"><%= b %></option>
+                          <% }) %>
+                        </select>
+                      </div>
+
+                      <!-- Model -->
+                      <div>
+                        <label class="block text-sm font-medium text-slate-700" for="model-<%= p.key %>">Model</label>
+                        <select
+                          id="model-<%= p.key %>"
+                          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field model-select"
+                          data-tyre-key="<%= p.key %>"
+                          name="<%= path(p.key,'model') %>"
+                        >
+                          <option value="">Select model</option>
+                        </select>
+                      </div>
+
+                      <!-- Tread depth -->
+                      <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
+                        <div class="mt-1 grid grid-cols-3 gap-2">
+                          <select
+                            class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            data-tyre-key="<%= p.key %>"
+                            name="<%= path(p.key,'treadDepth.inner') %>"
+                          >
+                            <option value="">Inner</option>
+                            <% TREADS.forEach(function(v){ %>
+                              <option value="<%= v %>"><%= v %> mm</option>
+                            <% }) %>
+                          </select>
+
+                          <select
+                            class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            data-tyre-key="<%= p.key %>"
+                            name="<%= path(p.key,'treadDepth.middle') %>"
+                          >
+                            <option value="">Middle</option>
+                            <% TREADS.forEach(function(v){ %>
+                              <option value="<%= v %>"><%= v %> mm</option>
+                            <% }) %>
+                          </select>
+
+                          <select
+                            class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            data-tyre-key="<%= p.key %>"
+                            name="<%= path(p.key,'treadDepth.outer') %>"
+                          >
+                            <option value="">Outer</option>
+                            <% TREADS.forEach(function(v){ %>
+                              <option value="<%= v %>"><%= v %> mm</option>
+                            <% }) %>
+                          </select>
+                        </div>
+                        <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
+                      </div>
+
+                      <!-- Tags -->
+                      <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-slate-700">Tags</label>
+                        <div class="mt-1 flex flex-wrap gap-2">
+                          <% QUICK_TAGS.forEach(function(tag){
+                               var id = (p.key + '-tag-' + tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase());
+                          %>
+                            <label class="chip inline-flex items-center gap-1" for="<%= id %>">
+                              <input id="<%= id %>" type="checkbox" class="hidden tag-input" name="<%= path(p.key,'tags') %>" value="<%= tag %>" />
+                              <span class="text-sm"><%= tag %></span>
+                            </label>
+                          <% }) %>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Footer actions (full-width Save) -->
+                    <div class="mt-4 block lg:hidden">
+                      <button
+                        type="button"
+                        class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
+                        data-save-back="<%= p.key %>"
+                      >
+                        Save <%= p.key.toUpperCase() %>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </section>
-            <% } %>
-
-            <% for (var pi=0; pi<panels.length; pi++) { %>
-              <%- panelMarkup(panels[pi]) %>
-            <% } %>
+              </section>
+            <% }) %>
           </div>
         </div>
 
         <!-- General notes + Save (only when all tyres complete) -->
         <div id="notes-block" class="hidden">
-          <label class="block text-sm font-medium text-slate-700">General notes</label>
-          <textarea name="notes" rows="3"
-                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                    placeholder="Overall findings, advisories, etc."></textarea>
+          <label for="notes" class="block text-sm font-medium text-slate-700">General notes</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="3"
+            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            placeholder="Overall findings, advisories, etc."
+          ></textarea>
         </div>
 
         <div id="save-block" class="hidden">
@@ -266,361 +316,356 @@
       </form>
     </div>
 
-
+    <!-- Page JS (unchanged logic) -->
     <script>
-  // =========================
-  // Tyre Inspector — Page JS
-  // =========================
+      // =========================
+      // Tyre Inspector — Page JS
+      // =========================
 
-  // ---------- Config / constants ----------
-  var PATHS = {
-    osf: 'offside.front',
-    nsf: 'nearside.front',
-    osr: 'offside.rear',
-    nsr: 'nearside.rear'
-  };
+      // ---------- Config / constants ----------
+      var PATHS = { osf: "offside.front", nsf: "nearside.front", osr: "offside.rear", nsr: "nearside.rear" };
 
-  // Tags that force a FAIL / ADVISORY when present
-  var FAIL_TAGS = new Set(['Bulge', 'Cord exposed', 'Puncture']);
-  var ADV_TAGS  = new Set(['Perished', 'Cracked sidewall', 'Uneven wear', 'Bald on inner edge', 'Bald on outer edge']);
+      // Tags that force a FAIL / ADVISORY when present
+      var FAIL_TAGS = new Set(["Bulge", "Cord exposed", "Puncture"]);
+      var ADV_TAGS  = new Set(["Perished", "Cracked sidewall", "Uneven wear", "Bald on inner edge", "Bald on outer edge"]);
 
-  // ---------- Small helpers ----------
-  function isLarge(){ return window.matchMedia('(min-width: 1024px)').matches; }
-  function isNum(v){ return v !== '' && !isNaN(Number(v)); }
-  function filled(v){ return v != null && String(v).trim() !== ''; }
-  function q(name){ return document.querySelector('[name="'+name+'"]'); }
+      // ---------- Small helpers ----------
+      function isLarge(){ return window.matchMedia("(min-width: 1024px)").matches; }
+      function isNum(v){ return v !== "" && !isNaN(Number(v)); }
+      function filled(v){ return v != null && String(v).trim() !== ""; }
+      function q(name){ return document.querySelector('[name="'+name+'"]'); }
 
-  // ---------- API ----------
-  function fetchModels(brand){
-    if (!brand) return Promise.resolve([]);
-    return fetch('/inspections/api/tyres/models?brand=' + encodeURIComponent(brand))
-      .then(function(res){ return res.json(); })
-      .catch(function(){ return []; });
-  }
-
-  // Populate models when a brand changes (same panel)
-  function bindBrandChange(){
-    document.addEventListener('change', function(e){
-      if (!e.target.classList.contains('brand-select')) return;
-      var sel = e.target;
-      var key = sel.getAttribute('data-tyre-key');
-      var modelSel = document.querySelector('#panel-' + key + ' .model-select');
-      if (!modelSel) return;
-      modelSel.innerHTML = '<option value="">Select model</option>';
-      if (sel.value){
-        fetchModels(sel.value).then(function(models){
-          for (var i=0;i<models.length;i++){
-            var opt = document.createElement('option');
-            opt.value = models[i]; opt.textContent = models[i];
-            modelSel.appendChild(opt);
-          }
-        });
+      // ---------- API ----------
+      function fetchModels(brand){
+        if (!brand) return Promise.resolve([]);
+        return fetch("/inspections/api/tyres/models?brand=" + encodeURIComponent(brand))
+          .then(function(res){ return res.json(); })
+          .catch(function(){ return []; });
       }
-    });
-  }
 
-  // ---------- Completion & condition ----------
-  function hasAllTreads(path){
-    var i = q(path + '.treadDepth.inner');  i = i ? i.value : '';
-    var m = q(path + '.treadDepth.middle'); m = m ? m.value : '';
-    var o = q(path + '.treadDepth.outer');  o = o ? o.value : '';
-    return isNum(i) && isNum(m) && isNum(o);
-  }
-
-  function tyreComplete(path){
-    var size  = q(path + '.size');  size  = size  ? size.value  : '';
-    var brand = q(path + '.brand'); brand = brand ? brand.value : '';
-    var model = q(path + '.model'); model = model ? model.value : '';
-    return filled(size) && filled(brand) && filled(model) && hasAllTreads(path);
-  }
-
-  function readTagsFor(path){
-    var safe = path.replace(/\./g, '\\.');
-    var inputs = document.querySelectorAll('input[name="'+safe+'.tags"]');
-    var out = [];
-    for (var i=0;i<inputs.length;i++){ if (inputs[i].checked) out.push(inputs[i].value); }
-    return out;
-  }
-
-  function determineCondition(path){
-    // Tags
-    var tags = readTagsFor(path);
-    for (var i=0;i<tags.length;i++){ if (FAIL_TAGS.has(tags[i])) return 'fail'; }
-    var advisoryFromTags = false;
-    for (var j=0;j<tags.length;j++){ if (ADV_TAGS.has(tags[j])) advisoryFromTags = true; }
-
-    // Treads
-    var iv = q(path + '.treadDepth.inner');  iv = iv ? Number(iv.value) : NaN;
-    var mv = q(path + '.treadDepth.middle'); mv = mv ? Number(mv.value) : NaN;
-    var ov = q(path + '.treadDepth.outer');  ov = ov ? Number(ov.value) : NaN;
-    var vals = [];
-    if (!isNaN(iv)) vals.push(iv);
-    if (!isNaN(mv)) vals.push(mv);
-    if (!isNaN(ov)) vals.push(ov);
-
-    if (vals.length){
-      for (var k=0;k<vals.length;k++){ if (vals[k] < 3) return 'fail'; }
-      for (var k2=0;k2<vals.length;k2++){ if (vals[k2] < 4) return 'advisory'; }
-    }
-    if (advisoryFromTags) return 'advisory';
-    return 'ok';
-  }
-
-  function applyWheelColour(key){
-    var el = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
-    if (!el) return;
-    el.classList.remove('cond-ok','cond-adv','cond-fail');
-    // Only colour AFTER completion
-    if (tyreComplete(PATHS[key])){
-      var c = determineCondition(PATHS[key]);
-      if (c === 'ok') el.classList.add('cond-ok');
-      else if (c === 'advisory') el.classList.add('cond-adv');
-      else if (c === 'fail') el.classList.add('cond-fail');
-    }
-  }
-
-  function markWheel(key){
-    applyWheelColour(key);
-    updateSaveVisibility();
-  }
-
-  function updateSaveVisibility(){
-    var keys = Object.keys(PATHS);
-    var allDone = keys.every(function(k){ return tyreComplete(PATHS[k]); });
-    var nb = document.getElementById('notes-block');
-    var sb = document.getElementById('save-block');
-    if (nb) nb.classList.toggle('hidden', !allDone);
-    if (sb) sb.classList.toggle('hidden', !allDone);
-  }
-
-  // ---------- Panels / navigation ----------
-  function showPanel(key){
-    // Hide all panels
-    document.querySelectorAll('section[id^="panel-"]').forEach(function(s){ s.classList.add('hidden'); });
-    // Show requested
-    var panel = document.getElementById('panel-' + key);
-    if (panel) panel.classList.remove('hidden');
-
-    // Active ring on hotspot
-    document.querySelectorAll('.wheel-hotspot').forEach(function(h){ h.classList.remove('active'); });
-    var spot = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
-    if (spot) spot.classList.add('active');
-
-    // Mobile: hide car area while editing the form
-    if (!isLarge()){
-      var pick = document.getElementById('pick-screen');
-      if (pick) pick.classList.add('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
-
-  function bindWheelClicks(){
-    var wheels = document.querySelectorAll('.wheel-hotspot');
-    wheels.forEach(function(btn){
-      var go = function(){ showPanel(btn.dataset.key); };
-      btn.addEventListener('click', go);
-      // iOS sometimes needs touchstart for immediacy
-      btn.addEventListener('touchstart', function(e){ e.preventDefault(); go(); }, {passive:false});
-    });
-  }
-
-  // ---------- Track inputs (brand/model/size/dot/treads) ----------
-  function bindFieldTracking(){
-    document.querySelectorAll('.tyre-field').forEach(function(el){
-      el.addEventListener('input', function(e){
-        var key = e.target.getAttribute('data-tyre-key');
-        if (key) markWheel(key);
-      });
-      el.addEventListener('change', function(e){
-        var key = e.target.getAttribute('data-tyre-key');
-        if (key) markWheel(key);
-      });
-    });
-  }
-
-  // Auto-fill treads if one chosen and the others blank (per panel)
-  function bindTreadAutofill(){
-    document.querySelectorAll('section[id^="panel-"]').forEach(function(panel){
-      var selects = panel.querySelectorAll('select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]');
-      selects.forEach(function(sel){
-        sel.addEventListener('change', function(){
-          if (!sel.value) return;
-          selects.forEach(function(other){
-            if (other !== sel && !other.value) other.value = sel.value;
-          });
-          var key = panel.id.replace('panel-','');
-          markWheel(key);
-        });
-      });
-    });
-  }
-
-  // ---------- Tags (chips) ----------
-  function bindTagChips(){
-    document.querySelectorAll('.chip').forEach(function(ch){
-      ch.addEventListener('click', function(e){
-        var input = ch.querySelector('.tag-input');
-        if (!input) return;
-        input.checked = !input.checked;
-        ch.classList.toggle('active', input.checked);
-        var panel = ch.closest('section[id^="panel-"]');
-        var key = panel ? panel.id.replace('panel-','') : null;
-        if (key) markWheel(key);
-        e.preventDefault();
-      });
-    });
-  }
-
-  // ---------- Single header "Copy to others" ----------
-  function hasAllTreadsPath(path){
-    var i = q(path + '.treadDepth.inner');  i = i ? i.value : '';
-    var m = q(path + '.treadDepth.middle'); m = m ? m.value : '';
-    var o = q(path + '.treadDepth.outer');  o = o ? o.value : '';
-    return isNum(i) && isNum(m) && isNum(o);
-  }
-
-  function bindCopyCore(){
-    function copyCoreFrom(fromKey){
-      var src = PATHS[fromKey];
-      var size  = q(src + '.size');  size  = size  ? size.value  : '';
-      var dot   = q(src + '.dot');   dot   = dot   ? dot.value   : '';
-      var brand = q(src + '.brand'); brand = brand ? brand.value : '';
-      var model = q(src + '.model'); model = model ? model.value : '';
-
-      var affected = 0;
-      var flashed = [];
-
-      function doOne(k, p){
-        if (k === fromKey) return Promise.resolve();
-        // Only copy to wheels that do NOT already have all tread depths filled
-        if (hasAllTreadsPath(p)) return Promise.resolve();
-
-        // Size & DOT
-        var sEl = q(p + '.size'); if (sEl) sEl.value = size;
-        var dEl = q(p + '.dot');  if (dEl) dEl.value = dot;
-
-        // Brand & Model (overwrite)
-        var bSel = q(p + '.brand');
-        var mSel = q(p + '.model');
-
-        function setModelOptions(models){
-          if (!mSel) return;
-          mSel.innerHTML = '<option value="">Select model</option>';
-          for (var i=0;i<models.length;i++){
-            var opt = document.createElement('option');
-            opt.value = models[i]; opt.textContent = models[i];
-            mSel.appendChild(opt);
-          }
-          // set model if present in the list
-          if (model){
-            mSel.value = '';
-            for (var j=0;j<mSel.options.length;j++){
-              if (mSel.options[j].value === model){ mSel.value = model; break; }
-            }
-          }
-        }
-
-        if (bSel){
-          // set brand
-          if (brand){
-            bSel.value = '';
-            for (var bi=0; bi<bSel.options.length; bi++){
-              if (bSel.options[bi].value === brand){ bSel.value = brand; break; }
-            }
-          }
-          // fetch models for that brand (or clear)
-          if (bSel.value){
-            return fetchModels(bSel.value).then(function(models){
-              setModelOptions(models);
+      // Populate models when a brand changes (same panel)
+      function bindBrandChange(){
+        document.addEventListener("change", function(e){
+          if (!e.target.classList.contains("brand-select")) return;
+          var sel = e.target;
+          var key = sel.getAttribute("data-tyre-key");
+          var modelSel = document.querySelector("#panel-" + key + " .model-select");
+          if (!modelSel) return;
+          modelSel.innerHTML = '<option value="">Select model</option>';
+          if (sel.value){
+            fetchModels(sel.value).then(function(models){
+              for (var i=0;i<models.length;i++){
+                var opt = document.createElement("option");
+                opt.value = models[i]; opt.textContent = models[i];
+                modelSel.appendChild(opt);
+              }
             });
-          } else {
-            setModelOptions([]);
           }
-        }
-
-        var hotspot = document.querySelector('.wheel-hotspot[data-key="'+k+'"]');
-        if (hotspot){ hotspot.classList.add('flash-updated'); flashed.push(hotspot); }
-
-        affected++;
-        markWheel(k);
-        return Promise.resolve();
+        });
       }
 
-      var chain = Promise.resolve();
-      Object.keys(PATHS).forEach(function(k){
-        chain = chain.then(function(){ return doOne(k, PATHS[k]); });
-      });
+      // ---------- Completion & condition ----------
+      function hasAllTreads(path){
+        var i = q(path + ".treadDepth.inner");  i = i ? i.value : "";
+        var m = q(path + ".treadDepth.middle"); m = m ? m.value : "";
+        var o = q(path + ".treadDepth.outer");  o = o ? o.value : "";
+        return isNum(i) && isNum(m) && isNum(o);
+      }
 
-      return chain.then(function(){
-        setTimeout(function(){ flashed.forEach(function(h){ h.classList.remove('flash-updated'); }); }, 900);
-        return affected;
-      });
-    }
+      function tyreComplete(path){
+        var size  = q(path + ".size");  size  = size  ? size.value  : "";
+        var brand = q(path + ".brand"); brand = brand ? brand.value : "";
+        var model = q(path + ".model"); model = model ? model.value : "";
+        return filled(size) && filled(brand) && filled(model) && hasAllTreads(path);
+      }
 
-    document.addEventListener('click', function(e){
-      var btn = e.target.closest('[data-copy-all-from]');
-      if (!btn) return;
+      function readTagsFor(path){
+        var safe = path.replace(/\./g, "\\.");
+        var inputs = document.querySelectorAll('input[name="'+safe+'.tags"]');
+        var out = [];
+        for (var i=0;i<inputs.length;i++){ if (inputs[i].checked) out.push(inputs[i].value); }
+        return out;
+      }
 
-      var fromKey = btn.getAttribute('data-copy-all-from');
-      btn.disabled = true;
+      function determineCondition(path){
+        // Tags
+        var tags = readTagsFor(path);
+        for (var i=0;i<tags.length;i++){ if (FAIL_TAGS.has(tags[i])) return "fail"; }
+        var advisoryFromTags = false;
+        for (var j=0;j<tags.length;j++){ if (ADV_TAGS.has(tags[j])) advisoryFromTags = true; }
 
-      copyCoreFrom(fromKey).then(function(n){
-        var pill = document.getElementById('copy-pill-' + fromKey);
-        if (pill){
-          pill.textContent = n ? ('Copied to ' + n + ' wheel' + (n===1?'':'s')) : 'No wheels eligible';
-          pill.classList.remove('hidden');
-          setTimeout(function(){ pill.classList.add('hidden'); }, 1400);
+        // Treads
+        var iv = q(path + ".treadDepth.inner");  iv = iv ? Number(iv.value) : NaN;
+        var mv = q(path + ".treadDepth.middle"); mv = mv ? Number(mv.value) : NaN;
+        var ov = q(path + ".treadDepth.outer");  ov = ov ? Number(ov.value) : NaN;
+        var vals = [];
+        if (!isNaN(iv)) vals.push(iv);
+        if (!isNaN(mv)) vals.push(mv);
+        if (!isNaN(ov)) vals.push(ov);
+
+        if (vals.length){
+          for (var k=0;k<vals.length;k++){ if (vals[k] < 3) return "fail"; }
+          for (var k2=0;k2<vals.length;k2++){ if (vals[k2] < 4) return "advisory"; }
         }
+        if (advisoryFromTags) return "advisory";
+        return "ok";
+      }
 
-        btn.classList.add('bg-slate-100');
-        setTimeout(function(){
-          btn.classList.remove('bg-slate-100');
-          btn.disabled = false;
-        }, 350);
-      });
-    });
-  }
+      function applyWheelColour(key){
+        var el = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
+        if (!el) return;
+        el.classList.remove("cond-ok","cond-adv","cond-fail");
+        // Only colour AFTER completion
+        if (tyreComplete(PATHS[key])){
+          var c = determineCondition(PATHS[key]);
+          if (c === "ok") el.classList.add("cond-ok");
+          else if (c === "advisory") el.classList.add("cond-adv");
+          else if (c === "fail") el.classList.add("cond-fail");
+        }
+      }
 
-  // ---------- Mobile Save: hide form, show car ----------
-  function bindMobileSave(){
-    document.querySelectorAll('[data-save-back]').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var key = btn.getAttribute('data-save-back');
-        markWheel(key);
+      function markWheel(key){
+        applyWheelColour(key);
+        updateSaveVisibility();
+      }
+
+      function updateSaveVisibility(){
+        var keys = Object.keys(PATHS);
+        var allDone = keys.every(function(k){ return tyreComplete(PATHS[k]); });
+        var nb = document.getElementById("notes-block");
+        var sb = document.getElementById("save-block");
+        if (nb) nb.classList.toggle("hidden", !allDone);
+        if (sb) sb.classList.toggle("hidden", !allDone);
+      }
+
+      // ---------- Panels / navigation ----------
+      function showPanel(key){
+        // Hide all panels
+        document.querySelectorAll('section[id^="panel-"]').forEach(function(s){ s.classList.add("hidden"); });
+        // Show requested
+        var panel = document.getElementById("panel-" + key);
+        if (panel) panel.classList.remove("hidden");
+
+        // Active ring on hotspot
+        document.querySelectorAll(".wheel-hotspot").forEach(function(h){ h.classList.remove("active"); });
+        var spot = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
+        if (spot) spot.classList.add("active");
+
+        // Mobile: hide car area while editing the form
         if (!isLarge()){
-          var panel = document.getElementById('panel-' + key);
-          if (panel) panel.classList.add('hidden');
-          var pick = document.getElementById('pick-screen');
-          if (pick) pick.classList.remove('hidden');
-          document.querySelectorAll('.wheel-hotspot').forEach(function(h){ h.classList.remove('active'); });
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          var pick = document.getElementById("pick-screen");
+          if (pick) pick.classList.add("hidden");
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }
-      });
-    });
-  }
+      }
 
-  // ---------- Init ----------
-  function initTyreInspector(){
-    bindBrandChange();
-    bindWheelClicks();
-    bindFieldTracking();
-    bindTreadAutofill();
-    bindTagChips();
-    bindCopyCore();
-    bindMobileSave();
+      function bindWheelClicks(){
+        var wheels = document.querySelectorAll(".wheel-hotspot");
+        wheels.forEach(function(btn){
+          var go = function(){ showPanel(btn.dataset.key); };
+          btn.addEventListener("click", go);
+          // iOS sometimes needs touchstart for immediacy
+          btn.addEventListener("touchstart", function(e){ e.preventDefault(); go(); }, {passive:false});
+        });
+      }
 
-    // Initial state: keep car visible, all panels hidden, wheels neutral until completed
-    Object.keys(PATHS).forEach(function(k){ applyWheelColour(k); });
-    updateSaveVisibility();
-  }
+      // ---------- Track inputs (brand/model/size/dot/treads) ----------
+      function bindFieldTracking(){
+        document.querySelectorAll(".tyre-field").forEach(function(el){
+          el.addEventListener("input", function(e){
+            var key = e.target.getAttribute("data-tyre-key");
+            if (key) markWheel(key);
+          });
+          el.addEventListener("change", function(e){
+            var key = e.target.getAttribute("data-tyre-key");
+            if (key) markWheel(key);
+          });
+        });
+      }
 
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', initTyreInspector);
-  } else {
-    initTyreInspector();
-  }
-</script>
+      // Auto-fill treads if one chosen and the others blank (per panel)
+      function bindTreadAutofill(){
+        document.querySelectorAll('section[id^="panel-"]').forEach(function(panel){
+          var selects = panel.querySelectorAll(
+            'select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]'
+          );
+          selects.forEach(function(sel){
+            sel.addEventListener("change", function(){
+              if (!sel.value) return;
+              selects.forEach(function(other){
+                if (other !== sel && !other.value) other.value = sel.value;
+              });
+              var key = panel.id.replace("panel-","");
+              markWheel(key);
+            });
+          });
+        });
+      }
 
-  
-</body>
+      // ---------- Tags (chips) ----------
+      function bindTagChips(){
+        document.querySelectorAll(".chip").forEach(function(ch){
+          ch.addEventListener("click", function(e){
+            var input = ch.querySelector(".tag-input");
+            if (!input) return;
+            input.checked = !input.checked;
+            ch.classList.toggle("active", input.checked);
+            var panel = ch.closest('section[id^="panel-"]');
+            var key = panel ? panel.id.replace("panel-","") : null;
+            if (key) markWheel(key);
+            e.preventDefault();
+          });
+        });
+      }
+
+      // ---------- Single header "Copy to others" ----------
+      function hasAllTreadsPath(path){
+        var i = q(path + ".treadDepth.inner");  i = i ? i.value : "";
+        var m = q(path + ".treadDepth.middle"); m = m ? m.value : "";
+        var o = q(path + ".treadDepth.outer");  o = o ? o.value : "";
+        return isNum(i) && isNum(m) && isNum(o);
+      }
+
+      function bindCopyCore(){
+        function copyCoreFrom(fromKey){
+          var src = PATHS[fromKey];
+          var size  = q(src + ".size");  size  = size  ? size.value  : "";
+          var dot   = q(src + ".dot");   dot   = dot   ? dot.value   : "";
+          var brand = q(src + ".brand"); brand = brand ? brand.value : "";
+          var model = q(src + ".model"); model = model ? model.value : "";
+
+          var affected = 0;
+          var flashed = [];
+
+          function doOne(k, p){
+            if (k === fromKey) return Promise.resolve();
+            // Only copy to wheels that do NOT already have all tread depths filled
+            if (hasAllTreadsPath(p)) return Promise.resolve();
+
+            // Size & DOT
+            var sEl = q(p + ".size"); if (sEl) sEl.value = size;
+            var dEl = q(p + ".dot");  if (dEl) dEl.value = dot;
+
+            // Brand & Model (overwrite)
+            var bSel = q(p + ".brand");
+            var mSel = q(p + ".model");
+
+            function setModelOptions(models){
+              if (!mSel) return;
+              mSel.innerHTML = '<option value="">Select model</option>';
+              for (var i=0;i<models.length;i++){
+                var opt = document.createElement("option");
+                opt.value = models[i]; opt.textContent = models[i];
+                mSel.appendChild(opt);
+              }
+              // set model if present in the list
+              if (model){
+                mSel.value = "";
+                for (var j=0;j<mSel.options.length;j++){
+                  if (mSel.options[j].value === model){ mSel.value = model; break; }
+                }
+              }
+            }
+
+            if (bSel){
+              // set brand
+              if (brand){
+                bSel.value = "";
+                for (var bi=0; bi<bSel.options.length; bi++){
+                  if (bSel.options[bi].value === brand){ bSel.value = brand; break; }
+                }
+              }
+              // fetch models for that brand (or clear)
+              if (bSel.value){
+                return fetchModels(bSel.value).then(function(models){
+                  setModelOptions(models);
+                });
+              } else {
+                setModelOptions([]);
+              }
+            }
+
+            var hotspot = document.querySelector('.wheel-hotspot[data-key="'+k+'"]');
+            if (hotspot){ hotspot.classList.add("flash-updated"); flashed.push(hotspot); }
+
+            affected++;
+            markWheel(k);
+            return Promise.resolve();
+          }
+
+          var chain = Promise.resolve();
+          Object.keys(PATHS).forEach(function(k){
+            chain = chain.then(function(){ return doOne(k, PATHS[k]); });
+          });
+
+          return chain.then(function(){
+            setTimeout(function(){ flashed.forEach(function(h){ h.classList.remove("flash-updated"); }); }, 900);
+            return affected;
+          });
+        }
+
+        document.addEventListener("click", function(e){
+          var btn = e.target.closest("[data-copy-all-from]");
+          if (!btn) return;
+
+          var fromKey = btn.getAttribute("data-copy-all-from");
+          btn.disabled = true;
+
+          copyCoreFrom(fromKey).then(function(n){
+            var pill = document.getElementById("copy-pill-" + fromKey);
+            if (pill){
+              pill.textContent = n ? ("Copied to " + n + " wheel" + (n===1?"":"s")) : "No wheels eligible";
+              pill.classList.remove("hidden");
+              setTimeout(function(){ pill.classList.add("hidden"); }, 1400);
+            }
+
+            btn.classList.add("bg-slate-100");
+            setTimeout(function(){
+              btn.classList.remove("bg-slate-100");
+              btn.disabled = false;
+            }, 350);
+          });
+        });
+      }
+
+      // ---------- Mobile Save: hide form, show car ----------
+      function bindMobileSave(){
+        document.querySelectorAll("[data-save-back]").forEach(function(btn){
+          btn.addEventListener("click", function(){
+            var key = btn.getAttribute("data-save-back");
+            markWheel(key);
+            if (!isLarge()){
+              var panel = document.getElementById("panel-" + key);
+              if (panel) panel.classList.add("hidden");
+              var pick = document.getElementById("pick-screen");
+              if (pick) pick.classList.remove("hidden");
+              document.querySelectorAll(".wheel-hotspot").forEach(function(h){ h.classList.remove("active"); });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          });
+        });
+      }
+
+      // ---------- Init ----------
+      function initTyreInspector(){
+        bindBrandChange();
+        bindWheelClicks();
+        bindFieldTracking();
+        bindTreadAutofill();
+        bindTagChips();
+        bindCopyCore();
+        bindMobileSave();
+
+        // Initial state: keep car visible, all panels hidden, wheels neutral until completed
+        Object.keys(PATHS).forEach(function(k){ applyWheelColour(k); });
+        updateSaveVisibility();
+      }
+
+      if (document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", initTyreInspector);
+      } else {
+        initTyreInspector();
+      }
+    </script>
+  </body>
 </html>
