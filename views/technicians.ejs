@@ -1,0 +1,57 @@
+<%- include('partials/head', { title: typeof title !== 'undefined' ? title : 'Technicians — Tyre Inspector' }) %>
+<%- include('partials/topnav') %>
+
+<main class="mx-auto max-w-4xl px-4 py-8 space-y-8">
+  <section class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+    <h1 class="text-2xl font-bold mb-4">Technicians</h1>
+    <form method="POST" action="/technicians" class="space-y-3 max-w-md">
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="name">Name</label>
+        <input id="name" name="name" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="email">Email</label>
+        <input id="email" name="email" type="email" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="password">Password</label>
+        <input id="password" name="password" type="password" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+      </div>
+      <button type="submit" class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700">Add technician</button>
+    </form>
+  </section>
+
+  <section class="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+    <h2 class="text-lg font-semibold mb-4">Existing technicians</h2>
+    <% if (Array.isArray(techs) && techs.length) { %>
+      <div class="space-y-4">
+        <% techs.forEach(function(t){ %>
+          <div class="border border-slate-200 rounded-lg p-4 space-y-2">
+            <form method="POST" action="/technicians/<%= t._id %>/update" class="flex flex-wrap items-end gap-3">
+              <div class="flex-1 min-w-[120px]">
+                <label class="block text-xs font-medium text-slate-700">Name</label>
+                <input name="name" value="<%= t.name %>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <div class="flex-1 min-w-[160px]">
+                <label class="block text-xs font-medium text-slate-700">Email</label>
+                <input name="email" type="email" value="<%= t.email %>" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <div class="flex-1 min-w-[140px]">
+                <label class="block text-xs font-medium text-slate-700">New password</label>
+                <input name="password" type="password" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <button type="submit" class="rounded-lg bg-emerald-600 text-white px-3 py-2 font-medium hover:bg-emerald-700">Save</button>
+            </form>
+            <form method="POST" action="/technicians/<%= t._id %>/delete" class="mt-2" onsubmit="return confirm('Delete this technician?');">
+              <button class="text-rose-700 hover:underline" type="submit">Delete</button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <p class="text-slate-600">No technicians yet.</p>
+    <% } %>
+  </section>
+</main>
+
+<%- include('partials/scripts') %>

@@ -41,7 +41,7 @@
         <p class="mt-3 text-slate-600">Create a new inspection or review your recent ones.</p>
 
         <!-- Create Inspection button + usage pill -->
-        <div class="mt-6 flex items-center justify-center gap-3">
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             data-open-modal
@@ -59,6 +59,12 @@
             </svg>
             <%= limited ? (noneLeft ? '0 left today' : (remaining + ' left today')) : 'Unlimited' %>
           </span>
+
+          <% if (user && user.role === 'admin') { %>
+            <a href="/technicians" class="inline-flex items-center gap-2 rounded-xl px-5 py-3 border border-slate-300 text-slate-700 hover:bg-slate-50">
+              Manage Technicians
+            </a>
+          <% } %>
         </div>
 
         <% if (limited) { %>

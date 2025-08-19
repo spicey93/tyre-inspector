@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import vrmRoutes from "./routes/vrm.routes.js";
 import inspectionRoutes from "./routes/inspection.routes.js";
+import technicianRoutes from "./routes/technician.routes.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import User from "./models/user.model.js";
@@ -89,5 +90,6 @@ app.get("/", (req, res) => {
 
 app.use("/vrm", vrmRoutes);
 app.use("/inspections", inspectionRoutes);
+app.use("/technicians", technicianRoutes);
 
 export default app;
