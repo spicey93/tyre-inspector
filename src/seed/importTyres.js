@@ -1,12 +1,16 @@
 // importTyres.js
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import { parse } from "csv-parse";
 import Tyre from "../models/tyre.model.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const DB_URL = process.env.DB_URL || "mongodb://localhost:27017/tyre-inspector";
-const CSV_PATH = process.argv[2] || "/Users/deanspicer/Documents/tyre-inspector/seed/tyres.csv";
+const CSV_PATH = process.argv[2] || path.join(__dirname, "tyres.csv");
 const BATCH_SIZE = Number(process.env.BATCH_SIZE) || 1000;
 
 async function run() {
