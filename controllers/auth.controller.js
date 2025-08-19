@@ -40,7 +40,14 @@ export const postRegister = async (req, res) => {
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await User.create({ name, email, passwordHash, dailyLimit });
+    const user = await User.create({
+      name,
+      email,
+      passwordHash,
+      dailyLimit,
+      role: "admin",
+      accountStatus: "free",
+    });
 
     req.session.regenerate((err) => {
       if (err) return res.status(500).render("auth/register", { error: "Session error" });
