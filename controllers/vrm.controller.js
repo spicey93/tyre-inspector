@@ -150,7 +150,6 @@ export const findVrm = async (req, res) => {
               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
               required
             />
-            <p class="mt-1 text-xs text-slate-500">We’ll carry this over so you don’t need to re-enter it.</p>
           </div>
 
           <!-- Tyre size selector -->
