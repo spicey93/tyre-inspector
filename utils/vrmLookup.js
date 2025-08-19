@@ -2,7 +2,7 @@
 const apiKey = process.env.UK_VEHICLE_DATA_API_KEY;
 import Vehicle from "../models/vehicle.model.js";
 
-const normaliseVrm = (vrm) => vrm.toUpperCase().replace(/\s+/g, "");
+export const normaliseVrm = (vrm) => vrm.toUpperCase().replace(/\s+/g, "");
 
 const vrmLookup = async function (vrmRaw) {
   const vrm = normaliseVrm(vrmRaw);
