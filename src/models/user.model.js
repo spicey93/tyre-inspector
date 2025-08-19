@@ -10,7 +10,8 @@ const userSchema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     dailyLimit: { type: Number, default: 20, min: 0 },   // per-user limit
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: { type: String, enum: ["technician", "admin"], default: "technician" },
+    admin: { type: Schema.Types.ObjectId, ref: "User", index: true }, // owner for technicians
   },
   { timestamps: true, versionKey: false }
 );

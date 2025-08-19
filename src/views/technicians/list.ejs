@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Technicians</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="h-full">
+    <%- include('../partials/topnav') %>
+    <main class="mx-auto max-w-3xl px-4 py-10">
+      <div class="flex items-center justify-between mb-4">
+        <h1 class="text-xl font-semibold text-slate-900">Technicians</h1>
+        <a href="/technicians/new" class="rounded bg-sky-600 text-white px-3 py-2 text-sm font-medium hover:bg-sky-700">Add technician</a>
+      </div>
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b">
+            <th class="p-2">Name</th>
+            <th class="p-2">Email</th>
+            <th class="p-2">Daily limit</th>
+            <th class="p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% technicians.forEach(t => { %>
+            <tr class="border-b">
+              <td class="p-2"><%= t.name %></td>
+              <td class="p-2"><%= t.email %></td>
+              <td class="p-2"><%= typeof t.dailyLimit === 'number' ? t.dailyLimit : '' %></td>
+              <td class="p-2 space-x-2">
+                <a href="/technicians/<%= t._id %>/edit" class="text-sky-700 underline">Edit</a>
+                <form method="POST" action="/technicians/<%= t._id %>/delete" class="inline" onsubmit="return confirm('Delete technician?');">
+                  <button class="text-rose-700 underline">Delete</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </main>
+  </body>
+</html>

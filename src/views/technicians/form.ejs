@@ -1,0 +1,7 @@
+<form method="POST" action="<%= action %>" class="space-y-3">
+  <input name="name" type="text" placeholder="Name" class="w-full rounded border border-slate-300 px-3 py-2" value="<%= technician ? technician.name : '' %>" />
+  <input name="email" type="email" required placeholder="Email" class="w-full rounded border border-slate-300 px-3 py-2" value="<%= technician ? technician.email : '' %>" />
+  <input name="password" type="password" <%= technician ? '' : 'required' %> placeholder="Password" class="w-full rounded border border-slate-300 px-3 py-2" />
+  <input name="dailyLimit" type="number" min="0" placeholder="Daily limit" class="w-full rounded border border-slate-300 px-3 py-2" value="<%= technician ? technician.dailyLimit : 0 %>" />
+  <button class="w-full rounded bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700">Save</button>
+</form>

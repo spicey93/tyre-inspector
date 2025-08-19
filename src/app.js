@@ -9,6 +9,7 @@ import MongoStore from "connect-mongo";
 
 import vrmRoutes from "./routes/vrm.routes.js";
 import inspectionRoutes from "./routes/inspection.routes.js";
+import technicianRoutes from "./routes/technician.routes.js";
 import User from "./models/user.model.js";
 import { getLogin, postLogin, getRegister, postRegister, postLogout } from "./controllers/auth.controller.js";
 import requireAuth from "./middleware/requireAuth.js";
@@ -95,5 +96,6 @@ app.get("/", (req, res) => {
 
 app.use("/vrm", vrmRoutes);
 app.use("/inspections", inspectionRoutes);
+app.use("/technicians", technicianRoutes);
 
 export default app;
