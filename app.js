@@ -1,11 +1,13 @@
 // app.js
 import express from "express";
 import helmet from "helmet";
+import authRoutes from "./routes/auth.routes.js";
 import vrmRoutes from "./routes/vrm.routes.js";
 import inspectionRoutes from "./routes/inspection.routes.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import User from "./models/user.model.js";
+import { dashboard } from "./controllers/dashboard.controller.js";
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
@@ -71,21 +73,15 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 
 // routes
-import { getLogin, postLogin, getRegister, postRegister, postLogout } from "./controllers/auth.controller.js";
 import requireAuth from "./middleware/requireAuth.js";
-import { dashboard } from "./controllers/dashboard.controller.js";
-
-app.get("/login", getLogin);
-app.post("/login", postLogin);
-app.get("/register", getRegister);
-app.post("/register", postRegister);
-app.get("/logout", postLogout);
-
-app.get("/dashboard", requireAuth, dashboard);
 
 app.get("/", (req, res) => {
+  if (req.user) return res.redirect("/dashboard")
   res.render("index", { title: "Tyre Inspector — Find report" });
 });
+
+app.use('/', authRoutes)
+app.get("/dashboard", requireAuth, dashboard);
 
 app.use("/vrm", vrmRoutes);
 app.use("/inspections", inspectionRoutes);
