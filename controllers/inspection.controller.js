@@ -43,7 +43,6 @@ const buildTyrePosition = (req, prefix) => {
     treadDepth: buildTreadDepth(req, baseDepthKey),
     condition: getBody(req, `${prefix}.condition`),
     notes: getBody(req, `${prefix}.notes`),
-    // tags exist on offside.* in your current code; supporting generally is harmless.
     tags: toArr(getBody(req, `${prefix}.tags`)),
   };
 };
@@ -78,6 +77,7 @@ const getBrandOptions = async () => {
 
 /** Build the inspection payload from req + code */
 const buildInspectionPayload = (req, code) => ({
+  user: req.user?._id, // ✅ link to owner
   code,
   vrm: upperTrim(getBody(req, "vrm")),
   mileage: toNum(getBody(req, "mileage")),
@@ -133,14 +133,13 @@ export const newInspection = async (req, res) => {
       vehicle,
       defaults: { frontSize, rearSize, pressures },
       brandOptions,
-      mileage: safeMileage, // <— NEW
+      mileage: safeMileage,
     });
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
   }
 };
-
 
 export const listBrands = async (_req, res) => {
   try {
@@ -195,22 +194,20 @@ export const showByCode = async (req, res) => {
 
 export const createInspection = async (req, res) => {
   try {
-    // First attempt
+    if (!req.user?._id) return res.status(401).send("Login required");
+
     const code = await Inspection.generateUniqueCode();
     const doc = await Inspection.create(buildInspectionPayload(req, code));
-    return res.render("inspections/created", { code: doc.code, vrm: doc.vrm });
+
+    // ✅ After creating, go back to dashboard, show success, and highlight the row
+    return res.redirect(`/dashboard?created=${encodeURIComponent(doc.code)}`);
   } catch (e) {
     // unique code rare collision: retry once with a fresh code
     if (e?.code === 11000 && e?.keyPattern?.code) {
       try {
         const code2 = await Inspection.generateUniqueCode();
-        const doc2 = await Inspection.create(
-          buildInspectionPayload(req, code2)
-        );
-        return res.render("inspections/created", {
-          code: doc2.code,
-          vrm: doc2.vrm,
-        });
+        const doc2 = await Inspection.create(buildInspectionPayload(req, code2));
+        return res.redirect(`/dashboard?created=${encodeURIComponent(doc2.code)}`);
       } catch (err) {
         console.error(err);
       }

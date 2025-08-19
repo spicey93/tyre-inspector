@@ -1,35 +1,12 @@
-<!-- views/index.ejs -->
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0" />
-    <title><%= typeof title !== 'undefined' ? title : 'Tyre Inspector' %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== 'undefined' ? title : 'Tyre Inspector — Find report' %></title>
 
     <!-- Tailwind (CDN) -->
-    <script src="https://cdn.tailwindcss.com" defer></script>
-    <script defer>
-      ;(function () {
-        // Tailwind config must run after script parse but before paint
-        if (!window.tailwind) return
-        tailwind.config = {
-          theme: {
-            extend: {
-              boxShadow: { soft: "0 6px 24px rgba(0,0,0,.06)" },
-            },
-          },
-        }
-      })()
-    </script>
-
-    <!-- HTMX -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
-      integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
-      crossorigin="anonymous"
-      defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
       body {
@@ -38,71 +15,49 @@
           radial-gradient(900px 300px at 110% -20%, rgba(63, 135, 245, 0.06), transparent 60%),
           #f8fafc;
       }
-      .uk-plate { background: linear-gradient(90deg, #ffeb3b 0 74%, #1e88e5 74% 100%); }
-      @media (prefers-reduced-motion: reduce) {
-        * { animation: none !important; transition: none !important; }
-      }
+      .brand-link svg { color: #0284c7; }
     </style>
   </head>
 
   <body class="h-full">
     <!-- Top Nav -->
     <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200" aria-label="Primary">
-      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center">
-        <a href="/" class="inline-flex items-center gap-2 font-semibold text-slate-800">
-          <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <a href="/" class="brand-link inline-flex items-center gap-2 font-semibold text-slate-800">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12a9 9 0 1 0-3.46 7.07l.71-.71"/><path d="M14 10l7-7"/>
           </svg>
           Tyre Inspector
         </a>
+
+        <div class="flex items-center gap-4 text-sm">
+          <% if (typeof user !== 'undefined' && user) { %>
+            <a href="/dashboard" class="text-slate-700 hover:text-slate-900">Dashboard</a>
+          <% } else { %>
+            <a href="/login" class="text-slate-700 hover:text-slate-900">Login</a>
+            <a href="/register"
+               class="rounded-lg bg-sky-600 text-white px-3 py-1.5 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+              Register
+            </a>
+          <% } %>
+        </div>
       </div>
     </nav>
 
-    <!-- Hero -->
-    <header class="text-center py-16">
-      <div class="mx-auto max-w-3xl px-4">
-        <span class="uk-plate inline-flex items-center rounded-md text-black text-base font-extrabold tracking-widest px-3 py-1 select-none">
-          <%= typeof samplePlate !== 'undefined' ? samplePlate : 'NU59 WEP' %>
-          <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
-        </span>
-        <h1 class="mt-5 text-3xl sm:text-4xl font-extrabold text-slate-900">
-          Create, share, and view tyre inspections.
-        </h1>
-        <p class="mt-3 text-slate-600">Run a quick VRM lookup, prefill sizes, and generate a shareable report code.</p>
-        <div class="mt-6">
-          <button
-            type="button"
-            data-open-modal
-            class="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-white font-semibold hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
-            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/>
-            </svg>
-            Create Inspection
-          </button>
-        </div>
-      </div>
-    </header>
-
     <!-- Main -->
-    <main class="mx-auto max-w-4xl px-4 pb-16">
-      <!-- Open an inspection -->
+    <main class="mx-auto max-w-4xl px-4 py-16">
       <section class="rounded-2xl bg-white border border-slate-200 shadow-soft" aria-labelledby="access-report-heading">
         <div class="p-6">
-          <h2 id="access-report-heading" class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16l4-4h6a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/>
-            </svg>
-            Access your report
-          </h2>
-          <p class="mt-1 text-slate-600">If you’ve been given a code, enter it here to view and share the inspection details.</p>
+          <h1 class="text-2xl font-extrabold text-slate-900">Find an inspection</h1>
+          <p class="mt-1 text-slate-600">Enter a report code to view and share the inspection.</p>
 
-          <form action="/inspections" method="get" class="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-3" novalidate>
+          <form action="/inspections" method="get" class="mt-6 grid grid-cols-1 sm:grid-cols-4 gap-3" novalidate>
             <label for="code" class="sr-only">Report code</label>
             <input
               id="code"
               name="code"
               type="text"
-              placeholder="Enter report code"
+              placeholder="e.g. ABC123"
               inputmode="latin"
               autocapitalize="off"
               autocomplete="one-time-code"
@@ -121,164 +76,5 @@
         </div>
       </section>
     </main>
-
-    <!-- VRM Modal -->
-    <div
-      id="vrmModal"
-      class="fixed inset-0 z-50 hidden"
-      aria-labelledby="vrmModalLabel"
-      aria-modal="true"
-      role="dialog">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-modal-overlay></div>
-
-      <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div
-          class="w-full max-w-lg transform rounded-2xl bg-white shadow-soft border border-slate-200 opacity-0 translate-y-4 transition-all outline-none"
-          data-modal-panel
-          tabindex="-1">
-          <div class="flex items-center justify-between p-4 border-b border-slate-200">
-            <h3 id="vrmModalLabel" class="text-base font-semibold text-slate-900">Confirm vehicle</h3>
-            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-modal aria-label="Close">
-              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-
-          <form
-            id="vrmForm"
-            class="p-4 space-y-3"
-            hx-post="/vrm"
-            hx-target="#vrmResult"
-            hx-swap="innerHTML">
-            <div>
-              <label for="vrmInput" class="block text-sm font-medium text-slate-700">Vehicle registration (VRM)</label>
-              <div class="mt-1 flex gap-2">
-                <div class="relative flex-1">
-                  <input
-                    id="vrmInput"
-                    name="vrm"
-                    type="text"
-                    inputmode="latin"
-                    placeholder="e.g. NU59 WEP"
-                    autocomplete="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    required
-                    pattern="[A-Z0-9\\s]{1,10}"
-                    maxlength="10"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                  <div class="absolute inset-y-0 right-2 flex items-center" aria-hidden="true">
-                    <svg class="htmx-indicator hidden w-5 h-5 animate-spin text-sky-600" viewBox="0 0 24 24" fill="none">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
-                  Look up
-                </button>
-              </div>
-              <p class="mt-1 text-xs text-slate-500">We’ll fetch tyre sizes and (if available) pressures for this vehicle.</p>
-            </div>
-
-            <div id="vrmResult" class="min-h-[3rem]"></div>
-            <div id="vrmError" class="hidden rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm p-2" role="alert"></div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Interactions -->
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const modal = document.getElementById('vrmModal');
-        const overlay = modal.querySelector('[data-modal-overlay]');
-        const panel   = modal.querySelector('[data-modal-panel]');
-        const openers = document.querySelectorAll('[data-open-modal]');
-        const closers = modal.querySelectorAll('[data-close-modal]');
-        const vrmInput = document.getElementById('vrmInput');
-        const vrmForm = document.getElementById('vrmForm');
-        const vrmError = document.getElementById('vrmError');
-
-        // Simple focus trap inside modal
-        function trapFocus(e) {
-          if (modal.classList.contains('hidden')) return;
-          if (e.key !== 'Tab') return;
-          const focusables = panel.querySelectorAll(
-            'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
-          );
-          if (!focusables.length) return;
-          const first = focusables[0];
-          const last = focusables[focusables.length - 1];
-          if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault(); last.focus();
-          } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault(); first.focus();
-          }
-        }
-
-        function openModal() {
-          modal.classList.remove('hidden');
-          requestAnimationFrame(() => {
-            overlay.classList.remove('opacity-0');
-            panel.classList.remove('opacity-0', 'translate-y-4');
-            panel.focus(); // for screen readers; we’ll move to input after transition
-            setTimeout(() => vrmInput?.focus(), 120);
-          });
-          document.addEventListener('keydown', trapFocus);
-        }
-
-        function closeModal() {
-          overlay.classList.add('opacity-0');
-          panel.classList.add('opacity-0', 'translate-y-4');
-          setTimeout(() => {
-            modal.classList.add('hidden');
-            document.removeEventListener('keydown', trapFocus);
-          }, 150);
-        }
-
-        openers.forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); openModal(); }));
-        closers.forEach(btn => btn.addEventListener('click', closeModal));
-        overlay.addEventListener('click', closeModal);
-        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
-
-        // Uppercase VRM while typing (preserve caret)
-        document.addEventListener('input', (e) => {
-          if (e.target === vrmInput) {
-            const { selectionStart, selectionEnd, value } = e.target;
-            const upper = value.toUpperCase();
-            if (upper !== value) {
-              e.target.value = upper;
-              e.target.setSelectionRange(selectionStart, selectionEnd);
-            }
-          }
-        });
-
-        // HTMX indicator scoped to the form + error handling
-        document.body.addEventListener('htmx:beforeRequest', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.remove('hidden');
-            if (vrmError) { vrmError.classList.add('hidden'); vrmError.textContent = ''; }
-          }
-        });
-        document.body.addEventListener('htmx:afterOnLoad', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
-          }
-        });
-        document.body.addEventListener('htmx:responseError', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
-            if (vrmError) {
-              vrmError.classList.remove('hidden');
-              vrmError.textContent = "We couldn’t fetch data right now. Please check the VRM and try again.";
-            }
-          }
-        });
-      });
-    </script>
   </body>
 </html>

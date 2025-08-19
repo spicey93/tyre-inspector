@@ -5,7 +5,7 @@ import { customAlphabet } from "nanoid";
 const { Schema } = mongoose;
 
 // ---- helpers ----
-const depthNum = { type: Number, min: 0, max: 20 };     // mm
+const depthNum = { type: Number, min: 0, max: 20 }; // mm
 const pressureNum = { type: Number, min: 0, max: 500 }; // psi or kPa (pick one)
 
 const TyreSubSchema = new Schema(
@@ -21,8 +21,13 @@ const TyreSubSchema = new Schema(
     model: { type: String, trim: true },
     size: { type: String, trim: true },
     notes: { type: String, trim: true, maxlength: 2000 },
-    condition: { type: String, enum: ["ok", "advisory", "fail"], default: "ok" },
-    tags: [{ type: String, trim: true }], // 👈 NEW
+    condition: {
+      type: String,
+      enum: ["ok", "advisory", "fail"],
+      default: "ok",
+    },
+    tags: [{ type: String, trim: true }],
+    // ❌ Do NOT put `user` on the tyre subschema.
   },
   { _id: false }
 );
@@ -35,6 +40,8 @@ const nanoid = customAlphabet(alphabet, 6);
 // ---- inspection schema ----
 const inspectionSchema = new Schema(
   {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true }, // ✅ owner saved on the root doc
+
     code: {
       type: String,
       required: true,
@@ -56,6 +63,7 @@ const inspectionSchema = new Schema(
 
 // indexes
 inspectionSchema.index({ vrm: 1, createdAt: -1 });
+inspectionSchema.index({ user: 1, createdAt: -1 });
 
 // unique code generator (with retries)
 inspectionSchema.statics.generateUniqueCode = async function () {
