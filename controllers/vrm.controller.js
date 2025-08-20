@@ -45,7 +45,7 @@ export const findVrm = async (req, res) => {
     `);
   }
 
-  // ✅ Log VRM lookup usage
+  // ✅ Log VRM lookup usage (this is what reduces the daily limit)
   try {
     if (req.user?._id) {
       await UsageEvent.create({
@@ -58,10 +58,33 @@ export const findVrm = async (req, res) => {
     console.error("Failed to log usage event (vrm_lookup)", e);
   }
 
+  // ✅ Tell the client (dashboard) that usage changed so it can toast + update numbers
+  try {
+    // enforceDailyLimit ran earlier and attached today's usage BEFORE this lookup
+    const prevUsed = res.locals?.limitInfo?.used ?? null;
+    const limit = res.locals?.limitInfo?.limit ?? (typeof req.user?.dailyLimit === "number" ? req.user.dailyLimit : 0);
+    const isLimited = (req.user?.role !== "admin") && (typeof limit === "number") && limit > 0;
+
+    if (isLimited && prevUsed != null) {
+      const usedAfter = prevUsed + 1;
+      const remainingAfter = Math.max(0, limit - usedAfter);
+      // HTMX custom event with details; bubbles to the document so our dashboard can catch it
+      res.set("HX-Trigger", JSON.stringify({
+        vrmSearched: { used: usedAfter, remaining: remainingAfter, limit, vrm }
+      }));
+    }
+  } catch (e) {
+    // Non-fatal if the header fails for some reason
+    console.error("Failed to set HX-Trigger vrmSearched", e);
+  }
+
   const tyreSizeElements = records
     .map((rec, idx) => {
       const isStaggered = rec.front.size !== rec.rear.size;
-      const value = isStaggered ? `${rec.front.size} | ${rec.rear.size}` : rec.front.size;
+      const value = isStaggered
+        ? `${rec.front.size} | ${rec.rear.size}`
+        : rec.front.size;
+
       const id = `tyreSize-${idx}`;
       const subtitle = isStaggered
         ? `<span class="text-xs text-slate-500">Staggered</span>`
@@ -82,9 +105,15 @@ export const findVrm = async (req, res) => {
       return `
         <label for="${id}" class="block cursor-pointer border-b last:border-b-0 border-slate-200">
           <div class="flex items-start gap-3 p-3 hover:bg-slate-50">
-            <input class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
-              type="radio" name="tyreSize" id="${id}" value="${esc(value)}"
-              ${idx === 0 ? "checked" : ""} required />
+            <input
+              class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
+              type="radio"
+              name="tyreSize"
+              id="${id}"
+              value="${esc(value)}"
+              ${idx === 0 ? "checked" : ""}
+              required
+            />
             <div class="flex-1">
               <div class="flex items-center justify-between">
                 <div class="font-semibold text-slate-900">${esc(value)}</div>
@@ -101,8 +130,14 @@ export const findVrm = async (req, res) => {
   const noneOption = `
     <label for="tyreSize-none" class="block cursor-pointer border-t border-slate-200">
       <div class="flex items-start gap-3 p-3 hover:bg-slate-50">
-        <input class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
-          type="radio" name="tyreSize" id="tyreSize-none" value="__none__" required />
+        <input
+          class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
+          type="radio"
+          name="tyreSize"
+          id="tyreSize-none"
+          value="__none__"
+          required
+        />
         <div class="flex-1">
           <div class="font-semibold text-slate-900">None of the above</div>
           <div class="text-xs text-slate-500 mt-1">I’ll enter sizes manually on the next step.</div>
@@ -111,6 +146,7 @@ export const findVrm = async (req, res) => {
     </label>
   `;
 
+  // Card with VRM, vehicle summary, mileage input, then size selector
   res.send(`
     <div class="rounded-2xl bg-white border border-slate-200 shadow-[0_6px_24px_rgba(0,0,0,.06)]">
       <div class="p-4 sm:p-6">
@@ -127,17 +163,28 @@ export const findVrm = async (req, res) => {
 
         <form method="get" action="/inspections/new" class="space-y-4">
           <input type="hidden" name="vrm" value="${esc(vehicle.vrm)}" />
+
           <div>
             <label for="mileage" class="block text-sm font-medium text-slate-700">Mileage</label>
-            <input id="mileage" name="mileage" type="number" inputmode="numeric" step="1" min="0"
-              placeholder="e.g. 45678" value="${esc(mileagePrefill)}"
+            <input
+              id="mileage"
+              name="mileage"
+              type="number"
+              inputmode="numeric"
+              step="1"
+              min="0"
+              placeholder="e.g. 45678"
+              value="${esc(mileagePrefill)}"
               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              required />
+              required
+            />
           </div>
+
           <div class="rounded-lg border border-slate-200 overflow-hidden divide-y divide-slate-200">
             ${tyreSizeElements}
             ${noneOption}
           </div>
+
           <div>
             <button class="inline-flex items-center justify-center rounded-lg bg-sky-600 text-white px-4 py-2.5 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
               Confirm

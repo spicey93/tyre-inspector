@@ -8,7 +8,7 @@
     <!-- Tailwind (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- HTMX (VRM modal lookup) -->
+    <!-- HTMX (VRM modal lookup & custom events) -->
     <script
       src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
       integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
@@ -23,6 +23,24 @@
       }
       .uk-plate { background: linear-gradient(90deg, #ffeb3b 0 74%, #1e88e5 74% 100%); }
       @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+
+      /* Toast */
+      .toast {
+        pointer-events: none;
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: 24px;
+        z-index: 60;
+        background: white;
+        border: 1px solid rgb(203 213 225);
+        box-shadow: 0 10px 30px rgba(0,0,0,.12);
+        border-radius: 12px;
+        padding: 10px 14px;
+        display: none;
+      }
+      .toast.show { display: block; animation: fadein .2s ease-out; }
+      @keyframes fadein { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
     </style>
   </head>
 
@@ -31,7 +49,7 @@
     <%
       const limited = typeof dailyLimit === 'number' && dailyLimit > 0;
       const noneLeft = limited && remaining === 0;
-      const pct = limited ? Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100)) : 0;
+      const usedPct = limited ? Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100)) : 0;
       const pageNum = Number(page || 1);
       const pagesNum = Number(pages || 1);
       const qsp = (p) => {
@@ -52,7 +70,6 @@
           Tyre Inspector
         </a>
 
-        <!-- If your app expects POST for logout, convert this to a small form -->
         <div class="text-sm">
           <a href="/logout" class="text-slate-700 hover:text-slate-900">Logout</a>
         </div>
@@ -81,7 +98,9 @@
           <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
         </span>
         <h1 class="mt-5 text-3xl sm:text-4xl font-extrabold text-slate-900">Dashboard</h1>
-        <p class="mt-3 text-slate-600">Create a new inspection or review your recent ones.</p>
+        <p class="mt-3 text-slate-600">
+          Create a new inspection or review your recent ones.<br/>
+        </p>
 
         <!-- Create Inspection button + usage pill -->
         <div class="mt-6 flex items-center justify-center gap-3">
@@ -91,30 +110,34 @@
             <%= noneLeft ? 'disabled aria-disabled="true"' : '' %>
             class="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500
                    <%= noneLeft ? 'bg-slate-400 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700' %>">
-            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg>
+            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 11V5h2v6h6v2h-2"/></svg>
             Create Inspection
           </button>
 
-          <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
+          <span id="usagePill" class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
                        <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10h5v2h-7V6h2v6Z"/>
             </svg>
-            <%= limited ? (noneLeft ? '0 left today' : (remaining + ' left today')) : 'Unlimited' %>
+            <span id="remainingPillText"><%= limited ? (noneLeft ? '0 left today' : (remaining + ' left today')) : 'Unlimited' %></span>
           </span>
         </div>
 
         <% if (limited) { %>
           <div class="mt-3 mx-auto max-w-md text-left">
             <div class="flex items-center justify-between text-xs text-slate-600 mb-1">
-              <span>Daily usage</span>
-              <span><%= usedToday %> / <%= dailyLimit %> used</span>
+              <span>Daily usage (VRM lookups)</span>
+              <span id="usageCounts"><%= usedToday %> / <%= dailyLimit %> used</span>
             </div>
             <div class="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= pct %>%"></div>
+              <div id="usageBar" class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= usedPct %>%"></div>
             </div>
+            <p class="mt-2 text-xs text-slate-600">
+              VRM lookups consume your daily limit. Creating an inspection <em>doesn’t</em> use extra limit
+              unless you <strong>skip a VRM lookup</strong> for that vehicle.
+            </p>
             <% if (noneLeft) { %>
-              <p class="mt-2 text-xs text-rose-600">Daily limit reached. You can create more inspections tomorrow.</p>
+              <p class="mt-1 text-xs text-rose-600">Daily limit reached. You can make more VRM lookups tomorrow.</p>
             <% } %>
           </div>
         <% } %>
@@ -166,7 +189,6 @@
               </table>
             </div>
 
-            <!-- Pagination -->
             <% if (pagesNum > 1) { %>
               <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
                 <a href="<%= pageNum > 1 ? qsp(pageNum - 1) : '#' %>"
@@ -189,13 +211,20 @@
       </section>
     </main>
 
+    <!-- ===== Toast ===== -->
+    <div id="toast" class="toast">
+      <div class="flex items-center gap-2 text-slate-800 text-sm">
+        <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 11h5v2h-7V6h2v7z"/></svg>
+        <span id="toastText">Your daily limit has been updated.</span>
+      </div>
+    </div>
+
     <!-- ===== VRM Modal (Create Inspection) ===== -->
     <div id="vrmModal" class="fixed inset-0 z-50 hidden" aria-labelledby="vrmModalLabel" aria-modal="true" role="dialog">
       <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-modal-overlay></div>
 
       <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none"
-             data-modal-panel tabindex="-1">
+        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none" data-modal-panel tabindex="-1">
           <div class="flex items-center justify-between p-4 border-b border-slate-200">
             <h3 id="vrmModalLabel" class="text-base font-semibold text-slate-900">Confirm vehicle</h3>
             <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-modal aria-label="Close">
@@ -234,7 +263,7 @@
                   Look up
                 </button>
               </div>
-              <p class="mt-1 text-xs text-slate-500">We’ll fetch tyre sizes and (if available) pressures for this vehicle.</p>
+              <p class="mt-1 text-xs text-slate-500">VRM lookups reduce your daily limit. We’ll fetch tyre sizes and (if available) pressures.</p>
             </div>
 
             <div id="vrmResult" class="min-h-[3rem]"></div>
@@ -335,6 +364,58 @@
               vrmError.textContent = "We couldn’t fetch data right now. Please check the VRM and try again.";
             }
           }
+        });
+
+        // ===== Listen for server-side HX-Trigger after a successful VRM lookup =====
+        document.body.addEventListener('vrmSearched', (e) => {
+          const detail = e.detail || {};
+          const { remaining, used, limit, vrm } = detail;
+
+          // Toast
+          const toast = document.getElementById('toast');
+          const toastText = document.getElementById('toastText');
+          if (toast && toastText && typeof remaining === 'number' && typeof used === 'number') {
+            toastText.textContent = `VRM ${vrm || ''} looked up. ${remaining} of ${limit} left today.`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+          }
+
+          // Update pill text & styling
+          const pillText = document.getElementById('remainingPillText');
+          const usagePill = document.getElementById('usagePill');
+          if (pillText) pillText.textContent = `${Math.max(0, remaining)} left today`;
+          if (usagePill) {
+            usagePill.classList.toggle('border-rose-300', remaining === 0);
+            usagePill.classList.toggle('bg-rose-50', remaining === 0);
+            usagePill.classList.toggle('text-rose-700', remaining === 0);
+            usagePill.classList.toggle('border-emerald-300', remaining !== 0);
+            usagePill.classList.toggle('bg-emerald-50', remaining !== 0);
+            usagePill.classList.toggle('text-emerald-700', remaining !== 0);
+          }
+
+          // Progress bar & counts
+          const usageBar = document.getElementById('usageBar');
+          const usageCounts = document.getElementById('usageCounts');
+          if (usageBar && typeof limit === 'number' && limit > 0) {
+            const pct = Math.min(100, Math.round((used / Math.max(1, limit)) * 100));
+            usageBar.style.width = pct + '%';
+            usageBar.classList.toggle('bg-rose-500', remaining === 0);
+            usageBar.classList.toggle('bg-emerald-600', remaining !== 0);
+          }
+          if (usageCounts && typeof used === 'number' && typeof limit === 'number') {
+            usageCounts.textContent = `${used} / ${limit} used`;
+          }
+
+          // Disable "Create Inspection" button when none left
+          const openers = document.querySelectorAll('[data-open-modal]');
+          openers.forEach(btn => {
+            if (remaining === 0) {
+              btn.setAttribute('disabled', 'true');
+              btn.setAttribute('aria-disabled', 'true');
+              btn.classList.remove('bg-sky-600','hover:bg-sky-700');
+              btn.classList.add('bg-slate-400','cursor-not-allowed');
+            }
+          });
         });
       });
     </script>
