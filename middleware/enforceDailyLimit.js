@@ -1,4 +1,3 @@
-// middleware/enforceDailyLimit.js
 import UsageEvent from "../models/usageEvent.model.js";
 
 export default async function enforceDailyLimit(req, res, next) {
@@ -6,7 +5,6 @@ export default async function enforceDailyLimit(req, res, next) {
     if (!req.user) return res.redirect("/login?next=" + encodeURIComponent(req.originalUrl));
     const limit = typeof req.user.dailyLimit === "number" ? req.user.dailyLimit : 0;
 
-    // Admins bypass (optional)
     if (req.user.role === "admin" || limit <= 0) return next(); // <=0 = unlimited
 
     const now = new Date();
@@ -24,7 +22,7 @@ export default async function enforceDailyLimit(req, res, next) {
         title: "Daily limit reached",
       });
     }
-    // attach remaining for downstream use if you like
+
     res.locals.limitInfo = { used, limit, remaining: Math.max(0, limit - used) };
     next();
   } catch (e) {

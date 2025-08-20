@@ -4,35 +4,23 @@ import Tyre from "../models/tyre.model.js";
 import Inspection from "../models/inspection.model.js";
 import UsageEvent from "../models/usageEvent.model.js";
 
-/* ----------------------------- helper utilities ---------------------------- */
-
 const toNum = (v) => (v === "" || v == null ? undefined : Number(v));
 const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
 const trimOrEmpty = (v) => (typeof v === "string" ? v.trim() : "");
 const upperTrim = (v) => (typeof v === "string" ? v.toUpperCase().trim() : v);
 const isValidCode = (code) => /^[A-Z0-9]{6}$/.test(code);
 
-/** Safe getter for request body fields that may contain dots */
 const getBody = (req, key) => req.body?.[key];
-
-/** Build a treadDepth object from a base key (e.g., "offside.front.treadDepth") */
 const buildTreadDepth = (req, baseKey) => ({
   inner: toNum(getBody(req, `${baseKey}.inner`)),
   middle: toNum(getBody(req, `${baseKey}.middle`)),
   outer: toNum(getBody(req, `${baseKey}.outer`)),
 });
-
-/**
- * Build a tyre entry (front/rear) from a prefix like "offside.front" or "nearside.rear".
- * Accepts both "*Value" override fields for brand/model where present; falls back to plain fields.
- */
 const buildTyrePosition = (req, prefix) => {
   const brandValue = trimOrEmpty(getBody(req, `${prefix}.brandValue`));
   const brand = brandValue || trimOrEmpty(getBody(req, `${prefix}.brand`));
-
   const modelValue = trimOrEmpty(getBody(req, `${prefix}.modelValue`));
   const model = modelValue || trimOrEmpty(getBody(req, `${prefix}.model`));
-
   const baseDepthKey = `${prefix}.treadDepth`;
 
   return {
@@ -48,37 +36,8 @@ const buildTyrePosition = (req, prefix) => {
   };
 };
 
-/** Parse tyreSize the same way as before (keeping blank if not provided or "__none__") */
-const parseTyreSizeParam = (tyreSize) => {
-  let frontSize = "";
-  let rearSize = "";
-
-  if (tyreSize && tyreSize !== "__none__") {
-    const decoded = decodeURIComponent(tyreSize);
-    const parts = decoded
-      .split("|")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    if (parts.length === 1) {
-      frontSize = parts[0];
-      rearSize = parts[0];
-    } else if (parts.length >= 2) {
-      [frontSize, rearSize] = parts;
-    }
-  }
-  return { frontSize, rearSize };
-};
-
-/** Fetch sorted brand options once */
-const getBrandOptions = async () => {
-  const brandsDocs = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
-  return brandsDocs.map((b) => b.brand);
-};
-
-/** Build the inspection payload from req + code */
 const buildInspectionPayload = (req, code) => ({
-  user: req.user?._id, // ✅ link to owner
+  user: req.user?._id,
   code,
   vrm: upperTrim(getBody(req, "vrm")),
   mileage: toNum(getBody(req, "mileage")),
@@ -93,8 +52,6 @@ const buildInspectionPayload = (req, code) => ({
   },
 });
 
-/* --------------------------------- routes --------------------------------- */
-
 export const newInspection = async (req, res) => {
   try {
     const { vrm, tyreSize, mileage } = req.query;
@@ -105,7 +62,6 @@ export const newInspection = async (req, res) => {
 
     const last = vehicle.tyreRecords?.[vehicle.tyreRecords.length - 1];
 
-    // Parse optional tyreSize
     let frontSize = "";
     let rearSize = "";
     if (tyreSize && tyreSize !== "__none__") {
@@ -127,7 +83,6 @@ export const newInspection = async (req, res) => {
     const brandsDocs = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
     const brandOptions = brandsDocs.map((b) => b.brand);
 
-    // Pass mileage through for hidden input in the form
     const safeMileage = String(mileage ?? "").replace(/[^\d]/g, "");
 
     return res.render("inspections/new", {
@@ -144,8 +99,8 @@ export const newInspection = async (req, res) => {
 
 export const listBrands = async (_req, res) => {
   try {
-    const brandOptions = await getBrandOptions();
-    return res.json(brandOptions);
+    const brandsDocs = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
+    return res.json(brandsDocs.map((b) => b.brand));
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
@@ -184,9 +139,7 @@ export const showByCode = async (req, res) => {
       vehicle = null;
     }
 
-    return res.render("inspections/show", {
-      inspection: { ...inspection, vehicle },
-    });
+    return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
@@ -200,38 +153,33 @@ export const createInspection = async (req, res) => {
     const code = await Inspection.generateUniqueCode();
     const doc = await Inspection.create(buildInspectionPayload(req, code));
 
+    // ✅ If no VRM lookup today for this VRM, log implicit usage
     try {
-      await UsageEvent.create({
-        user: req.user._id,
-        type: 'inspection_create',
-        meta: { code: doc.code, vrm: doc.vrm }
-      })
-    } catch (e) {
-      console.error("Failed to log usage event (inspection_create)", e);
-    }
-
-    // ✅ After creating, go back to dashboard, show success, and highlight the row
-    return res.redirect(`/dashboard?created=${encodeURIComponent(doc.code)}`);
-  } catch (e) {
-    // unique code rare collision: retry once with a fresh code
-    if (e?.code === 11000 && e?.keyPattern?.code) {
-      try {
-        const code2 = await Inspection.generateUniqueCode();
-        const doc2 = await Inspection.create(buildInspectionPayload(req, code2));
-        try {
+      const vrm = (doc.vrm || "").toUpperCase().trim();
+      if (vrm) {
+        const now = new Date();
+        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+        const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+        const exists = await UsageEvent.exists({
+          user: req.user._id,
+          type: "vrm_lookup",
+          "meta.vrm": vrm,
+          createdAt: { $gte: start, $lt: end },
+        });
+        if (!exists) {
           await UsageEvent.create({
             user: req.user._id,
-            type: 'inspection_create',
-            meta: { code: doc2.code, vrm: doc2.vrm }
-          })
-        } catch (err2) {
-          console.error("Failed to log usage event (inspection_create retry)", err2);
+            type: "vrm_lookup",
+            meta: { vrm, reason: "implicit_from_inspection", code: doc.code },
+          });
         }
-        return res.redirect(`/dashboard?created=${encodeURIComponent(doc2.code)}`);
-      } catch (err) {
-        console.error(err);
       }
+    } catch (e) {
+      console.error("Implicit VRM usage logging failed", e);
     }
+
+    return res.redirect(`/dashboard?created=${encodeURIComponent(doc.code)}`);
+  } catch (e) {
     console.error(e);
     return res.status(500).send("Failed to save inspection");
   }

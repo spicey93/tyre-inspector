@@ -29,9 +29,7 @@ export const findVrm = async (req, res) => {
     if (!created) {
       return res.send(`
         <div class="mb-0 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 text-sm px-3 py-2">
-          Couldn’t find tyre data for VRM <strong class="font-semibold">${esc(
-            vrm
-          )}</strong>. Check the plate and try again.
+          Couldn’t find tyre data for VRM <strong class="font-semibold">${esc(vrm)}</strong>. Check the plate and try again.
         </div>
       `);
     }
@@ -42,19 +40,18 @@ export const findVrm = async (req, res) => {
   if (records.length === 0) {
     return res.send(`
       <div class="mb-0 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm px-3 py-2">
-        No tyre records available for VRM <strong class="font-semibold">${esc(
-          vrm
-        )}</strong>.
+        No tyre records available for VRM <strong class="font-semibold">${esc(vrm)}</strong>.
       </div>
     `);
   }
 
+  // ✅ Log VRM lookup usage
   try {
     if (req.user?._id) {
       await UsageEvent.create({
         user: req.user._id,
         type: "vrm_lookup",
-        meta: { vrm },
+        meta: { vrm, reason: "explicit_lookup" },
       });
     }
   } catch (e) {
@@ -64,10 +61,7 @@ export const findVrm = async (req, res) => {
   const tyreSizeElements = records
     .map((rec, idx) => {
       const isStaggered = rec.front.size !== rec.rear.size;
-      const value = isStaggered
-        ? `${rec.front.size} | ${rec.rear.size}`
-        : rec.front.size;
-
+      const value = isStaggered ? `${rec.front.size} | ${rec.rear.size}` : rec.front.size;
       const id = `tyreSize-${idx}`;
       const subtitle = isStaggered
         ? `<span class="text-xs text-slate-500">Staggered</span>`
@@ -75,48 +69,28 @@ export const findVrm = async (req, res) => {
 
       const metaFront = [
         rec.front.runflat ? "Runflat F" : null,
-        Number.isFinite(rec.front.pressure)
-          ? `${rec.front.pressure} psi F`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+        Number.isFinite(rec.front.pressure) ? `${rec.front.pressure} psi F` : null,
+      ].filter(Boolean).join(" · ");
 
       const metaRear = [
         rec.rear.runflat ? "Runflat R" : null,
-        Number.isFinite(rec.rear.pressure)
-          ? `${rec.rear.pressure} psi R`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+        Number.isFinite(rec.rear.pressure) ? `${rec.rear.pressure} psi R` : null,
+      ].filter(Boolean).join(" · ");
 
       const meta = [metaFront, metaRear].filter(Boolean).join(" | ");
 
       return `
         <label for="${id}" class="block cursor-pointer border-b last:border-b-0 border-slate-200">
           <div class="flex items-start gap-3 p-3 hover:bg-slate-50">
-            <input
-              class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
-              type="radio"
-              name="tyreSize"
-              id="${id}"
-              value="${esc(value)}"
-              ${idx === 0 ? "checked" : ""}
-              required
-            />
+            <input class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
+              type="radio" name="tyreSize" id="${id}" value="${esc(value)}"
+              ${idx === 0 ? "checked" : ""} required />
             <div class="flex-1">
               <div class="flex items-center justify-between">
                 <div class="font-semibold text-slate-900">${esc(value)}</div>
                 ${subtitle}
               </div>
-              ${
-                meta
-                  ? `<div class="text-xs text-slate-500 mt-1">${esc(
-                      meta
-                    )}</div>`
-                  : ""
-              }
+              ${meta ? `<div class="text-xs text-slate-500 mt-1">${esc(meta)}</div>` : ""}
             </div>
           </div>
         </label>
@@ -127,14 +101,8 @@ export const findVrm = async (req, res) => {
   const noneOption = `
     <label for="tyreSize-none" class="block cursor-pointer border-t border-slate-200">
       <div class="flex items-start gap-3 p-3 hover:bg-slate-50">
-        <input
-          class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
-          type="radio"
-          name="tyreSize"
-          id="tyreSize-none"
-          value="__none__"
-          required
-        />
+        <input class="mt-1.5 h-4 w-4 shrink-0 text-sky-600 focus:ring-sky-500 border-slate-300 rounded"
+          type="radio" name="tyreSize" id="tyreSize-none" value="__none__" required />
         <div class="flex-1">
           <div class="font-semibold text-slate-900">None of the above</div>
           <div class="text-xs text-slate-500 mt-1">I’ll enter sizes manually on the next step.</div>
@@ -143,54 +111,33 @@ export const findVrm = async (req, res) => {
     </label>
   `;
 
-  // Card with VRM, vehicle summary, mileage input, then size selector
   res.send(`
     <div class="rounded-2xl bg-white border border-slate-200 shadow-[0_6px_24px_rgba(0,0,0,.06)]">
       <div class="p-4 sm:p-6">
         <div class="flex items-center gap-3 mb-4">
           <span class="inline-flex items-center rounded-md text-black text-sm font-extrabold tracking-widest px-2.5 py-1 select-none"
                 style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
-            ${esc(
-              vrm
-            )} <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
+            ${esc(vrm)} <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
           </span>
           <div>
-            <div class="font-semibold text-slate-900">${esc(
-              vehicle.make
-            )} ${esc(vehicle.model)}</div>
-            <div class="text-sm text-slate-500">${esc(vehicle.year)}${
-    vehicle.torque ? ` &middot; Torque ${esc(vehicle.torque)}` : ""
-  }</div>
+            <div class="font-semibold text-slate-900">${esc(vehicle.make)} ${esc(vehicle.model)}</div>
+            <div class="text-sm text-slate-500">${esc(vehicle.year)}${vehicle.torque ? ` &middot; Torque ${esc(vehicle.torque)}` : ""}</div>
           </div>
         </div>
 
         <form method="get" action="/inspections/new" class="space-y-4">
-          <!-- Hidden VRM for the next page -->
           <input type="hidden" name="vrm" value="${esc(vehicle.vrm)}" />
-
-          <!-- NEW: Mileage (sits above tyre size selector) -->
           <div>
             <label for="mileage" class="block text-sm font-medium text-slate-700">Mileage</label>
-            <input
-              id="mileage"
-              name="mileage"
-              type="number"
-              inputmode="numeric"
-              step="1"
-              min="0"
-              placeholder="e.g. 45678"
-              value="${esc(mileagePrefill)}"
+            <input id="mileage" name="mileage" type="number" inputmode="numeric" step="1" min="0"
+              placeholder="e.g. 45678" value="${esc(mileagePrefill)}"
               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              required
-            />
+              required />
           </div>
-
-          <!-- Tyre size selector -->
           <div class="rounded-lg border border-slate-200 overflow-hidden divide-y divide-slate-200">
             ${tyreSizeElements}
             ${noneOption}
           </div>
-
           <div>
             <button class="inline-flex items-center justify-center rounded-lg bg-sky-600 text-white px-4 py-2.5 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
               Confirm
