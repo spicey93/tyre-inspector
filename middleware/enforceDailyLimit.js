@@ -1,5 +1,5 @@
 // middleware/enforceDailyLimit.js
-import Inspection from "../models/inspection.model.js";
+import UsageEvent from "../models/usageEvent.model.js";
 
 export default async function enforceDailyLimit(req, res, next) {
   try {
@@ -13,7 +13,7 @@ export default async function enforceDailyLimit(req, res, next) {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
     const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
 
-    const used = await Inspection.countDocuments({
+    const used = await UsageEvent.countDocuments({
       user: req.user._id,
       createdAt: { $gte: start, $lt: end },
     });

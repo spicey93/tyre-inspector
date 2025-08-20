@@ -2,6 +2,7 @@
 import Vehicle from "../models/vehicle.model.js";
 import Tyre from "../models/tyre.model.js";
 import Inspection from "../models/inspection.model.js";
+import UsageEvent from "../models/usageEvent.model.js";
 
 /* ----------------------------- helper utilities ---------------------------- */
 
@@ -199,6 +200,16 @@ export const createInspection = async (req, res) => {
     const code = await Inspection.generateUniqueCode();
     const doc = await Inspection.create(buildInspectionPayload(req, code));
 
+    try {
+      await UsageEvent.create({
+        user: req.user._id,
+        type: 'inspection_create',
+        meta: { code: doc.code, vrm: doc.vrm }
+      })
+    } catch (e) {
+      console.error("Failed to log usage event (inspection_create)", e);
+    }
+
     // ✅ After creating, go back to dashboard, show success, and highlight the row
     return res.redirect(`/dashboard?created=${encodeURIComponent(doc.code)}`);
   } catch (e) {
@@ -207,6 +218,15 @@ export const createInspection = async (req, res) => {
       try {
         const code2 = await Inspection.generateUniqueCode();
         const doc2 = await Inspection.create(buildInspectionPayload(req, code2));
+        try {
+          await UsageEvent.create({
+            user: req.user._id,
+            type: 'inspection_create',
+            meta: { code: doc2.code, vrm: doc2.vrm }
+          })
+        } catch (err2) {
+          console.error("Failed to log usage event (inspection_create retry)", err2);
+        }
         return res.redirect(`/dashboard?created=${encodeURIComponent(doc2.code)}`);
       } catch (err) {
         console.error(err);

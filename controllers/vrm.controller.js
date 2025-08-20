@@ -1,6 +1,7 @@
 // controllers/vrm.controller.js
 import Vehicle from "../models/vehicle.model.js";
 import vrmLookup from "../utils/vrmLookup.js";
+import UsageEvent from "../models/usageEvent.model.js";
 
 const normaliseVrm = (v) => v.toUpperCase().trim().replace(/\s+/g, "");
 const esc = (s = "") =>
@@ -28,7 +29,9 @@ export const findVrm = async (req, res) => {
     if (!created) {
       return res.send(`
         <div class="mb-0 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 text-sm px-3 py-2">
-          Couldn’t find tyre data for VRM <strong class="font-semibold">${esc(vrm)}</strong>. Check the plate and try again.
+          Couldn’t find tyre data for VRM <strong class="font-semibold">${esc(
+            vrm
+          )}</strong>. Check the plate and try again.
         </div>
       `);
     }
@@ -39,15 +42,31 @@ export const findVrm = async (req, res) => {
   if (records.length === 0) {
     return res.send(`
       <div class="mb-0 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm px-3 py-2">
-        No tyre records available for VRM <strong class="font-semibold">${esc(vrm)}</strong>.
+        No tyre records available for VRM <strong class="font-semibold">${esc(
+          vrm
+        )}</strong>.
       </div>
     `);
+  }
+
+  try {
+    if (req.user?._id) {
+      await UsageEvent.create({
+        user: req.user._id,
+        type: "vrm_lookup",
+        meta: { vrm },
+      });
+    }
+  } catch (e) {
+    console.error("Failed to log usage event (vrm_lookup)", e);
   }
 
   const tyreSizeElements = records
     .map((rec, idx) => {
       const isStaggered = rec.front.size !== rec.rear.size;
-      const value = isStaggered ? `${rec.front.size} | ${rec.rear.size}` : rec.front.size;
+      const value = isStaggered
+        ? `${rec.front.size} | ${rec.rear.size}`
+        : rec.front.size;
 
       const id = `tyreSize-${idx}`;
       const subtitle = isStaggered
@@ -56,13 +75,21 @@ export const findVrm = async (req, res) => {
 
       const metaFront = [
         rec.front.runflat ? "Runflat F" : null,
-        Number.isFinite(rec.front.pressure) ? `${rec.front.pressure} psi F` : null,
-      ].filter(Boolean).join(" · ");
+        Number.isFinite(rec.front.pressure)
+          ? `${rec.front.pressure} psi F`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
       const metaRear = [
         rec.rear.runflat ? "Runflat R" : null,
-        Number.isFinite(rec.rear.pressure) ? `${rec.rear.pressure} psi R` : null,
-      ].filter(Boolean).join(" · ");
+        Number.isFinite(rec.rear.pressure)
+          ? `${rec.rear.pressure} psi R`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
 
       const meta = [metaFront, metaRear].filter(Boolean).join(" | ");
 
@@ -85,7 +112,9 @@ export const findVrm = async (req, res) => {
               </div>
               ${
                 meta
-                  ? `<div class="text-xs text-slate-500 mt-1">${esc(meta)}</div>`
+                  ? `<div class="text-xs text-slate-500 mt-1">${esc(
+                      meta
+                    )}</div>`
                   : ""
               }
             </div>
@@ -121,13 +150,17 @@ export const findVrm = async (req, res) => {
         <div class="flex items-center gap-3 mb-4">
           <span class="inline-flex items-center rounded-md text-black text-sm font-extrabold tracking-widest px-2.5 py-1 select-none"
                 style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
-            ${esc(vrm)} <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
+            ${esc(
+              vrm
+            )} <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
           </span>
           <div>
-            <div class="font-semibold text-slate-900">${esc(vehicle.make)} ${esc(vehicle.model)}</div>
+            <div class="font-semibold text-slate-900">${esc(
+              vehicle.make
+            )} ${esc(vehicle.model)}</div>
             <div class="text-sm text-slate-500">${esc(vehicle.year)}${
-              vehicle.torque ? ` &middot; Torque ${esc(vehicle.torque)}` : ""
-            }</div>
+    vehicle.torque ? ` &middot; Torque ${esc(vehicle.torque)}` : ""
+  }</div>
           </div>
         </div>
 

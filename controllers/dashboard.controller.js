@@ -1,5 +1,6 @@
 // controllers/dashboard.controller.js
 import Inspection from "../models/inspection.model.js";
+import UsageEvent from "../models/usageEvent.model.js";
 
 export const dashboard = async (req, res) => {
   const page = Math.max(1, Number(req.query.page || 1));
@@ -16,7 +17,7 @@ export const dashboard = async (req, res) => {
   const now = new Date();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
   const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
-  const usedToday = await Inspection.countDocuments({ user: req.user._id, createdAt: { $gte: start, $lt: end } });
+  const usedToday = await UsageEvent.countDocuments({ user: req.user._id, createdAt: { $gte: start, $lt: end } });
   const dailyLimit = typeof req.user.dailyLimit === "number" ? req.user.dailyLimit : 0;
   const remaining = dailyLimit > 0 ? Math.max(0, dailyLimit - usedToday) : "∞";
 

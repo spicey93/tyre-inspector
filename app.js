@@ -82,7 +82,6 @@ app.get("/", (req, res) => {
 
 app.use('/', authRoutes)
 app.get("/dashboard", requireAuth, dashboard);
-
 app.use("/vrm", vrmRoutes);
 app.use("/inspections", inspectionRoutes);
 
