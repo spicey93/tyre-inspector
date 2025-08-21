@@ -184,3 +184,26 @@ export const createInspection = async (req, res) => {
     return res.status(500).send("Failed to save inspection");
   }
 };
+
+// --- DELETE inspection (by _id) ---
+export const deleteInspection = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only delete documents owned by the current user
+    const doc = await Inspection.findOne({ _id: id, user: req.user._id });
+    if (!doc) return res.status(404).send("Not found");
+
+    const code = doc.code;
+    await doc.deleteOne();
+
+    // Fire an event for toast & counter updates
+    res.setHeader("HX-Trigger", JSON.stringify({ inspectionDeleted: { id, code } }));
+
+    // IMPORTANT: return 200 with empty body so hx-target="closest tr" + hx-swap="outerHTML" removes the row
+    return res.status(200).send("");
+  } catch (err) {
+    console.error("deleteInspection failed", err);
+    return res.status(500).send("Failed to delete inspection");
+  }
+};

@@ -117,7 +117,7 @@
           <span id="usagePill" class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
                        <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
             <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10h5v2h-7V6h2v6Z"/>
+              <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10h5v2h-7V6h2v7z"/>
             </svg>
             <span id="remainingPillText"><%= limited ? (noneLeft ? '0 left today' : (remaining + ' left today')) : 'Unlimited' %></span>
           </span>
@@ -151,7 +151,7 @@
         <div class="p-6">
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-slate-900">Recent inspections</h2>
-            <p class="text-sm text-slate-500"><%= total %> total</p>
+            <p class="text-sm text-slate-500"><span id="totalCount"><%= total %></span> total</p>
           </div>
 
           <% if (Array.isArray(items) && items.length) { %>
@@ -177,11 +177,31 @@
                       <td class="px-3 py-2"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></td>
                       <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString() %></td>
                       <td class="px-3 py-2">
-                        <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
-                           href="/inspections?code=<%= i.code %>">
-                          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
-                          Open
-                        </a>
+                        <div class="inline-flex items-center gap-3">
+                          <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
+                             href="/inspections?code=<%= i.code %>">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
+                            Open
+                          </a>
+
+                          <!-- DELETE action (HTMX) -->
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
+                            hx-delete="/inspections/<%= i._id %>"
+                            hx-target="closest tr"
+                            hx-swap="outerHTML"
+                            hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                              <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
+                            </svg>
+                            Delete
+                            <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                            </svg>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   <% }) %>
@@ -343,7 +363,7 @@
           }
         });
 
-        // HTMX scoped indicator + error
+        // HTMX VRM indicators
         document.body.addEventListener('htmx:beforeRequest', (evt) => {
           if (evt.target === vrmForm) {
             vrmForm.querySelector('.htmx-indicator')?.classList.remove('hidden');
@@ -366,7 +386,7 @@
           }
         });
 
-        // ===== Listen for server-side HX-Trigger after a successful VRM lookup =====
+        // ===== VRM lookup usage updates =====
         document.body.addEventListener('vrmSearched', (e) => {
           const detail = e.detail || {};
           const { remaining, used, limit, vrm } = detail;
@@ -416,6 +436,25 @@
               btn.classList.add('bg-slate-400','cursor-not-allowed');
             }
           });
+        });
+
+        // ===== When a row is deleted via HTMX, the server sends HX-Trigger: inspectionDeleted =====
+        document.body.addEventListener('inspectionDeleted', (e) => {
+          const code = e.detail && e.detail.code;
+          // Decrement total count in header
+          const totalEl = document.getElementById('totalCount');
+          if (totalEl) {
+            const n = Math.max(0, (parseInt(totalEl.textContent, 10) || 0) - 1);
+            totalEl.textContent = String(n);
+          }
+          // Show toast
+          const toast = document.getElementById('toast');
+          const toastText = document.getElementById('toastText');
+          if (toast && toastText) {
+            toastText.textContent = code ? `Inspection ${code} deleted.` : `Inspection deleted.`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2200);
+          }
         });
       });
     </script>
