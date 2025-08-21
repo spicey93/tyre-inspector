@@ -55,7 +55,6 @@
 
         @page { size: A4 portrait; margin: 10mm; }
 
-        /* Tight typography & spacing to fit one page */
         .print-sheet { font-size: 10.5px; line-height: 1.25; color: #0f172a; }
         .print-title { font-size: 16px; font-weight: 700; }
         .print-muted { color: #475569; }
@@ -63,7 +62,6 @@
         .print-table th, .print-table td { border: 1px solid #cbd5e1; padding: 3px 5px; vertical-align: top; }
         .print-table th { background: #f1f5f9; }
 
-        /* Column width control to prevent wrapping onto a second page */
         .col-pos   { width: 16%; }
         .col-size  { width: 12%; }
         .col-brand { width: 12%; }
@@ -73,7 +71,6 @@
         .col-tags  { width: 10%; }
         .col-cond  { width: 8%;  }
 
-        /* Diagram: keep small */
         .print-diagram { max-width: 130px; }
         .wheel-dot {
           position:absolute; width:20%; aspect-ratio:1/1; border-radius:9999px;
@@ -90,7 +87,7 @@
   </head>
   <body class="h-full">
 
-    <% /* ---------- Shared helpers & derived data (used by both views) ---------- */ %>
+    <% /* ---------- Shared helpers & derived data ---------- */ %>
     <%
       const fmt = (v) => (v ?? "") === "" ? "—" : v;
 
@@ -184,8 +181,8 @@
         if (hasTag(t, "Puncture")) out.push({ why: "Puncture noted.", action: "Repair if within the repairable zone and size; otherwise replace." });
         if (hasTag(t, "Perished") || hasTag(t, "Cracked sidewall")) out.push({ why: "Perishing/cracked rubber (age/UV/ozone).", action: "Replace soon; aged tyres can fail unexpectedly." });
         if (hasTag(t, "Uneven wear")) out.push({ why: "Uneven tread wear observed.", action: "Check wheel alignment and suspension joints; rotate tyres if pattern allows." });
-        if (hasTag(t, "Bald on inner edge")) out.push({ why: "Inner‑edge wear pattern.", action: "Check alignment (camber/toe), bushings and tyre pressures." });
-        if (hasTag(t, "Bald on outer edge")) out.push({ why: "Outer‑edge wear pattern.", action: "Check alignment and under‑inflation; driving style (cornering) may contribute." });
+        if (hasTag(t, "Bald on inner edge")) out.push({ why: "Inner-edge wear pattern.", action: "Check alignment (camber/toe), bushings and tyre pressures." });
+        if (hasTag(t, "Bald on outer edge")) out.push({ why: "Outer-edge wear pattern.", action: "Check alignment and under-inflation; driving style (cornering) may contribute." });
         return out;
       };
 
@@ -200,7 +197,7 @@
 
         if (di!=null && dm!=null && do_!=null) {
           if (dm + TH <= di && dm + TH <= do_) {
-            bullets.push({ why: "Centre more worn than edges.", cause: "Likely over‑inflation.", action: "Set pressures to spec and re‑check regularly." });
+            bullets.push({ why: "Centre more worn than edges.", cause: "Likely over-inflation.", action: "Set pressures to spec and re-check regularly." });
           } else if ( (di + TH <= dm && di + TH <= do_) || (do_ + TH <= dm && do_ + TH <= di) ) {
             const which = (di + TH <= dm && di + TH <= do_) ? "inner edge" : "outer edge";
             bullets.push({ why: `More wear on ${which}.`, cause: "Likely alignment (camber/toe) or pressure issue.", action: "Book wheel alignment; check suspension and pressures." });
@@ -254,9 +251,11 @@
         if (worst === "ok") return "All tyres OK at time of inspection.";
         return "Tyre status not fully specified.";
       })();
+
+      const needsAttention = allAnalyses.filter(a => a.cond && a.cond !== "ok" && a.cond !== "—");
     %>
 
-    <!-- ======================= SCREEN LAYOUT (unchanged) ======================= -->
+    <!-- ======================= SCREEN LAYOUT ======================= -->
     <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
 
       <!-- Back link -->
@@ -294,10 +293,33 @@
         </div>
       </div>
 
+      <!-- Vehicle details card (under header) -->
+      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
+        <h2 class="text-sm font-semibold text-slate-900 mb-2">Vehicle details</h2>
+        <div class="text-[13px] sm:text-sm text-slate-700 flex flex-wrap gap-x-4 gap-y-1">
+          <span><span class="font-medium">Code:</span> <span class="font-mono"><%= inspection.code %></span></span>
+          <% if (typeof inspection.mileage === "number") { %>
+            <span><span class="font-medium">Mileage:</span> <%= inspection.mileage %></span>
+          <% } %>
+          <% if (createdAtStr) { %>
+            <span><span class="font-medium">Date:</span> <%= createdAtStr %></span>
+          <% } %>
+          <% if (vehicleLine) { %>
+            <span><span class="font-medium">Vehicle:</span> <%= vehicleLine %></span>
+          <% } %>
+          <% if (inspection.vehicle?.torque) { %>
+            <span><span class="font-medium">Torque:</span> <%= inspection.vehicle.torque %> Nm</span>
+          <% } %>
+          <% if (inspection.notes) { %>
+            <span class="basis-full text-slate-600"><span class="font-medium">Notes:</span> <%= inspection.notes %></span>
+          <% } %>
+        </div>
+      </div>
+
       <!-- Content grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
 
-        <!-- Diagram -->
+        <!-- Diagram + Legend (left column) -->
         <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
           <h2 class="text-sm font-semibold text-slate-900 mb-3">Tyre positions</h2>
           <div class="relative" style="max-width:240px;margin:0 auto;">
@@ -318,55 +340,33 @@
               ><%= w.k %></div>
             <% } %>
           </div>
-        </div>
 
-        <!-- Details card -->
-        <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-0 order-1 lg:order-2">
-          <!-- Meta bar -->
-          <div class="px-4 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/60 text-[13px] sm:text-sm text-slate-700 flex flex-wrap gap-x-4 gap-y-1">
-            <span><span class="font-medium">Code:</span> <span class="font-mono"><%= inspection.code %></span></span>
-            <% if (typeof inspection.mileage === "number") { %>
-              <span><span class="font-medium">Mileage:</span> <%= inspection.mileage %></span>
-            <% } %>
-            <% if (createdAtStr) { %>
-              <span><span class="font-medium">Date:</span> <%= createdAtStr %></span>
-            <% } %>
-            <% if (vehicleLine) { %>
-              <span><span class="font-medium">Vehicle:</span> <%= vehicleLine %></span>
-            <% } %>
-            <% if (inspection.vehicle?.torque) { %>
-              <span><span class="font-medium">Torque:</span> <%= inspection.vehicle.torque %> Nm</span>
-            <% } %>
-            <% if (inspection.notes) { %>
-              <span class="basis-full text-slate-600"><span class="font-medium">Notes:</span> <%= inspection.notes %></span>
-            <% } %>
-          </div>
-
-          <!-- Legend -->
-          <div class="px-4 sm:px-5 py-2 border-b border-slate-200 bg-white text-[12px] sm:text-[13px] text-slate-700 flex flex-wrap items-center gap-2">
+          <!-- Legend under diagram, same card -->
+          <div class="mt-4 border-t pt-3 text-[12px] sm:text-[13px] text-slate-700 flex flex-wrap items-center gap-3 justify-center">
             <span class="inline-flex items-center gap-2"><span class="swatch sw-ok"></span> <span>OK</span></span>
             <span class="inline-flex items-center gap-2"><span class="swatch sw-adv"></span> <span>Advisory</span></span>
             <span class="inline-flex items-center gap-2"><span class="swatch sw-fail"></span> <span>Fail</span></span>
           </div>
+        </div>
 
-          <!-- Customer summary -->
-          <div class="px-4 sm:px-5 py-4 border-b border-slate-200">
-            <h3 class="text-base font-semibold text-slate-900 mb-2">Customer summary</h3>
-            <p class="text-sm text-slate-700"><%= overallHeadline %></p>
+        <!-- Right column: Customer summary + TABLE IN SAME CARD -->
+        <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
+          <h3 class="text-base font-semibold text-slate-900">Customer summary</h3>
+          <p class="mt-1 text-sm text-slate-700"><%= overallHeadline %></p>
 
-            <div class="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <% for (const a of allAnalyses) { if (a.cond && a.cond !== "—") { %>
+          <% if (needsAttention.length) { %>
+            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <% for (const a of needsAttention) { %>
                 <div class="rounded-xl border border-slate-200 p-3">
                   <div class="flex items-center justify-between">
                     <div class="font-medium text-slate-900"><%= a.pos %></div>
                     <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-                      <%= a.cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
-                          a.cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
+                      <%= a.cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
                           a.cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= a.cond %></span>
                   </div>
 
                   <ul class="mt-2 text-sm list-disc pl-5 space-y-1">
-                    <% (a.reasons.length ? a.reasons : ["No specific issues noted."]).forEach(r => { %>
+                    <% (a.reasons.length ? a.reasons : ["Issue noted."]).forEach(r => { %>
                       <li class="text-slate-700"><%= r %></li>
                     <% }) %>
                   </ul>
@@ -392,87 +392,96 @@
                     <div class="mt-2 text-sm font-medium text-amber-700">△ Plan replacement soon.</div>
                   <% } %>
                 </div>
-              <% } } %>
+              <% } %>
             </div>
-          </div>
+          <% } else { %>
+            <p class="mt-3 text-sm text-slate-600">No follow-ups needed.</p>
+          <% } %>
 
-          <!-- Mobile cards -->
-          <div class="md:hidden divide-y divide-slate-200">
-            <% for (const [pos, t] of Object.entries(tyres)) { const cond = finalCondition(t); %>
-              <div class="p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="font-semibold text-slate-900"><%= pos %></div>
-                  <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-                    <%= cond==='ok'?'bg-emerald-200 text-emerald-800 border-emerald-600':
-                        cond==='advisory'?'bg-amber-200 text-amber-800 border-amber-600':
-                        cond==='fail'?'bg-rose-200 text-rose-800 border-rose-600':'bg-slate-100 text-slate-700 border-slate-300' %>"><%= cond %></span>
-                </div>
-                <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
-                  <dt class="text-slate-500">Size</dt><dd class="text-right text-slate-900"><%= fmt(t.size) %></dd>
-                  <dt class="text-slate-500">Brand</dt><dd class="text-right text-slate-900"><%= fmt(t.brand) %></dd>
-                  <dt class="text-slate-500">Model</dt><dd class="text-right text-slate-900"><%= fmt(t.model) %></dd>
-                  <dt class="text-slate-500">DOT</dt><dd class="text-right text-slate-900"><%= fmt(t.dot) %></dd>
-                  <dt class="text-slate-500">Tread</dt>
-                  <dd class="text-right text-slate-900"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></dd>
-                </dl>
-                <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
-                  <div class="mt-2 space-y-1 text-xs">
-                    <% if (Array.isArray(t?.tags) && t.tags.length) { %>
-                      <div><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
-                    <% } %>
-                    <% if (t?.notes) { %>
-                      <div><strong>Notes:</strong> <%= t.notes %></div>
-                    <% } %>
+          <!-- TABLE CONTAINER (still inside the same card) -->
+          <div class="mt-6 rounded-xl border border-slate-200 overflow-hidden">
+            <!-- Mobile list -->
+            <div class="md:hidden divide-y divide-slate-200">
+              <% for (const [pos, t] of Object.entries(tyres)) { const cond = finalCondition(t); %>
+                <div class="p-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="font-semibold text-slate-900"><%= pos %></div>
+                    <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
+                      <%= cond==='ok'?'bg-emerald-200 text-emerald-800 border-emerald-600':
+                          cond==='advisory'?'bg-amber-200 text-amber-800 border-amber-600':
+                          cond==='fail'?'bg-rose-200 text-rose-800 border-rose-600':'bg-slate-100 text-slate-700 border-slate-300' %>"><%= cond %></span>
                   </div>
-                <% } %>
-              </div>
-            <% } %>
-          </div>
-
-          <!-- Desktop table -->
-          <div class="hidden md:block">
-            <div class="table-scroll rounded-2xl">
-              <table class="min-w-[860px] w-full text-sm">
-                <thead class="bg-slate-100 sticky top-0 z-10">
-                  <tr>
-                    <th class="text-left px-4 py-2">Position</th>
-                    <th class="text-left px-4 py-2">Size</th>
-                    <th class="text-left px-4 py-2">Brand</th>
-                    <th class="text-left px-4 py-2">Model</th>
-                    <th class="text-left px-4 py-2">DOT</th>
-                    <th class="text-left px-4 py-2">Tread (In / Mid / Out)</th>
-                    <th class="text-left px-4 py-2">Tags</th>
-                    <th class="text-left px-4 py-2">Condition</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <% for (const [pos, t] of Object.entries(tyres)) {
-                       const cond = finalCondition(t);
-                       const tagStr = tagsText(t) || "—";
-                       const rowCls = cond==='ok' ? 'row-ok' : cond==='advisory' ? 'row-adv' : cond==='fail' ? 'row-fail' : '';
-                  %>
-                    <tr class="<%= rowCls %>">
-                      <td class="px-4 py-2 font-medium text-slate-900"><%= pos %></td>
-                      <td class="px-4 py-2"><%= fmt(t.size) %></td>
-                      <td class="px-4 py-2"><%= fmt(t.brand) %></td>
-                      <td class="px-4 py-2"><%= fmt(t.model) %></td>
-                      <td class="px-4 py-2"><%= fmt(t.dot) %></td>
-                      <td class="px-4 py-2"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
-                      <td class="px-4 py-2"><%= tagStr %></td>
-                      <td class="px-4 py-2">
-                        <span class="inline-flex items-center text-xs capitalize px-2 py-0.5 rounded-full border
-                          <%= cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
-                              cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
-                              cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= cond %></span>
-                      </td>
-                    </tr>
+                  <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
+                    <dt class="text-slate-500">Size</dt><dd class="text-right text-slate-900"><%= fmt(t.size) %></dd>
+                    <dt class="text-slate-500">Brand</dt><dd class="text-right text-slate-900"><%= fmt(t.brand) %></dd>
+                    <dt class="text-slate-500">Model</dt><dd class="text-right text-slate-900"><%= fmt(t.model) %></dd>
+                    <dt class="text-slate-500">DOT</dt><dd class="text-right text-slate-900"><%= fmt(t.dot) %></dd>
+                    <dt class="text-slate-500">Tread</dt>
+                    <dd class="text-right text-slate-900"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></dd>
+                  </dl>
+                  <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
+                    <div class="mt-2 space-y-1 text-xs">
+                      <% if (Array.isArray(t?.tags) && t.tags.length) { %>
+                        <div><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
+                      <% } %>
+                      <% if (t?.notes) { %>
+                        <div><strong>Notes:</strong> <%= t.notes %></div>
+                      <% } %>
+                    </div>
                   <% } %>
-                </tbody>
-              </table>
+                </div>
+              <% } %>
             </div>
-          </div>
-        </div> <!-- /details -->
-      </div> <!-- /content -->
+
+            <!-- Desktop table -->
+            <div class="hidden md:block">
+              <div class="px-4 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/60">
+                <h3 class="text-sm font-semibold text-slate-900">Tyre details</h3>
+              </div>
+              <div class="table-scroll">
+                <table class="min-w-[860px] w-full text-sm">
+                  <thead class="bg-slate-100 sticky top-0 z-10">
+                    <tr>
+                      <th class="text-left px-4 py-2">Position</th>
+                      <th class="text-left px-4 py-2">Size</th>
+                      <th class="text-left px-4 py-2">Brand</th>
+                      <th class="text-left px-4 py-2">Model</th>
+                      <th class="text-left px-4 py-2">DOT</th>
+                      <th class="text-left px-4 py-2">Tread (In / Mid / Out)</th>
+                      <th class="text-left px-4 py-2">Tags</th>
+                      <th class="text-left px-4 py-2">Condition</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <% for (const [pos, t] of Object.entries(tyres)) {
+                         const cond = finalCondition(t);
+                         const tagStr = tagsText(t) || "—";
+                         const rowCls = cond==='ok' ? 'row-ok' : cond==='advisory' ? 'row-adv' : cond==='fail' ? 'row-fail' : '';
+                    %>
+                      <tr class="<%= rowCls %>">
+                        <td class="px-4 py-2 font-medium text-slate-900"><%= pos %></td>
+                        <td class="px-4 py-2"><%= fmt(t.size) %></td>
+                        <td class="px-4 py-2"><%= fmt(t.brand) %></td>
+                        <td class="px-4 py-2"><%= fmt(t.model) %></td>
+                        <td class="px-4 py-2"><%= fmt(t.dot) %></td>
+                        <td class="px-4 py-2"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
+                        <td class="px-4 py-2"><%= tagStr %></td>
+                        <td class="px-4 py-2">
+                          <span class="inline-flex items-center text-xs capitalize px-2 py-0.5 rounded-full border
+                            <%= cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
+                                cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
+                                cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= cond %></span>
+                        </td>
+                      </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div> <!-- /table container -->
+
+        </div> <!-- /right column combined card -->
+      </div> <!-- /content grid -->
     </div>
 
     <!-- ======================= PRINT-ONLY ONE-PAGE SHEET ======================= -->
@@ -527,7 +536,7 @@
       </div>
 
       <div style="margin: 4px 0 6px;">
-        <% for (const a of allAnalyses) { if (a.cond && a.cond !== "—") { %>
+        <% for (const a of needsAttention) { %>
           <div style="margin-bottom:4px;">
             <strong><%= a.pos %>:</strong>
             <span style="text-transform:capitalize;"><%= a.cond %></span>
@@ -535,7 +544,7 @@
             <% if (a.replace) { %> — Replace now<% } else if (a.plan) { %> — Plan soon<% } %>.
             <% if (a.reasons.length) { %> <em><%= a.reasons[0] %></em><% } %>
           </div>
-        <% } } %>
+        <% } %>
       </div>
 
       <!-- One compact table (fixed widths, tight padding) -->
