@@ -23,8 +23,12 @@ export const indexInspections = async (req, res) => {
     const to = trimOrEmpty(req.query.to || "");
 
     // Technicians should only ever see their own inspections.
-    // (Admins currently also see *their* own; expand later if you want admins to see their technicians’ work.)
-    const q = { user: req.user._id };
+    // Admins see everything **owned by their account** (including work created by technicians).
+    // This assumes inspection.user is always the admin/owner account id.
+    const q =
+      req.user.role === "admin"
+        ? { user: req.user._id }
+        : { createdBy: req.user._id, user: req.user.owner || req.user._id };
 
     if (search) {
       const rx = new RegExp(escapeRegex(search), "i");
@@ -78,7 +82,7 @@ export const showByCode = async (req, res) => {
 
     // If a technician is logged in, they may only view inspections they created.
     if (req.user && req.user.role === "technician") {
-      const createdByTech = String(inspection.user) === String(req.user._id);
+      const createdByTech = String(inspection.createdBy) === String(req.user._id);
       if (!createdByTech) {
         // Mask existence to avoid leaking information.
         return res.status(404).send("Inspection not found");
@@ -175,6 +179,11 @@ export const createInspection = async (req, res) => {
   try {
     if (!req.user?._id) return res.status(401).send("Login required");
 
+    // Work out the billing account (admin) and the actor (admin or technician)
+    const isTech = req.user.role === "technician" && req.user.owner;
+    const accountId = isTech ? req.user.owner : req.user._id; // the admin account that owns/bills
+    const actorId = req.user._id;
+
     const code = await Inspection.generateUniqueCode();
 
     const getBody = (key) => req.body?.[key];
@@ -204,7 +213,10 @@ export const createInspection = async (req, res) => {
     };
 
     const payload = {
-      user: req.user?._id, // the creator (techs will only ever see their own)
+      // OWNER is always the admin account
+      user: accountId,
+      // Who created it (admin or technician)
+      createdBy: actorId,
       code,
       vrm: upperTrim(getBody("vrm")),
       mileage: toNum(getBody("mileage")),
@@ -221,7 +233,7 @@ export const createInspection = async (req, res) => {
 
     const doc = await Inspection.create(payload);
 
-    // implicit VRM usage logging (once per day per VRM)
+    // implicit VRM usage logging (once per day per VRM **per actor**) + bill to admin pool
     try {
       const vrm = (doc.vrm || "").toUpperCase().trim();
       if (vrm) {
@@ -229,14 +241,15 @@ export const createInspection = async (req, res) => {
         const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
         const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
         const exists = await UsageEvent.exists({
-          user: req.user._id,
+          user: actorId,
           type: "vrm_lookup",
           "meta.vrm": vrm,
           createdAt: { $gte: start, $lt: end },
         });
         if (!exists) {
           await UsageEvent.create({
-            user: req.user._id,
+            user: actorId,
+            billedTo: accountId,
             type: "vrm_lookup",
             meta: { vrm, reason: "implicit_from_inspection", code: doc.code },
           });

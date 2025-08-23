@@ -57,6 +57,17 @@ export default async function enforceDailyLimit(req, res, next) {
         : 0,
     ]);
 
+    // Expose counts so handlers (e.g., VRM lookup) can emit HX-Trigger deltas
+    res.locals.limitInfo = {
+      used: usedActor,
+      limit: actorLimit,
+      scope: "actor",
+      billedPoolUsed: usedPool,
+      billedPoolLimit: adminPoolLimit,
+      billedTo: accountId,
+      actorId,
+    };
+
     // Helper: allow if request is clearly finishing a create flow after a recent lookup for the same VRM
     async function allowIfRecentLookupForSameVRM() {
       const vrm = getRequestedVrm(req);

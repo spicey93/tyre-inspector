@@ -45,11 +45,14 @@ export const findVrm = async (req, res) => {
     `);
   }
 
-  // ✅ Log VRM lookup usage (this is what reduces the daily limit)
+  // ✅ Log VRM lookup usage (reduces daily limits)
   try {
     if (req.user?._id) {
+      const isTech = req.user.role === "technician" && req.user.owner;
+      const accountId = isTech ? req.user.owner : req.user._id; // bill the admin pool
       await UsageEvent.create({
-        user: req.user._id,
+        user: req.user._id,       // actor
+        billedTo: accountId,      // whose pool is billed
         type: "vrm_lookup",
         meta: { vrm, reason: "explicit_lookup" },
       });
@@ -60,7 +63,7 @@ export const findVrm = async (req, res) => {
 
   // ✅ Tell the client (dashboard) that usage changed so it can toast + update numbers
   try {
-    // enforceDailyLimit ran earlier and attached today's usage BEFORE this lookup
+    // enforceDailyLimit now attaches actor usage before this lookup
     const prevUsed = res.locals?.limitInfo?.used ?? null;
     const limit = res.locals?.limitInfo?.limit ?? (typeof req.user?.dailyLimit === "number" ? req.user.dailyLimit : 0);
     const isLimited = (req.user?.role !== "admin") && (typeof limit === "number") && limit > 0;
