@@ -1,12 +1,7 @@
-<!-- views/dashboard.ejs -->
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title><%= typeof title !== 'undefined' ? title : 'Dashboard — Tyre Inspector' %></title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <%- include('partials/head') %>
     <style>
       body{
         background:
@@ -14,63 +9,20 @@
           radial-gradient(900px 300px at 110% -20%, rgba(63, 135, 245, 0.06), transparent 60%),
           #f8fafc;
       }
-      @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
     </style>
   </head>
   <body class="h-full">
-    <!-- Mobile top bar -->
-    <header class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
-      <div class="px-4 py-3 flex items-center justify-between">
-        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
-        <a href="/logout" class="text-sm text-slate-700">Logout</a>
-      </div>
-    </header>
+    <%- include('partials/header-mobile') %>
 
-    <!-- Layout -->
     <div class="md:pl-64">
-      <!-- Sidebar (md+) -->
-      <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white z-40">
-        <div class="flex flex-col w-full h-full">
-          <nav class="flex-1 p-4 space-y-2">
-            <div class="px-2 py-1 text-xs font-semibold text-slate-500">Navigation</div>
-            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-50 text-sky-700 font-medium">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
-              Dashboard
-            </a>
-            <a href="/inspections" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
-              Inspections
-            </a>
-            <% if (user && user.role === 'admin') { %>
-              <a href="/technicians" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
-                Technicians
-              </a>
-            <% } %>
-          </nav>
+      <%- include('partials/sidebar', { active: 'dashboard', user }) %>
 
-          <!-- Desktop logout -->
-          <div class="p-4 border-t border-slate-200">
-            <a href="/logout" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M10 3h7a2 2 0 0 1 2 2v3h-2V5h-7v14h7v-3h2v3a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
-                <path d="M14 12H5m0 0l3-3M5 12l3 3"/>
-              </svg>
-              Logout
-            </a>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Content -->
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        <!-- Heading -->
         <div class="mt-2 md:mt-6">
           <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Dashboard</h1>
           <p class="text-slate-600 mt-1">Quick overview of your activity.</p>
         </div>
 
-        <!-- Stat cards -->
         <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">Total</div>
@@ -100,7 +52,6 @@
           </div>
         </section>
 
-        <!-- Daily usage pill (if limited) -->
         <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { 
              const noneLeft = remaining === 0;
              const usedPct = Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100));
@@ -122,7 +73,6 @@
           </section>
         <% } %>
 
-        <!-- CTA -->
         <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p class="text-sm text-slate-600">Want to review or create? Head to your inspections.</p>
           <a href="/inspections" class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
@@ -133,24 +83,6 @@
       </main>
     </div>
 
-    <!-- Mobile bottom nav -->
-    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
-      <div class="grid grid-cols-3">
-        <a href="/dashboard" class="flex flex-col items-center py-2 text-sky-700">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
-          <span class="text-xs font-medium">Dashboard</span>
-        </a>
-        <a href="/inspections" class="flex flex-col items-center py-2 text-slate-700">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
-          <span class="text-xs font-medium">Inspections</span>
-        </a>
-        <% if (user && user.role === 'admin') { %>
-          <a href="/technicians" class="flex flex-col items-center py-2 text-slate-700">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
-            <span class="text-xs font-medium">Technicians</span>
-          </a>
-        <% } %>
-      </div>
-    </nav>
+    <%- include('partials/bottom-nav', { active: 'dashboard', user }) %>
   </body>
 </html>

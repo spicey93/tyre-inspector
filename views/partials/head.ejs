@@ -1,0 +1,19 @@
+<!-- views/partials/head.ejs -->
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title><%= typeof title !== 'undefined' ? title : 'Tyre Inspector' %></title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- HTMX is safe to load globally; pages that don’t use it will ignore -->
+<script
+  src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
+  integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
+  crossorigin="anonymous"></script>
+
+<link rel="preconnect" href="https://cdn.tailwindcss.com" />
+<style>
+  @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+</style>
+
+<!-- Shared UI interactions -->
+<script src="/js/ui.js" defer></script>

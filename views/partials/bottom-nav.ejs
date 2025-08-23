@@ -1,0 +1,19 @@
+<!-- views/partials/bottom-nav.ejs -->
+<nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
+  <div class="<%= (user && user.role === 'admin') ? 'grid grid-cols-3' : 'grid grid-cols-2' %>">
+    <a href="/dashboard" class="flex flex-col items-center py-2 <%= active === 'dashboard' ? 'text-sky-700' : 'text-slate-700' %>">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+      <span class="text-xs font-medium">Dashboard</span>
+    </a>
+    <a href="/inspections" class="flex flex-col items-center py-2 <%= active === 'inspections' ? 'text-sky-700' : 'text-slate-700' %>">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+      <span class="text-xs font-medium">Inspections</span>
+    </a>
+    <% if (user && user.role === 'admin') { %>
+      <a href="/technicians" class="flex flex-col items-center py-2 <%= active === 'technicians' ? 'text-sky-700' : 'text-slate-700' %>">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
+        <span class="text-xs font-medium">Technicians</span>
+      </a>
+    <% } %>
+  </div>
+</nav>
