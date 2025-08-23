@@ -19,12 +19,14 @@
           <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString('en-GB') %></td>
           <td class="px-3 py-2">
             <div class="inline-flex items-center gap-3">
+              <!-- Everyone can open/read -->
               <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
                  href="/inspections?code=<%= i.code %>">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
                 Open
               </a>
 
+              <!-- Admin-only edit -->
               <% if (user && user.role === 'admin') { %>
                 <a class="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 underline"
                    href="/inspections/<%= i._id %>/edit">
@@ -33,22 +35,25 @@
                 </a>
               <% } %>
 
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
-                hx-delete="/inspections/<%= i._id %>"
-                hx-target="closest tr"
-                hx-swap="outerHTML"
-                hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
-                </svg>
-                Delete
-                <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
-                </svg>
-              </button>
+              <!-- Admin-only delete -->
+              <% if (user && user.role === 'admin') { %>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
+                  hx-delete="/inspections/<%= i._id %>"
+                  hx-target="closest tr"
+                  hx-swap="outerHTML"
+                  hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
+                  </svg>
+                  Delete
+                  <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                  </svg>
+                </button>
+              <% } %>
             </div>
           </td>
         </tr>
