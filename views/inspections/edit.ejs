@@ -1,0 +1,209 @@
+<!-- views/inspections/edit.ejs -->
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== 'undefined' ? title : 'Edit Inspection — Tyre Inspector' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+    </style>
+  </head>
+  <body class="h-full">
+    <!-- Mobile top bar -->
+    <header class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
+        <a href="/logout" class="text-sm text-slate-700">Logout</a>
+      </div>
+    </header>
+
+    <div class="md:pl-64">
+      <!-- Sidebar (md+) -->
+      <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white z-40">
+        <div class="flex flex-col w-full h-full">
+          <nav class="flex-1 p-4 space-y-2">
+            <div class="px-2 py-1 text-xs font-semibold text-slate-500">Navigation</div>
+            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+              Dashboard
+            </a>
+            <a href="/inspections" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+              Inspections
+            </a>
+          </nav>
+
+          <!-- Desktop logout -->
+          <div class="p-4 border-t border-slate-200">
+            <a href="/logout" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 3h7a2 2 0 0 1 2 2v3h-2V5h-7v14h7v-3h2v3a 2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+                <path d="M14 12H5m0 0l3-3M5 12l3 3"/>
+              </svg>
+              Logout
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Edit inspection</h1>
+            <p class="text-slate-600 mt-1">
+              <span class="font-mono font-semibold"><%= inspection.code %></span> — <%= inspection.vrm %>
+            </p>
+          </div>
+          <a href="/inspections" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 font-medium text-slate-700 hover:bg-slate-50">
+            Back to list
+          </a>
+        </div>
+
+        <form method="POST" action="/inspections/<%= inspection._id %>/update" class="rounded-2xl bg-white border border-slate-200 shadow-sm p-4 md:p-6 space-y-6">
+          <!-- Basics -->
+          <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">VRM</label>
+              <input name="vrm" value="<%= inspection.vrm %>" maxlength="10"
+                     class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 uppercase" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Mileage</label>
+              <input type="number" name="mileage" value="<%= typeof inspection.mileage === 'number' ? inspection.mileage : '' %>"
+                     class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Share code</label>
+              <input value="<%= inspection.code %>" disabled class="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono" />
+            </div>
+          </section>
+
+          <section>
+            <label class="block text-sm font-medium text-slate-700">Notes</label>
+            <textarea name="notes" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"><%= inspection.notes || '' %></textarea>
+          </section>
+
+          <!-- Tyre groups -->
+          <section class="space-y-6">
+            <% const pos = [
+                ['offside.front', inspection.offside?.front || {} , 'Offside • Front'],
+                ['offside.rear',  inspection.offside?.rear  || {} , 'Offside • Rear'],
+                ['nearside.front',inspection.nearside?.front|| {} , 'Nearside • Front'],
+                ['nearside.rear', inspection.nearside?.rear || {} , 'Nearside • Rear'],
+            ]; %>
+
+            <% pos.forEach(([key, tyre, label]) => { %>
+              <fieldset class="rounded-xl border border-slate-200 p-4">
+                <legend class="px-1 text-sm font-semibold text-slate-800"><%= label %></legend>
+
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Size</label>
+                    <input name="<%= key %>.size" value="<%= tyre.size || '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Pressure</label>
+                    <input type="number" step="0.1" name="<%= key %>.pressure" value="<%= typeof tyre.pressure === 'number' ? tyre.pressure : '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Brand</label>
+                    <input name="<%= key %>.brand" value="<%= tyre.brand || '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Model</label>
+                    <input name="<%= key %>.model" value="<%= tyre.model || '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">DOT</label>
+                    <input name="<%= key %>.dot" value="<%= tyre.dot || '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Condition</label>
+                    <select name="<%= key %>.condition" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                      <% const cond = tyre.condition || 'ok'; %>
+                      <option value="ok"       <%= cond === 'ok' ? 'selected' : '' %>>OK</option>
+                      <option value="advisory" <%= cond === 'advisory' ? 'selected' : '' %>>Advisory</option>
+                      <option value="fail"     <%= cond === 'fail' ? 'selected' : '' %>>Fail</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Tags (comma-separated)</label>
+                    <input name="<%= key %>.tags" value="<%= Array.isArray(tyre.tags) ? tyre.tags.join(', ') : '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Tread depth (inner)</label>
+                    <input type="number" step="0.1" name="<%= key %>.treadDepth.inner" value="<%= typeof tyre.treadDepth?.inner === 'number' ? tyre.treadDepth.inner : '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Tread depth (middle)</label>
+                    <input type="number" step="0.1" name="<%= key %>.treadDepth.middle" value="<%= typeof tyre.treadDepth?.middle === 'number' ? tyre.treadDepth.middle : '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-700">Tread depth (outer)</label>
+                    <input type="number" step="0.1" name="<%= key %>.treadDepth.outer" value="<%= typeof tyre.treadDepth?.outer === 'number' ? tyre.treadDepth.outer : '' %>" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label class="block text-xs font-medium text-slate-700">Notes</label>
+                  <textarea name="<%= key %>.notes" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"><%= tyre.notes || '' %></textarea>
+                </div>
+              </fieldset>
+            <% }) %>
+          </section>
+
+          <!-- Actions -->
+          <div class="flex items-center justify-end gap-2">
+            <a href="/inspections" class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50">Cancel</a>
+            <button class="inline-flex items-center rounded-lg bg-slate-900 text-white px-4 py-2 font-semibold">Save changes</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
+      <div class="grid grid-cols-2">
+        <a href="/dashboard" class="flex flex-col items-center py-2 text-slate-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+          <span class="text-xs font-medium">Dashboard</span>
+        </a>
+        <a href="/inspections" class="flex flex-col items-center py-2 text-sky-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+          <span class="text-xs font-medium">Inspections</span>
+        </a>
+      </div>
+    </nav>
+
+    <script>
+      // Uppercase VRM as user types (preserve caret)
+      const vrmInput = document.querySelector('input[name="vrm"]');
+      vrmInput?.addEventListener('input', (e) => {
+        const { selectionStart, selectionEnd, value } = e.target;
+        const upper = value.toUpperCase();
+        if (upper !== value) { e.target.value = upper; e.target.setSelectionRange(selectionStart, selectionEnd); }
+      });
+
+      // Convert comma-separated "tags" text to array-like on submit (the backend accepts either; this makes UX nicer)
+      document.querySelector('form')?.addEventListener('submit', (e) => {
+        const tagInputs = document.querySelectorAll('input[name$=".tags"]');
+        tagInputs.forEach(inp => {
+          const raw = inp.value || "";
+          // Backend accepts array or single; submitting as "a, b" string is fine too,
+          // but normalise to "a,b" to avoid accidental spaces.
+          inp.value = raw.split(',').map(s => s.trim()).filter(Boolean).join(', ');
+        });
+      });
+    </script>
+  </body>
+</html>

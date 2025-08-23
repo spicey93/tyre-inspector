@@ -115,7 +115,7 @@
             <% if (Array.isArray(items) && items.length) { %>
               <!-- Desktop/tablet table -->
               <div class="mt-4 overflow-x-auto hidden sm:block">
-                <table class="min-w-[820px] w-full text-sm">
+                <table class="min-w-[920px] w-full text-sm">
                   <thead class="bg-slate-100">
                     <tr>
                       <th class="text-left px-3 py-2">Code</th>
@@ -139,6 +139,15 @@
                               <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
                               Open
                             </a>
+
+                            <% if (user && user.role === 'admin') { %>
+                              <a class="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 underline"
+                                 href="/inspections/<%= i._id %>/edit">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg>
+                                Edit
+                              </a>
+                            <% } %>
+
                             <button
                               type="button"
                               class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
@@ -163,7 +172,7 @@
                 </table>
               </div>
 
-              <!-- Mobile cards — simplified, tidy, UK date -->
+              <!-- Mobile cards — tidy, UK date, with admin Edit -->
               <div class="mt-3 space-y-3 sm:hidden">
                 <% items.forEach(function(i){ 
                      const created = new Date(i.createdAt);
@@ -172,7 +181,6 @@
                 %>
                   <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                     <div class="p-3">
-                      <!-- Header: VRM & created -->
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
                           <div class="truncate text-xl font-extrabold tracking-tight text-slate-900"><%= i.vrm %></div>
@@ -190,7 +198,6 @@
                         </div>
                       </div>
 
-                      <!-- Meta: tidy 2-up -->
                       <div class="mt-3 grid grid-cols-2 gap-2">
                         <div class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2">
                           <div class="text-[11px] leading-none text-slate-500">Mileage</div>
@@ -202,26 +209,34 @@
                         </div>
                       </div>
 
-                      <!-- Actions -->
                       <div class="mt-3 flex items-center justify-between">
                         <a href="/inspections?code=<%= i.code %>"
-                           class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white text-sm font-semibold hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                           class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white text-sm font-semibold hover:bg-sky-700">
                           Open
                           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
                         </a>
-                        <button
-                          type="button"
-                          class="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-rose-700 text-sm hover:bg-rose-100"
-                          hx-delete="/inspections/<%= i._id %>"
-                          hx-target="closest article"
-                          hx-swap="outerHTML"
-                          hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
-                          Delete
-                          <svg class="htmx-indicator hidden ml-2 w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
-                          </svg>
-                        </button>
+
+                        <div class="inline-flex items-center gap-2">
+                          <% if (user && user.role === 'admin') { %>
+                            <a href="/inspections/<%= i._id %>/edit"
+                               class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-700 text-sm hover:bg-slate-50">
+                              Edit
+                            </a>
+                          <% } %>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-rose-700 text-sm hover:bg-rose-100"
+                            hx-delete="/inspections/<%= i._id %>"
+                            hx-target="closest article"
+                            hx-swap="outerHTML"
+                            hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                            Delete
+                            <svg class="htmx-indicator hidden ml-2 w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </article>
@@ -427,7 +442,7 @@
           else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
         }
 
-        // ===== VRM modal =====
+        // ===== VRM modal (RESTORED) =====
         const modal = document.getElementById('vrmModal');
         const overlay = modal.querySelector('[data-modal-overlay]');
         const panel   = modal.querySelector('[data-modal-panel]');
@@ -478,7 +493,7 @@
           }
         });
 
-        // HTMX states for VRM
+        // HTMX states for VRM lookup
         document.body.addEventListener('htmx:beforeRequest', (evt) => {
           if (evt.target === vrmForm) {
             vrmForm.querySelector('.htmx-indicator')?.classList.remove('hidden');

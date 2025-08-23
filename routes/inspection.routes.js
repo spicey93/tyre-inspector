@@ -7,9 +7,12 @@ import {
   listModelsByBrand,
   createInspection,
   deleteInspection,
-  indexInspections
+  indexInspections,
+  editInspectionForm,
+  updateInspection,
 } from "../controllers/inspection.controller.js";
 import requireAuth from "../middleware/requireAuth.js";
+import requireAdmin from "../middleware/requireAdmin.js";
 import enforceDailyLimit from "../middleware/enforceDailyLimit.js";
 
 const router = express.Router();
@@ -29,6 +32,10 @@ router.get("/new", requireAuth, enforceDailyLimit, newInspection);
 router.get("/api/tyres/brands", listBrands);
 router.get("/api/tyres/models", listModelsByBrand);
 router.post("/", requireAuth, enforceDailyLimit, createInspection);
+
+// Admin-only edit/update
+router.get("/:id/edit", requireAuth, requireAdmin, editInspectionForm);
+router.post("/:id/update", requireAuth, requireAdmin, updateInspection);
 
 // Delete an inspection by Mongo _id (must belong to the account)
 router.delete("/:id", requireAuth, deleteInspection);
