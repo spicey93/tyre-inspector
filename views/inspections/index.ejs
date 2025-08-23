@@ -56,12 +56,39 @@
 
       <!-- Content -->
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <% const f = (typeof filters === 'object' && filters) || {};
+           const fSearch = f.search || '';
+           const fFrom   = f.from   || '';
+           const fTo     = f.to     || '';
+           const activeFilters = (fSearch ? 1 : 0) + (fFrom ? 1 : 0) + (fTo ? 1 : 0);
+        %>
+
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Inspections</h1>
             <p class="text-slate-600 mt-1">Browse, filter and manage your inspections.</p>
+            <% if (activeFilters) { %>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span>Active filters:</span>
+                <% if (fSearch) { %><span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">q: <strong class="ml-1"><%= fSearch %></strong></span><% } %>
+                <% if (fFrom)   { %><span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">from: <strong class="ml-1"><%= fFrom %></strong></span><% } %>
+                <% if (fTo)     { %><span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">to: <strong class="ml-1"><%= fTo %></strong></span><% } %>
+                <a href="/inspections" class="inline-flex items-center gap-1 underline hover:text-slate-800">Clear</a>
+              </div>
+            <% } %>
           </div>
-          <div>
+          <div class="flex items-center gap-2">
+            <!-- Filters button (opens modal) -->
+            <button type="button" data-open-filters
+              class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 px-3 py-2.5 font-semibold">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM6 11h12v2H6zM10 17h4v2h-4z"/></svg>
+              Filters
+              <% if (activeFilters) { %>
+                <span class="ml-1 inline-flex items-center justify-center text-xs font-bold rounded-full bg-sky-600 text-white w-5 h-5"><%= activeFilters %></span>
+              <% } %>
+            </button>
+
+            <!-- Create Inspection -->
             <button type="button" data-open-modal
               class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 11V5h2v6h6v2h-2"/></svg>
@@ -69,30 +96,6 @@
             </button>
           </div>
         </div>
-
-        <!-- Filters -->
-        <form class="rounded-xl border bg-white p-4 grid grid-cols-1 sm:grid-cols-3 gap-3" method="GET" action="/inspections">
-          <div>
-            <label class="block text-xs font-medium text-slate-600">Search (VRM or Code)</label>
-            <input type="text" name="search" value="<%= filters?.search || '' %>"
-                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-                   placeholder="e.g. NU59 WEP or ABC123" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">From</label>
-            <input type="date" name="from" value="<%= filters?.from || '' %>"
-                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-slate-600">To</label>
-            <input type="date" name="to" value="<%= filters?.to || '' %>"
-                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
-          </div>
-          <div class="sm:col-span-3 flex justify-end gap-2">
-            <a href="/inspections" class="inline-flex items-center rounded-lg border px-4 py-2 text-slate-700">Reset</a>
-            <button class="inline-flex items-center rounded-lg bg-slate-900 text-white px-4 py-2">Apply</button>
-          </div>
-        </form>
 
         <!-- Results -->
         <section class="rounded-2xl bg-white border border-slate-200 shadow-sm">
@@ -193,7 +196,7 @@
               <!-- Pagination -->
               <% const pageNum = Number(page || 1); const pagesNum = Number(pages || 1);
                  const qsp = (p) => {
-                   const u = new URLSearchParams(filters || {});
+                   const u = new URLSearchParams(f || {});
                    u.set('page', String(p));
                    return '?' + u.toString();
                  };
@@ -234,6 +237,59 @@
         </a>
       </div>
     </nav>
+
+    <!-- ===== Filters Modal (NEW) ===== -->
+    <div id="filtersModal" class="fixed inset-0 z-50 hidden" aria-labelledby="filtersModalLabel" aria-modal="true" role="dialog">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-filters-overlay></div>
+
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none" data-filters-panel tabindex="-1">
+          <div class="flex items-center justify-between p-4 border-b border-slate-200">
+            <h3 id="filtersModalLabel" class="text-base font-semibold text-slate-900">Filters</h3>
+            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-filters aria-label="Close">
+              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <form class="p-4 space-y-3" method="GET" action="/inspections">
+            <div>
+              <label class="block text-sm font-medium text-slate-700" for="f-search">Search (VRM or Code)</label>
+              <input id="f-search" name="search" value="<%= fSearch %>" placeholder="e.g. NU59 WEP or ABC123"
+                     class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-slate-700" for="f-from">From</label>
+                <input id="f-from" type="date" name="from" value="<%= fFrom %>"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700" for="f-to">To</label>
+                <input id="f-to" type="date" name="to" value="<%= fTo %>"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <a href="/inspections" class="inline-flex items-center gap-1 text-slate-700 underline hover:text-slate-900">Clear all</a>
+              <div class="flex items-center gap-2">
+                <button type="button" data-close-filters
+                        class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold">
+                  Apply filters
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== VRM Modal (Create Inspection) ===== -->
     <div id="vrmModal" class="fixed inset-0 z-50 hidden" aria-labelledby="vrmModalLabel" aria-modal="true" role="dialog">
@@ -292,6 +348,45 @@
     <!-- Interactions: modal open/close + UX bits -->
     <script>
       document.addEventListener('DOMContentLoaded', () => {
+        // ===== Filters modal =====
+        const fModal   = document.getElementById('filtersModal');
+        const fOverlay = fModal.querySelector('[data-filters-overlay]');
+        const fPanel   = fModal.querySelector('[data-filters-panel]');
+        const fOpeners = document.querySelectorAll('[data-open-filters]');
+        const fClosers = fModal.querySelectorAll('[data-close-filters]');
+
+        fOpeners.forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); openFilters(); }));
+        fClosers.forEach(btn => btn.addEventListener('click', closeFilters));
+        fOverlay.addEventListener('click', closeFilters);
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !fModal.classList.contains('hidden')) closeFilters(); });
+
+        function openFilters() {
+          fModal.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            fOverlay.classList.remove('opacity-0');
+            fPanel.classList.remove('opacity-0', 'translate-y-4');
+            fPanel.focus();
+          });
+          document.addEventListener('keydown', trapFiltersFocus);
+        }
+        function closeFilters() {
+          fOverlay.classList.add('opacity-0');
+          fPanel.classList.add('opacity-0', 'translate-y-4');
+          setTimeout(() => {
+            fModal.classList.add('hidden');
+            document.removeEventListener('keydown', trapFiltersFocus);
+          }, 150);
+        }
+        function trapFiltersFocus(e) {
+          if (fModal.classList.contains('hidden') || e.key !== 'Tab') return;
+          const focusables = fPanel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
+          if (!focusables.length) return;
+          const first = focusables[0], last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+
+        // ===== VRM modal =====
         const modal = document.getElementById('vrmModal');
         const overlay = modal.querySelector('[data-modal-overlay]');
         const panel   = modal.querySelector('[data-modal-panel]');
@@ -301,9 +396,7 @@
         const vrmForm = document.getElementById('vrmForm');
         const vrmError = document.getElementById('vrmError');
 
-        openers.forEach(btn => btn.addEventListener('click', (e) => {
-          e.preventDefault(); openModal();
-        }));
+        openers.forEach(btn => btn.addEventListener('click', (e) => { e.preventDefault(); openModal(); }));
         closers.forEach(btn => btn.addEventListener('click', closeModal));
         overlay.addEventListener('click', closeModal);
         window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
@@ -370,5 +463,4 @@
     </script>
   </body>
 </html>
-
 
