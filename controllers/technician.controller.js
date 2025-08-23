@@ -4,6 +4,35 @@ import User from "../models/user.model.js";
 
 const MAX_TECHNICIANS = 2; // per admin
 
+/**
+ * Compute how many daily usages from the admin's pool are still available
+ * to assign to technicians.
+ *
+ * If the admin has an unlimited pool (dailyLimit <= 0), we return Infinity
+ * to indicate "no cap".
+ *
+ * You can optionally exclude a technician id (useful when updating that tech).
+ */
+async function getRemainingPoolForAdmin(adminId, { excludeTechId = null } = {}) {
+  const admin = await User.findById(adminId).select("dailyLimit").lean();
+  const adminPool = Number(admin?.dailyLimit || 0);
+
+  // Unlimited pool => no cap at assignment time
+  if (adminPool <= 0) return Number.POSITIVE_INFINITY;
+
+  const match = { role: "technician", owner: adminId };
+  if (excludeTechId) match._id = { $ne: excludeTechId };
+
+  const agg = await User.aggregate([
+    { $match: match },
+    { $group: { _id: null, total: { $sum: { $ifNull: ["$dailyLimit", 0] } } } },
+  ]);
+
+  const assignedToOtherTechs = Number(agg?.[0]?.total || 0);
+  const remaining = Math.max(0, adminPool - assignedToOtherTechs);
+  return remaining;
+}
+
 export const listTechnicians = async (req, res) => {
   const adminId = req.user._id;
   const techs = await User.find({ role: "technician", owner: adminId })
@@ -45,6 +74,15 @@ export const createTechnician = async (req, res) => {
       return res.redirect("/technicians");
     }
 
+    // ---- Enforce pool-based cap on technician dailyLimit ----
+    const rawRequested = Number(dailyLimit) || 0;
+    const remainingPool = await getRemainingPoolForAdmin(adminId);
+    // If remainingPool is Infinity (admin unlimited), allow any non-negative number
+    let cappedDailyLimit =
+      remainingPool === Number.POSITIVE_INFINITY
+        ? Math.max(0, rawRequested)
+        : Math.min(Math.max(0, rawRequested), remainingPool);
+
     const hash = await bcrypt.hash(password, 10);
     await User.create({
       name: String(name).trim(),
@@ -52,11 +90,18 @@ export const createTechnician = async (req, res) => {
       passwordHash: hash,
       role: "technician",
       owner: adminId,
-      dailyLimit: Number(dailyLimit) || 0,
+      dailyLimit: cappedDailyLimit,
       active: true,
     });
 
-    req.flash?.("tech_msg", "Technician created.");
+    if (cappedDailyLimit < rawRequested) {
+      req.flash?.(
+        "tech_msg",
+        `Technician created. Daily limit capped to ${cappedDailyLimit} based on account pool.`
+      );
+    } else {
+      req.flash?.("tech_msg", "Technician created.");
+    }
     return res.redirect("/technicians");
   } catch (e) {
     console.error(e);
@@ -76,10 +121,28 @@ export const updateTechnician = async (req, res) => {
     }
 
     const { name = "", email = "", password = "", dailyLimit = "0", active = "on" } = req.body || {};
+    const requested = Number(dailyLimit) || 0;
+
+    // Prevent email collision
+    const emailNormalized = String(email).toLowerCase().trim();
+    const other = await User.findOne({ email: emailNormalized, _id: { $ne: tech._id } }).lean();
+    if (other) {
+      req.flash?.("tech_err", "Another user already uses that email.");
+      return res.redirect("/technicians");
+    }
+
+    // ---- Enforce pool-based cap on technician dailyLimit (exclude this tech from the sum) ----
+    const remainingPoolExcludingThisTech = await getRemainingPoolForAdmin(adminId, { excludeTechId: tech._id });
+    // If admin pool unlimited, no cap; otherwise the max this tech can have is the remaining capacity.
+    const cappedDailyLimit =
+      remainingPoolExcludingThisTech === Number.POSITIVE_INFINITY
+        ? Math.max(0, requested)
+        : Math.min(Math.max(0, requested), remainingPoolExcludingThisTech);
+
     const updates = {
       name: String(name).trim(),
-      email: String(email).toLowerCase().trim(),
-      dailyLimit: Number(dailyLimit) || 0,
+      email: emailNormalized,
+      dailyLimit: cappedDailyLimit,
       active: active === "on" || active === "true" || active === true,
     };
 
@@ -87,15 +150,16 @@ export const updateTechnician = async (req, res) => {
       updates.passwordHash = await bcrypt.hash(password, 10);
     }
 
-    // Prevent email collision
-    const other = await User.findOne({ email: updates.email, _id: { $ne: tech._id } }).lean();
-    if (other) {
-      req.flash?.("tech_err", "Another user already uses that email.");
-      return res.redirect("/technicians");
-    }
-
     await User.updateOne({ _id: tech._id }, { $set: updates });
-    req.flash?.("tech_msg", "Technician updated.");
+
+    if (cappedDailyLimit < requested) {
+      req.flash?.(
+        "tech_msg",
+        `Technician updated. Daily limit capped to ${cappedDailyLimit} based on account pool.`
+      );
+    } else {
+      req.flash?.("tech_msg", "Technician updated.");
+    }
     return res.redirect("/technicians");
   } catch (e) {
     console.error(e);
