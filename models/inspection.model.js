@@ -27,7 +27,6 @@ const TyreSubSchema = new Schema(
       default: "ok",
     },
     tags: [{ type: String, trim: true }],
-    // ❌ Do NOT put `user` on the tyre subschema.
   },
   { _id: false }
 );
@@ -40,7 +39,11 @@ const nanoid = customAlphabet(alphabet, 6);
 // ---- inspection schema ----
 const inspectionSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true }, // ✅ owner saved on the root doc
+    // OWNER of the record (always the admin account)
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+
+    // Who created it (admin or technician)
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
 
     code: {
       type: String,
@@ -75,5 +78,5 @@ inspectionSchema.statics.generateUniqueCode = async function () {
   throw new Error("Could not generate unique code");
 };
 
-const Inspection = mongoose.model("Inspection", inspectionSchema);
+const Inspection = mongoose.models.Inspection || mongoose.model("Inspection", inspectionSchema);
 export default Inspection;

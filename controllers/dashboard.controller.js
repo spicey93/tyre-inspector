@@ -2,12 +2,8 @@
 import Inspection from "../models/inspection.model.js";
 import UsageEvent from "../models/usageEvent.model.js";
 
-function startOfDay(d = new Date()) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-function startOfMonth(d = new Date()) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
+function startOfDay(d = new Date()) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function startOfMonth(d = new Date()) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function startOfWeek(d = new Date()) {
   // Week starts Monday
   const day = d.getDay() || 7; // Sun=0 -> 7
@@ -18,33 +14,34 @@ function startOfWeek(d = new Date()) {
 }
 
 export const dashboard = async (req, res) => {
-  const userId = req.user._id;
+  // For technicians, show stats for their admin account
+  const isAdmin = req.user?.role === "admin";
+  const accountId = isAdmin ? req.user._id : (req.user.owner || req.user._id);
 
   const today = startOfDay();
   const weekStart = startOfWeek();
   const monthStart = startOfMonth();
 
-  const [
-    total,
-    todayCount,
-    weekCount,
-    monthCount,
-    distinctVrms,
-    latest
-  ] = await Promise.all([
-    Inspection.countDocuments({ user: userId }),
-    Inspection.countDocuments({ user: userId, createdAt: { $gte: today } }),
-    Inspection.countDocuments({ user: userId, createdAt: { $gte: weekStart } }),
-    Inspection.countDocuments({ user: userId, createdAt: { $gte: monthStart } }),
-    Inspection.distinct("vrm", { user: userId }),
-    Inspection.findOne({ user: userId }).sort({ createdAt: -1 }).lean()
+  const [total, todayCount, weekCount, monthCount, distinctVrms, latest] = await Promise.all([
+    Inspection.countDocuments({ user: accountId }),
+    Inspection.countDocuments({ user: accountId, createdAt: { $gte: today } }),
+    Inspection.countDocuments({ user: accountId, createdAt: { $gte: weekStart } }),
+    Inspection.countDocuments({ user: accountId, createdAt: { $gte: monthStart } }),
+    Inspection.distinct("vrm", { user: accountId }),
+    Inspection.findOne({ user: accountId }).sort({ createdAt: -1 }).lean(),
   ]);
 
-  // Daily VRM usage (limit/pill context)
+  // Daily VRM usage for the *account* (pool). Include fallback for legacy events without billedTo
   const now = new Date();
   const startUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
   const endUTC   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
-  const usedToday = await UsageEvent.countDocuments({ user: userId, createdAt: { $gte: startUTC, $lt: endUTC } });
+  const usedToday = await UsageEvent.countDocuments({
+    createdAt: { $gte: startUTC, $lt: endUTC },
+    $or: [
+      { billedTo: accountId },
+      { $and: [{ $or: [{ billedTo: { $exists: false } }, { billedTo: null }] }, { user: accountId }] },
+    ],
+  });
   const dailyLimit = typeof req.user.dailyLimit === "number" ? req.user.dailyLimit : 0;
   const remaining = dailyLimit > 0 ? Math.max(0, dailyLimit - usedToday) : "∞";
 
@@ -60,6 +57,6 @@ export const dashboard = async (req, res) => {
     },
     usedToday,
     dailyLimit,
-    remaining
+    remaining,
   });
 };

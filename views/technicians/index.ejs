@@ -1,0 +1,309 @@
+<!-- views/technicians/index.ejs -->
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== 'undefined' ? title : 'Technicians — Tyre Inspector' %></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+    </style>
+  </head>
+  <body class="h-full">
+    <!-- Mobile top bar -->
+    <header class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
+        <a href="/logout" class="text-sm text-slate-700">Logout</a>
+      </div>
+    </header>
+
+    <div class="md:pl-64">
+      <!-- Sidebar (md+) -->
+      <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white z-40">
+        <div class="flex flex-col w-full h-full">
+          <nav class="flex-1 p-4 space-y-2">
+            <div class="px-2 py-1 text-xs font-semibold text-slate-500">Navigation</div>
+            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+              Dashboard
+            </a>
+            <a href="/inspections" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+              Inspections
+            </a>
+            <a href="/technicians" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-50 text-sky-700 font-medium">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
+              Technicians
+            </a>
+          </nav>
+
+          <!-- Desktop logout -->
+          <div class="p-4 border-t border-slate-200">
+            <a href="/logout" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 3h7a2 2 0 0 1 2 2v3h-2V5h-7v14h7v-3h2v3a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+                <path d="M14 12H5m0 0l3-3M5 12l3 3"/>
+              </svg>
+              Logout
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Technicians</h1>
+            <p class="text-slate-600 mt-1">Create, manage and set limits for your technicians.</p>
+            <p class="mt-2 text-sm">
+              You can create up to <span class="font-semibold"><%= max %></span> technicians.
+              <span class="text-slate-600">Remaining:</span>
+              <span class="font-semibold"><%= remaining %></span>
+            </p>
+            <% if (Array.isArray(flash) && flash.length) { %>
+              <div class="mt-2 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 text-sm p-2"><%= flash[0] %></div>
+            <% } %>
+            <% if (Array.isArray(flashErr) && flashErr.length) { %>
+              <div class="mt-2 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 text-sm p-2"><%= flashErr[0] %></div>
+            <% } %>
+          </div>
+          <div>
+            <button type="button" id="openCreate"
+              class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold <%= remaining === 0 ? 'opacity-50 cursor-not-allowed' : '' %>"
+              <%= remaining === 0 ? 'disabled' : '' %>>
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 11V5h2v6h6v2h-2"/></svg>
+              New technician
+            </button>
+          </div>
+        </div>
+
+        <section class="rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div class="p-4 sm:p-6">
+            <% if (Array.isArray(technicians) && technicians.length) { %>
+              <div class="overflow-x-auto">
+                <table class="min-w-[760px] w-full text-sm">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="text-left px-3 py-2">Name</th>
+                      <th class="text-left px-3 py-2">Email</th>
+                      <th class="text-left px-3 py-2">Daily limit</th>
+                      <th class="text-left px-3 py-2">Status</th>
+                      <th class="text-left px-3 py-2">Created</th>
+                      <th class="text-left px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <% technicians.forEach(function(t){ %>
+                      <tr>
+                        <td class="px-3 py-2 font-medium text-slate-900"><%= t.name || '—' %></td>
+                        <td class="px-3 py-2"><%= t.email %></td>
+                        <td class="px-3 py-2"><%= typeof t.dailyLimit === 'number' ? t.dailyLimit : 0 %></td>
+                        <td class="px-3 py-2">
+                          <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border <%= t.active ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-slate-50 text-slate-600' %>">
+                            <%= t.active ? 'Active' : 'Inactive' %>
+                          </span>
+                        </td>
+                        <td class="px-3 py-2"><%= new Date(t.createdAt).toLocaleString('en-GB') %></td>
+                        <td class="px-3 py-2">
+                          <div class="inline-flex items-center gap-2">
+                            <button
+                              class="editBtn inline-flex items-center gap-1 text-slate-700 underline"
+                              data-id="<%= t._id %>"
+                              data-name="<%= t.name || '' %>"
+                              data-email="<%= t.email %>"
+                              data-dailylimit="<%= typeof t.dailyLimit === 'number' ? t.dailyLimit : 0 %>"
+                              data-active="<%= !!t.active %>">
+                              Edit
+                            </button>
+                            <form action="/technicians/<%= t._id %>/delete" method="POST" onsubmit="return confirm('Delete technician <%= t.email %>? This cannot be undone.');">
+                              <button class="inline-flex items-center gap-1 text-rose-700 underline" type="submit">Delete</button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <p class="text-slate-600">No technicians yet.</p>
+            <% } %>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
+      <div class="grid grid-cols-3">
+        <a href="/dashboard" class="flex flex-col items-center py-2 text-slate-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+          <span class="text-xs font-medium">Dashboard</span>
+        </a>
+        <a href="/inspections" class="flex flex-col items-center py-2 text-slate-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+          <span class="text-xs font-medium">Inspections</span>
+        </a>
+        <a href="/technicians" class="flex flex-col items-center py-2 text-sky-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
+          <span class="text-xs font-medium">Technicians</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Create Technician Modal -->
+    <div id="createModal" class="fixed inset-0 z-50 hidden" aria-modal="true" role="dialog">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-overlay></div>
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all" data-panel tabindex="-1">
+          <div class="flex items-center justify-between p-4 border-b border-slate-200">
+            <h3 class="text-base font-semibold text-slate-900">New technician</h3>
+            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close aria-label="Close">
+              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <form class="p-4 space-y-3" method="POST" action="/technicians">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Name</label>
+              <input name="name" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Email</label>
+              <input name="email" type="email" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Password</label>
+              <input name="password" type="password" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Daily limit</label>
+              <input name="dailyLimit" type="number" min="0" step="1" value="0" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button type="button" data-close class="inline-flex items-center rounded-lg border px-4 py-2 text-slate-700">Cancel</button>
+              <button class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold">Create</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Technician Modal (one modal, populated via data-*) -->
+    <div id="editModal" class="fixed inset-0 z-50 hidden" aria-modal="true" role="dialog">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-overlay></div>
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all" data-panel tabindex="-1">
+          <div class="flex items-center justify-between p-4 border-b border-slate-200">
+            <h3 class="text-base font-semibold text-slate-900">Edit technician</h3>
+            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close aria-label="Close">
+              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <form id="editForm" class="p-4 space-y-3" method="POST">
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Name</label>
+              <input name="name" id="editName" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Email</label>
+              <input name="email" id="editEmail" type="email" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700">Password (leave blank to keep)</label>
+              <input name="password" id="editPassword" type="password" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-slate-700">Daily limit</label>
+                <input name="dailyLimit" id="editDailyLimit" type="number" min="0" step="1" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </div>
+              <div class="flex items-end">
+                <label class="inline-flex items-center gap-2">
+                  <input type="checkbox" name="active" id="editActive" class="rounded border-slate-300" />
+                  <span class="text-sm text-slate-700">Active</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button type="button" data-close class="inline-flex items-center rounded-lg border px-4 py-2 text-slate-700">Cancel</button>
+              <button class="inline-flex items-center rounded-lg bg-slate-900 text-white px-4 py-2 font-semibold">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Simple modal helpers
+      function setupModal(rootId, openBtnId) {
+        const root = document.getElementById(rootId);
+        if (!root) return;
+        const overlay = root.querySelector('[data-overlay]');
+        const panel = root.querySelector('[data-panel]');
+        const closers = root.querySelectorAll('[data-close]');
+
+        function open() {
+          root.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            overlay.classList.remove('opacity-0');
+            panel.classList.remove('opacity-0', 'translate-y-4');
+            panel.focus();
+          });
+          document.addEventListener('keydown', trapFocus);
+        }
+        function close() {
+          overlay.classList.add('opacity-0');
+          panel.classList.add('opacity-0', 'translate-y-4');
+          setTimeout(() => {
+            root.classList.add('hidden');
+            document.removeEventListener('keydown', trapFocus);
+          }, 150);
+        }
+        function trapFocus(e) {
+          if (root.classList.contains('hidden') || e.key !== 'Tab') return;
+          const focusables = panel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
+          if (!focusables.length) return;
+          const first = focusables[0], last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+
+        overlay.addEventListener('click', close);
+        closers.forEach(c => c.addEventListener('click', close));
+        if (openBtnId) document.getElementById(openBtnId)?.addEventListener('click', open);
+
+        return { open, close, panel, root };
+      }
+
+      const createModal = setupModal('createModal', 'openCreate');
+      const editModal = setupModal('editModal');
+
+      // Populate Edit modal
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.editBtn');
+        if (!btn) return;
+        e.preventDefault();
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name') || '';
+        const email = btn.getAttribute('data-email') || '';
+        const dl = btn.getAttribute('data-dailylimit') || '0';
+        const active = btn.getAttribute('data-active') === 'true';
+
+        document.getElementById('editName').value = name;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editPassword').value = '';
+        document.getElementById('editDailyLimit').value = dl;
+        document.getElementById('editActive').checked = active;
+
+        const form = document.getElementById('editForm');
+        form.action = `/technicians/${id}/update`;
+
+        editModal.open();
+      });
+    </script>
+  </body>
+</html>

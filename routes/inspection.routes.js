@@ -30,7 +30,7 @@ router.get("/api/tyres/brands", listBrands);
 router.get("/api/tyres/models", listModelsByBrand);
 router.post("/", requireAuth, enforceDailyLimit, createInspection);
 
-// Delete an inspection by Mongo _id (must belong to the logged-in user)
+// Delete an inspection by Mongo _id (must belong to the account)
 router.delete("/:id", requireAuth, deleteInspection);
 
 export default router;

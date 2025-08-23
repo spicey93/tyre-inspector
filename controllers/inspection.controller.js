@@ -14,6 +14,9 @@ const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // ---------- LIST (index) ----------
 export const indexInspections = async (req, res) => {
   try {
+    const isAdmin = req.user?.role === "admin";
+    const accountId = isAdmin ? req.user._id : req.user.owner || req.user._id;
+
     const page = Math.max(1, Number(req.query.page || 1));
     const limit = 15;
     const skip = (page - 1) * limit;
@@ -22,7 +25,7 @@ export const indexInspections = async (req, res) => {
     const from = trimOrEmpty(req.query.from || "");
     const to = trimOrEmpty(req.query.to || "");
 
-    const q = { user: req.user._id };
+    const q = { user: accountId };
 
     if (search) {
       const rx = new RegExp(escapeRegex(search), "i");
@@ -54,7 +57,7 @@ export const indexInspections = async (req, res) => {
       total,
       page,
       pages: Math.ceil(total / limit),
-      filters: { search, from, to }
+      filters: { search, from, to },
     });
   } catch (e) {
     console.error(e);
@@ -81,7 +84,9 @@ export const showByCode = async (req, res) => {
       vehicle = null;
     }
 
-    return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
+    return res.render("inspections/show", {
+      inspection: { ...inspection, vehicle },
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");
@@ -91,6 +96,9 @@ export const showByCode = async (req, res) => {
 // ---------- NEW (pre-fill + form) ----------
 export const newInspection = async (req, res) => {
   try {
+    const isAdmin = req.user?.role === "admin";
+    const accountId = isAdmin ? req.user._id : req.user.owner || req.user._id;
+
     const { vrm, tyreSize, mileage } = req.query;
     if (!vrm) return res.status(400).send("Missing vrm");
 
@@ -103,7 +111,10 @@ export const newInspection = async (req, res) => {
     let rearSize = "";
     if (tyreSize && tyreSize !== "__none__") {
       const decoded = decodeURIComponent(tyreSize);
-      const parts = decoded.split("|").map((s) => s.trim()).filter(Boolean);
+      const parts = decoded
+        .split("|")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (parts.length === 1) {
         frontSize = parts[0];
         rearSize = parts[0];
@@ -113,7 +124,8 @@ export const newInspection = async (req, res) => {
     }
 
     const pressures = {
-      front: typeof last?.front?.pressure === "number" ? last.front.pressure : "",
+      front:
+        typeof last?.front?.pressure === "number" ? last.front.pressure : "",
       rear: typeof last?.rear?.pressure === "number" ? last.rear.pressure : "",
     };
 
@@ -164,6 +176,9 @@ export const createInspection = async (req, res) => {
   try {
     if (!req.user?._id) return res.status(401).send("Login required");
 
+    const isAdmin = req.user?.role === "admin";
+    const accountId = isAdmin ? req.user._id : req.user.owner || req.user._id;
+
     const code = await Inspection.generateUniqueCode();
 
     const getBody = (key) => req.body?.[key];
@@ -193,7 +208,8 @@ export const createInspection = async (req, res) => {
     };
 
     const payload = {
-      user: req.user?._id,
+      user: accountId, // admin owns the document
+      createdBy: req.user._id, // who created (admin or technician)
       code,
       vrm: upperTrim(getBody("vrm")),
       mileage: toNum(getBody("mileage")),
@@ -210,14 +226,33 @@ export const createInspection = async (req, res) => {
 
     const doc = await Inspection.create(payload);
 
-    // implicit VRM usage logging (once per day per VRM)
+    // implicit VRM usage logging (once per day per VRM); bill to admin account
     try {
       const vrm = (doc.vrm || "").toUpperCase().trim();
       if (vrm) {
         const now = new Date();
-        const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-        const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
+        const start = new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            0,
+            0,
+            0
+          )
+        );
+        const end = new Date(
+          Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate() + 1,
+            0,
+            0,
+            0
+          )
+        );
         const exists = await UsageEvent.exists({
+          billedTo: accountId,
           user: req.user._id,
           type: "vrm_lookup",
           "meta.vrm": vrm,
@@ -225,6 +260,7 @@ export const createInspection = async (req, res) => {
         });
         if (!exists) {
           await UsageEvent.create({
+            billedTo: accountId,
             user: req.user._id,
             type: "vrm_lookup",
             meta: { vrm, reason: "implicit_from_inspection", code: doc.code },
@@ -245,19 +281,24 @@ export const createInspection = async (req, res) => {
 // --- DELETE inspection (by _id) ---
 export const deleteInspection = async (req, res) => {
   try {
+    const isAdmin = req.user?.role === "admin";
+    const accountId = isAdmin ? req.user._id : req.user.owner || req.user._id;
+
     const { id } = req.params;
 
-    // Only delete documents owned by the current user
-    const doc = await Inspection.findOne({ _id: id, user: req.user._id });
+    // Only delete documents owned by the admin account
+    const doc = await Inspection.findOne({ _id: id, user: accountId });
     if (!doc) return res.status(404).send("Not found");
 
     const code = doc.code;
     await doc.deleteOne();
 
     // Fire an event for toast & counter updates
-    res.setHeader("HX-Trigger", JSON.stringify({ inspectionDeleted: { id, code } }));
+    res.setHeader(
+      "HX-Trigger",
+      JSON.stringify({ inspectionDeleted: { id, code } })
+    );
 
-    // IMPORTANT: return 200 with empty body so hx-target="closest tr" + hx-swap="outerHTML" removes the row
     return res.status(200).send("");
   } catch (err) {
     console.error("deleteInspection failed", err);

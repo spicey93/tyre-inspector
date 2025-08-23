@@ -4,10 +4,13 @@ import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
 import vrmRoutes from "./routes/vrm.routes.js";
 import inspectionRoutes from "./routes/inspection.routes.js";
+import technicianRoutes from "./routes/technician.routes.js";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import User from "./models/user.model.js";
 import { dashboard } from "./controllers/dashboard.controller.js";
+import requireAuth from "./middleware/requireAuth.js";
+import requireAdmin from "./middleware/requireAdmin.js";
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
@@ -25,7 +28,12 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+      scriptSrc: [
+        "'self'",
+        "https://cdn.tailwindcss.com",
+        "https://cdn.jsdelivr.net",
+        "'unsafe-inline'",
+      ],
       styleSrc: ["'self'", "https://cdn.tailwindcss.com", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:"],
       connectSrc: ["'self'"],
@@ -73,16 +81,15 @@ app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 
 // routes
-import requireAuth from "./middleware/requireAuth.js";
-
 app.get("/", (req, res) => {
-  if (req.user) return res.redirect("/dashboard")
+  if (req.user) return res.redirect("/dashboard");
   res.render("index", { title: "Tyre Inspector — Find report" });
 });
 
-app.use('/', authRoutes)
+app.use("/", authRoutes);
 app.get("/dashboard", requireAuth, dashboard);
 app.use("/vrm", vrmRoutes);
 app.use("/inspections", inspectionRoutes);
+app.use("/technicians", requireAuth, requireAdmin, technicianRoutes);
 
 export default app;
