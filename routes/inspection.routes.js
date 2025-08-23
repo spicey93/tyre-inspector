@@ -7,7 +7,9 @@ import {
   listModelsByBrand,
   createInspection,
   deleteInspection,
-  indexInspections
+  indexInspections,
+  editInspection,      // NEW
+  updateInspection,    // NEW
 } from "../controllers/inspection.controller.js";
 import requireAuth from "../middleware/requireAuth.js";
 import enforceDailyLimit from "../middleware/enforceDailyLimit.js";
@@ -30,6 +32,10 @@ router.get("/new", requireAuth, enforceDailyLimit, newInspection);
 router.get("/api/tyres/brands", listBrands);
 router.get("/api/tyres/models", listModelsByBrand);
 router.post("/", requireAuth, enforceDailyLimit, createInspection);
+
+// ----- EDIT (ADMIN ONLY) -----
+router.get("/:id/edit", requireAuth, requireAdmin, editInspection);
+router.post("/:id/update", requireAuth, requireAdmin, updateInspection);
 
 // Delete an inspection by Mongo _id — ADMIN ONLY
 router.delete("/:id", requireAuth, requireAdmin, deleteInspection);

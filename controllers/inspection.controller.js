@@ -23,12 +23,7 @@ export const indexInspections = async (req, res) => {
     const to = trimOrEmpty(req.query.to || "");
 
     // Technicians should only ever see their own inspections.
-    // Admins see everything **owned by their account** (including work created by technicians).
-    // This assumes inspection.user is always the admin/owner account id.
-    const q =
-      req.user.role === "admin"
-        ? { user: req.user._id }
-        : { createdBy: req.user._id, user: req.user.owner || req.user._id };
+    const q = { user: req.user._id };
 
     if (search) {
       const rx = new RegExp(escapeRegex(search), "i");
@@ -82,7 +77,7 @@ export const showByCode = async (req, res) => {
 
     // If a technician is logged in, they may only view inspections they created.
     if (req.user && req.user.role === "technician") {
-      const createdByTech = String(inspection.createdBy) === String(req.user._id);
+      const createdByTech = String(inspection.user) === String(req.user._id);
       if (!createdByTech) {
         // Mask existence to avoid leaking information.
         return res.status(404).send("Inspection not found");
@@ -179,11 +174,6 @@ export const createInspection = async (req, res) => {
   try {
     if (!req.user?._id) return res.status(401).send("Login required");
 
-    // Work out the billing account (admin) and the actor (admin or technician)
-    const isTech = req.user.role === "technician" && req.user.owner;
-    const accountId = isTech ? req.user.owner : req.user._id; // the admin account that owns/bills
-    const actorId = req.user._id;
-
     const code = await Inspection.generateUniqueCode();
 
     const getBody = (key) => req.body?.[key];
@@ -213,10 +203,7 @@ export const createInspection = async (req, res) => {
     };
 
     const payload = {
-      // OWNER is always the admin account
-      user: accountId,
-      // Who created it (admin or technician)
-      createdBy: actorId,
+      user: req.user?._id, // the creator (techs will only ever see their own)
       code,
       vrm: upperTrim(getBody("vrm")),
       mileage: toNum(getBody("mileage")),
@@ -233,7 +220,7 @@ export const createInspection = async (req, res) => {
 
     const doc = await Inspection.create(payload);
 
-    // implicit VRM usage logging (once per day per VRM **per actor**) + bill to admin pool
+    // implicit VRM usage logging (once per day per VRM)
     try {
       const vrm = (doc.vrm || "").toUpperCase().trim();
       if (vrm) {
@@ -241,15 +228,14 @@ export const createInspection = async (req, res) => {
         const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
         const end   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
         const exists = await UsageEvent.exists({
-          user: actorId,
+          user: req.user._id,
           type: "vrm_lookup",
           "meta.vrm": vrm,
           createdAt: { $gte: start, $lt: end },
         });
         if (!exists) {
           await UsageEvent.create({
-            user: actorId,
-            billedTo: accountId,
+            user: req.user._id,
             type: "vrm_lookup",
             meta: { vrm, reason: "implicit_from_inspection", code: doc.code },
           });
@@ -263,6 +249,57 @@ export const createInspection = async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).send("Failed to save inspection");
+  }
+};
+
+// --- EDIT FORM (ADMIN ONLY) ---
+export const editInspection = async (req, res) => {
+  try {
+    // Admin can only edit their own inspections
+    const { id } = req.params;
+    const doc = await Inspection.findOne({ _id: id, user: req.user._id }).lean();
+    if (!doc) return res.status(404).send("Not found");
+
+    let vehicle = null;
+    try {
+      vehicle = await Vehicle.findOne({ vrm: doc.vrm }).lean();
+    } catch {
+      vehicle = null;
+    }
+
+    return res.render("inspections/edit", {
+      title: `Edit Inspection ${doc.code} — Tyre Inspector`,
+      inspection: doc,
+      vehicle,
+    });
+  } catch (e) {
+    console.error("editInspection failed", e);
+    return res.status(500).send("Server error");
+  }
+};
+
+// --- UPDATE (ADMIN ONLY) ---
+export const updateInspection = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only allow editing owner's own document
+    const doc = await Inspection.findOne({ _id: id, user: req.user._id });
+    if (!doc) return res.status(404).send("Not found");
+
+    // For now we let admins adjust mileage and notes quickly.
+    // (Extend here if you want to edit full tyre data too.)
+    const mileage = toNum(req.body?.mileage);
+    const notes = trimOrEmpty(req.body?.notes);
+
+    if (typeof mileage === "number") doc.mileage = mileage;
+    doc.notes = notes;
+
+    await doc.save();
+    return res.redirect(`/inspections?code=${encodeURIComponent(doc.code)}`);
+  } catch (e) {
+    console.error("updateInspection failed", e);
+    return res.status(500).send("Failed to update inspection");
   }
 };
 
