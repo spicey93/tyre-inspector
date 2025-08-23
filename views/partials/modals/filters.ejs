@@ -1,0 +1,52 @@
+<!-- views/partials/modals/filters.ejs -->
+<div id="filtersModal" class="fixed inset-0 z-50 hidden" aria-labelledby="filtersModalLabel" aria-modal="true" role="dialog">
+  <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-filters-overlay></div>
+
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none" data-filters-panel tabindex="-1">
+      <div class="flex items-center justify-between p-4 border-b border-slate-200">
+        <h3 id="filtersModalLabel" class="text-base font-semibold text-slate-900">Filters</h3>
+        <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-filters aria-label="Close">
+          <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form class="p-4 space-y-3" method="GET" action="/inspections">
+        <div>
+          <label class="block text-sm font-medium text-slate-700" for="f-search">Search (VRM or Code)</label>
+          <input id="f-search" name="search" value="<%= fSearch || '' %>" placeholder="e.g. NU59 WEP or ABC123"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-700" for="f-from">From</label>
+            <input id="f-from" type="date" name="from" value="<%= fFrom || '' %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700" for="f-to">To</label>
+            <input id="f-to" type="date" name="to" value="<%= fTo || '' %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <a href="/inspections" class="inline-flex items-center gap-1 text-slate-700 underline hover:text-slate-900">Clear all</a>
+          <div class="flex items-center gap-2">
+            <button type="button" data-close-filters
+                    class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50">
+              Cancel
+            </button>
+            <button type="submit"
+                    class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold">
+              Apply filters
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

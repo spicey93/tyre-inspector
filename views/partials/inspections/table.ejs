@@ -1,0 +1,58 @@
+<!-- views/partials/inspections/table.ejs -->
+<div class="mt-4 overflow-x-auto hidden sm:block">
+  <table class="min-w-[920px] w-full text-sm">
+    <thead class="bg-slate-100">
+      <tr>
+        <th class="text-left px-3 py-2">Code</th>
+        <th class="text-left px-3 py-2">VRM</th>
+        <th class="text-left px-3 py-2">Mileage</th>
+        <th class="text-left px-3 py-2">Created</th>
+        <th class="text-left px-3 py-2">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200">
+      <% items.forEach(function(i){ %>
+        <tr class="hover:bg-slate-50">
+          <td class="px-3 py-2 font-mono font-medium"><%= i.code %></td>
+          <td class="px-3 py-2"><%= i.vrm %></td>
+          <td class="px-3 py-2"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></td>
+          <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString('en-GB') %></td>
+          <td class="px-3 py-2">
+            <div class="inline-flex items-center gap-3">
+              <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
+                 href="/inspections?code=<%= i.code %>">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
+                Open
+              </a>
+
+              <% if (user && user.role === 'admin') { %>
+                <a class="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 underline"
+                   href="/inspections/<%= i._id %>/edit">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4"/></svg>
+                  Edit
+                </a>
+              <% } %>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
+                hx-delete="/inspections/<%= i._id %>"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
+                </svg>
+                Delete
+                <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
