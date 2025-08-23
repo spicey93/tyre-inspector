@@ -34,7 +34,7 @@ export const postRegister = async (req, res) => {
   try {
     const { name, email, password } = req.body;
     // dailyLimit fixed to 5
-    const dailyLimit = 5;
+    const dailyLimit = 3;
 
     // hash password however you do it
     const saltRounds = 10;
