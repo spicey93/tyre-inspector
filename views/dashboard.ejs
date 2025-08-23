@@ -5,458 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title><%= typeof title !== 'undefined' ? title : 'Dashboard — Tyre Inspector' %></title>
 
-    <!-- Tailwind (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- HTMX (VRM modal lookup & custom events) -->
-    <script
-      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
-      integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
-      crossorigin="anonymous"></script>
-
     <style>
-      body {
+      body{
         background:
           radial-gradient(1000px 400px at 10% -10%, rgba(63, 135, 245, 0.08), transparent 60%),
           radial-gradient(900px 300px at 110% -20%, rgba(63, 135, 245, 0.06), transparent 60%),
           #f8fafc;
       }
-      .uk-plate { background: linear-gradient(90deg, #ffeb3b 0 74%, #1e88e5 74% 100%); }
       @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
-
-      /* Toast */
-      .toast {
-        pointer-events: none;
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: 24px;
-        z-index: 60;
-        background: white;
-        border: 1px solid rgb(203 213 225);
-        box-shadow: 0 10px 30px rgba(0,0,0,.12);
-        border-radius: 12px;
-        padding: 10px 14px;
-        display: none;
-      }
-      .toast.show { display: block; animation: fadein .2s ease-out; }
-      @keyframes fadein { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
     </style>
   </head>
-
   <body class="h-full">
-    <% /* ---------- View helpers derived from controller data ---------- */ %>
-    <%
-      const limited = typeof dailyLimit === 'number' && dailyLimit > 0;
-      const noneLeft = limited && remaining === 0;
-      const usedPct = limited ? Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100)) : 0;
-      const pageNum = Number(page || 1);
-      const pagesNum = Number(pages || 1);
-      const qsp = (p) => {
-        const u = new URLSearchParams(typeof query === 'object' ? query : {});
-        u.set('page', String(p));
-        return '?' + u.toString();
-      };
-      const justCreated = (query && typeof query.created === 'string' && query.created.trim()) ? query.created.trim() : null;
-    %>
-
-    <!-- Top Nav -->
-    <nav class="sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200" aria-label="Primary">
-      <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <a href="/" class="inline-flex items-center gap-2 font-semibold text-slate-800">
-          <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 12a9 9 0 1 0-3.46 7.07l.71-.71"/><path d="M14 10l7-7"/>
-          </svg>
-          Tyre Inspector
-        </a>
-
-        <div class="text-sm">
-          <a href="/logout" class="text-slate-700 hover:text-slate-900">Logout</a>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Success banner (after creating an inspection) -->
-    <% if (justCreated) { %>
-      <div class="mx-auto max-w-6xl px-4 mt-4">
-        <div class="rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-900 px-3 py-2 text-sm flex items-center justify-between">
-          <span>Inspection <span class="font-mono font-semibold"><%= justCreated %></span> created.</span>
-          <a class="inline-flex items-center gap-1 text-emerald-800 underline hover:text-emerald-900"
-             href="/inspections?code=<%= justCreated %>">
-            Open
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
-          </a>
-        </div>
-      </div>
-    <% } %>
-
-    <!-- Header -->
-    <header class="text-center py-10">
-      <div class="mx-auto max-w-3xl px-4">
-        <span class="uk-plate inline-flex items-center rounded-md text-black text-base font-extrabold tracking-widest px-3 py-1 select-none">
-          <%= typeof samplePlate !== 'undefined' ? samplePlate : 'NU59 WEP' %>
-          <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
-        </span>
-        <h1 class="mt-5 text-3xl sm:text-4xl font-extrabold text-slate-900">Dashboard</h1>
-        <p class="mt-3 text-slate-600">
-          Create a new inspection or review your recent ones<br/>
-        </p>
-
-        <!-- Create Inspection button + usage pill -->
-        <div class="mt-6 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            data-open-modal
-            <%= noneLeft ? 'disabled aria-disabled="true"' : '' %>
-            class="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-white font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500
-                   <%= noneLeft ? 'bg-slate-400 cursor-not-allowed' : 'bg-sky-600 hover:bg-sky-700' %>">
-            <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11 11V5h2v6h6v2h-2"/></svg>
-            Create Inspection
-          </button>
-
-          <span id="usagePill" class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
-                       <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20Zm1-10h5v2h-7V6h2v7z"/>
-            </svg>
-            <span id="remainingPillText"><%= limited ? (noneLeft ? '0 left today' : (remaining + ' left today')) : 'Unlimited' %></span>
-          </span>
-        </div>
-
-        <% if (limited) { %>
-          <div class="mt-3 mx-auto max-w-md text-left">
-            <div class="flex items-center justify-between text-xs text-slate-600 mb-1">
-              <span>Daily usage (VRM lookups)</span>
-              <span id="usageCounts"><%= usedToday %> / <%= dailyLimit %> used</span>
-            </div>
-            <div class="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div id="usageBar" class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= usedPct %>%"></div>
-            </div>
-            <p class="mt-2 text-xs text-slate-600">
-              VRM lookups consume your daily limit. Creating an inspection <em>doesn’t</em> use extra limit
-              unless you <strong>skip a VRM lookup</strong> for that vehicle.
-            </p>
-            <% if (noneLeft) { %>
-              <p class="mt-1 text-xs text-rose-600">Daily limit reached. You can make more VRM lookups tomorrow.</p>
-            <% } %>
-          </div>
-        <% } %>
+    <!-- Mobile top bar -->
+    <header class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
+        <a href="/logout" class="text-sm text-slate-700">Logout</a>
       </div>
     </header>
 
-    <!-- Main -->
-    <main class="mx-auto max-w-6xl px-4 pb-16 space-y-6">
-      <!-- Recent inspections -->
-      <section class="rounded-2xl bg-white border border-slate-200 shadow-sm">
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-slate-900">Recent inspections</h2>
-            <p class="text-sm text-slate-500"><span id="totalCount"><%= total %></span> total</p>
-          </div>
+    <!-- Layout -->
+    <div class="md:pl-64">
+      <!-- Sidebar (md+) -->
+      <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white z-40">
+        <div class="flex flex-col w-full h-full">
+          <nav class="flex-1 p-4 space-y-2">
+            <div class="px-2 py-1 text-xs font-semibold text-slate-500">Navigation</div>
+            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-50 text-sky-700 font-medium">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+              Dashboard
+            </a>
+            <a href="/inspections" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+              Inspections
+            </a>
+          </nav>
 
-          <% if (Array.isArray(items) && items.length) { %>
-            <div class="mt-4 overflow-x-auto">
-              <table class="min-w-[820px] w-full text-sm">
-                <thead class="bg-slate-100">
-                  <tr>
-                    <th class="text-left px-3 py-2">Code</th>
-                    <th class="text-left px-3 py-2">VRM</th>
-                    <th class="text-left px-3 py-2">Mileage</th>
-                    <th class="text-left px-3 py-2">Created</th>
-                    <th class="text-left px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <% items.forEach(function(i){ 
-                       const isNew = !!(justCreated && i.code === justCreated);
-                       const rowCls = isNew ? 'ring-2 ring-emerald-400 ring-offset-0 bg-emerald-50/40' : 'hover:bg-slate-50';
-                  %>
-                    <tr class="<%= rowCls %>">
-                      <td class="px-3 py-2 font-mono font-medium"><%= i.code %></td>
-                      <td class="px-3 py-2"><%= i.vrm %></td>
-                      <td class="px-3 py-2"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></td>
-                      <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString() %></td>
-                      <td class="px-3 py-2">
-                        <div class="inline-flex items-center gap-3">
-                          <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
-                             href="/inspections?code=<%= i.code %>">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
-                            Open
-                          </a>
-
-                          <!-- DELETE action (HTMX) -->
-                          <button
-                            type="button"
-                            class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
-                            hx-delete="/inspections/<%= i._id %>"
-                            hx-target="closest tr"
-                            hx-swap="outerHTML"
-                            hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
-                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                              <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
-                            </svg>
-                            Delete
-                            <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  <% }) %>
-                </tbody>
-              </table>
-            </div>
-
-            <% if (pagesNum > 1) { %>
-              <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
-                <a href="<%= pageNum > 1 ? qsp(pageNum - 1) : '#' %>"
-                   class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum > 1 ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
-                  Newer
-                </a>
-                <div class="text-sm text-slate-600">Page <%= pageNum %> of <%= pagesNum %></div>
-                <a href="<%= pageNum < pagesNum ? qsp(pageNum + 1) : '#' %>"
-                   class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum < pagesNum ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>">
-                  Older
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5l7 7-7 7"/></svg>
-                </a>
-              </nav>
-            <% } %>
-          <% } else { %>
-            <p class="mt-3 text-slate-600">No inspections yet.</p>
-          <% } %>
-        </div>
-      </section>
-    </main>
-
-    <!-- ===== Toast ===== -->
-    <div id="toast" class="toast">
-      <div class="flex items-center gap-2 text-slate-800 text-sm">
-        <svg class="w-5 h-5 text-sky-600" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 11h5v2h-7V6h2v7z"/></svg>
-        <span id="toastText">Your daily limit has been updated.</span>
-      </div>
-    </div>
-
-    <!-- ===== VRM Modal (Create Inspection) ===== -->
-    <div id="vrmModal" class="fixed inset-0 z-50 hidden" aria-labelledby="vrmModalLabel" aria-modal="true" role="dialog">
-      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-modal-overlay></div>
-
-      <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none" data-modal-panel tabindex="-1">
-          <div class="flex items-center justify-between p-4 border-b border-slate-200">
-            <h3 id="vrmModalLabel" class="text-base font-semibold text-slate-900">Confirm vehicle</h3>
-            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-modal aria-label="Close">
-              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M18 6L6 18M6 6l12 12"/>
+          <!-- Desktop logout -->
+          <div class="p-4 border-t border-slate-200">
+            <a href="/logout" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 3h7a2 2 0 0 1 2 2v3h-2V5h-7v14h7v-3h2v3a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+                <path d="M14 12H5m0 0l3-3M5 12l3 3"/>
               </svg>
-            </button>
+              Logout
+            </a>
           </div>
-
-          <form id="vrmForm" class="p-4 space-y-3" hx-post="/vrm" hx-target="#vrmResult" hx-swap="innerHTML">
-            <div>
-              <label for="vrmInput" class="block text-sm font-medium text-slate-700">Vehicle registration (VRM)</label>
-              <div class="mt-1 flex gap-2">
-                <div class="relative flex-1">
-                  <input
-                    id="vrmInput"
-                    name="vrm"
-                    type="text"
-                    inputmode="latin"
-                    placeholder="e.g. NU59 WEP"
-                    autocomplete="off"
-                    autocapitalize="characters"
-                    spellcheck="false"
-                    required
-                    pattern="[A-Z0-9\\s]{1,10}"
-                    maxlength="10"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                  <div class="absolute inset-y-0 right-2 flex items-center" aria-hidden="true">
-                    <svg class="htmx-indicator hidden w-5 h-5 animate-spin text-sky-600" viewBox="0 0 24 24" fill="none">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
-                    </svg>
-                  </div>
-                </div>
-                <button type="submit" class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
-                  Look up
-                </button>
-              </div>
-              <p class="mt-1 text-xs text-slate-500">VRM lookups reduce your daily limit. We’ll fetch tyre sizes and (if available) pressures.</p>
-            </div>
-
-            <div id="vrmResult" class="min-h-[3rem]"></div>
-            <div id="vrmError" class="hidden rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm p-2" role="alert"></div>
-          </form>
         </div>
-      </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <!-- Heading -->
+        <div class="mt-2 md:mt-6">
+          <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Dashboard</h1>
+          <p class="text-slate-600 mt-1">Quick overview of your activity.</p>
+        </div>
+
+        <!-- Stat cards -->
+        <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">Total</div>
+            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.total || 0 %></div>
+          </div>
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">Today</div>
+            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.today || 0 %></div>
+          </div>
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">This week</div>
+            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.week || 0 %></div>
+          </div>
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">This month</div>
+            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.month || 0 %></div>
+          </div>
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">Unique VRMs</div>
+            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.uniqueVrms || 0 %></div>
+          </div>
+          <div class="rounded-xl border bg-white p-4">
+            <div class="text-xs text-slate-500">Last inspection</div>
+            <div class="mt-1 text-sm font-medium text-slate-900">
+              <%= stats?.latest ? new Date(stats.latest.createdAt).toLocaleString() : '—' %>
+            </div>
+          </div>
+        </section>
+
+        <!-- Daily usage pill (if limited) -->
+        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { 
+             const noneLeft = remaining === 0;
+             const usedPct = Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100));
+        %>
+          <section class="rounded-xl border bg-white p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold text-slate-900">Daily VRM usage</div>
+                <p class="text-xs text-slate-600 mt-0.5"><%= usedToday %> / <%= dailyLimit %> used</p>
+              </div>
+              <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
+                           <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
+                <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
+              </span>
+            </div>
+            <div class="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+              <div class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= usedPct %>%"></div>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- CTA -->
+        <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p class="text-sm text-slate-600">Want to review or create? Head to your inspections.</p>
+          <a href="/inspections" class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
+            Go to Inspections
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
+          </a>
+        </section>
+      </main>
     </div>
 
-    <!-- Interactions -->
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        // If we just created a doc, scroll its row into view for convenience
-        (function(){
-          const params = new URLSearchParams(location.search);
-          const created = params.get('created');
-          if (!created) return;
-          const rows = Array.from(document.querySelectorAll('tbody tr'));
-          const row = rows.find(tr => tr.firstElementChild?.textContent?.trim() === created);
-          if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        })();
-
-        const modal = document.getElementById('vrmModal');
-        const overlay = modal.querySelector('[data-modal-overlay]');
-        const panel   = modal.querySelector('[data-modal-panel]');
-        const openers = document.querySelectorAll('[data-open-modal]');
-        const closers = modal.querySelectorAll('[data-close-modal]');
-        const vrmInput = document.getElementById('vrmInput');
-        const vrmForm = document.getElementById('vrmForm');
-        const vrmError = document.getElementById('vrmError');
-
-        // Prevent opening if disabled (daily limit reached)
-        openers.forEach(btn => btn.addEventListener('click', (e) => {
-          if (btn.hasAttribute('disabled')) { e.preventDefault(); return; }
-          e.preventDefault(); openModal();
-        }));
-
-        closers.forEach(btn => btn.addEventListener('click', closeModal));
-        overlay.addEventListener('click', closeModal);
-        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
-
-        function openModal() {
-          modal.classList.remove('hidden');
-          requestAnimationFrame(() => {
-            overlay.classList.remove('opacity-0');
-            panel.classList.remove('opacity-0', 'translate-y-4');
-            panel.focus();
-            setTimeout(() => vrmInput?.focus(), 120);
-          });
-          document.addEventListener('keydown', trapFocus);
-        }
-
-        function closeModal() {
-          overlay.classList.add('opacity-0');
-          panel.classList.add('opacity-0', 'translate-y-4');
-          setTimeout(() => {
-            modal.classList.add('hidden');
-            document.removeEventListener('keydown', trapFocus);
-          }, 150);
-        }
-
-        function trapFocus(e) {
-          if (modal.classList.contains('hidden') || e.key !== 'Tab') return;
-          const focusables = panel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
-          if (!focusables.length) return;
-          const first = focusables[0], last = focusables[focusables.length - 1];
-          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-        }
-
-        // Uppercase VRM while typing (preserve caret)
-        document.addEventListener('input', (e) => {
-          if (e.target === vrmInput) {
-            const { selectionStart, selectionEnd, value } = e.target;
-            const upper = value.toUpperCase();
-            if (upper !== value) { e.target.value = upper; e.target.setSelectionRange(selectionStart, selectionEnd); }
-          }
-        });
-
-        // HTMX VRM indicators
-        document.body.addEventListener('htmx:beforeRequest', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.remove('hidden');
-            vrmError?.classList.add('hidden');
-            if (vrmError) vrmError.textContent = '';
-          }
-        });
-        document.body.addEventListener('htmx:afterOnLoad', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
-          }
-        });
-        document.body.addEventListener('htmx:responseError', (evt) => {
-          if (evt.target === vrmForm) {
-            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
-            if (vrmError) {
-              vrmError.classList.remove('hidden');
-              vrmError.textContent = "We couldn’t fetch data right now. Please check the VRM and try again.";
-            }
-          }
-        });
-
-        // ===== VRM lookup usage updates =====
-        document.body.addEventListener('vrmSearched', (e) => {
-          const detail = e.detail || {};
-          const { remaining, used, limit, vrm } = detail;
-
-          // Toast
-          const toast = document.getElementById('toast');
-          const toastText = document.getElementById('toastText');
-          if (toast && toastText && typeof remaining === 'number' && typeof used === 'number') {
-            toastText.textContent = `VRM ${vrm || ''} looked up. ${remaining} of ${limit} left today.`;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
-          }
-
-          // Update pill text & styling
-          const pillText = document.getElementById('remainingPillText');
-          const usagePill = document.getElementById('usagePill');
-          if (pillText) pillText.textContent = `${Math.max(0, remaining)} left today`;
-          if (usagePill) {
-            usagePill.classList.toggle('border-rose-300', remaining === 0);
-            usagePill.classList.toggle('bg-rose-50', remaining === 0);
-            usagePill.classList.toggle('text-rose-700', remaining === 0);
-            usagePill.classList.toggle('border-emerald-300', remaining !== 0);
-            usagePill.classList.toggle('bg-emerald-50', remaining !== 0);
-            usagePill.classList.toggle('text-emerald-700', remaining !== 0);
-          }
-
-          // Progress bar & counts
-          const usageBar = document.getElementById('usageBar');
-          const usageCounts = document.getElementById('usageCounts');
-          if (usageBar && typeof limit === 'number' && limit > 0) {
-            const pct = Math.min(100, Math.round((used / Math.max(1, limit)) * 100));
-            usageBar.style.width = pct + '%';
-            usageBar.classList.toggle('bg-rose-500', remaining === 0);
-            usageBar.classList.toggle('bg-emerald-600', remaining !== 0);
-          }
-          if (usageCounts && typeof used === 'number' && typeof limit === 'number') {
-            usageCounts.textContent = `${used} / ${limit} used`;
-          }
-
-          // Disable "Create Inspection" button when none left
-          const openers = document.querySelectorAll('[data-open-modal]');
-          openers.forEach(btn => {
-            if (remaining === 0) {
-              btn.setAttribute('disabled', 'true');
-              btn.setAttribute('aria-disabled', 'true');
-              btn.classList.remove('bg-sky-600','hover:bg-sky-700');
-              btn.classList.add('bg-slate-400','cursor-not-allowed');
-            }
-          });
-        });
-
-        // ===== When a row is deleted via HTMX, the server sends HX-Trigger: inspectionDeleted =====
-        document.body.addEventListener('inspectionDeleted', (e) => {
-          const code = e.detail && e.detail.code;
-          // Decrement total count in header
-          const totalEl = document.getElementById('totalCount');
-          if (totalEl) {
-            const n = Math.max(0, (parseInt(totalEl.textContent, 10) || 0) - 1);
-            totalEl.textContent = String(n);
-          }
-          // Show toast
-          const toast = document.getElementById('toast');
-          const toastText = document.getElementById('toastText');
-          if (toast && toastText) {
-            toastText.textContent = code ? `Inspection ${code} deleted.` : `Inspection deleted.`;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2200);
-          }
-        });
-      });
-    </script>
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
+      <div class="grid grid-cols-2">
+        <a href="/dashboard" class="flex flex-col items-center py-2 text-sky-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+          <span class="text-xs font-medium">Dashboard</span>
+        </a>
+        <a href="/inspections" class="flex flex-col items-center py-2 text-slate-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+          <span class="text-xs font-medium">Inspections</span>
+        </a>
+      </div>
+    </nav>
   </body>
 </html>

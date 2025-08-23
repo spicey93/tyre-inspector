@@ -9,49 +9,86 @@ const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
 const trimOrEmpty = (v) => (typeof v === "string" ? v.trim() : "");
 const upperTrim = (v) => (typeof v === "string" ? v.toUpperCase().trim() : v);
 const isValidCode = (code) => /^[A-Z0-9]{6}$/.test(code);
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const getBody = (req, key) => req.body?.[key];
-const buildTreadDepth = (req, baseKey) => ({
-  inner: toNum(getBody(req, `${baseKey}.inner`)),
-  middle: toNum(getBody(req, `${baseKey}.middle`)),
-  outer: toNum(getBody(req, `${baseKey}.outer`)),
-});
-const buildTyrePosition = (req, prefix) => {
-  const brandValue = trimOrEmpty(getBody(req, `${prefix}.brandValue`));
-  const brand = brandValue || trimOrEmpty(getBody(req, `${prefix}.brand`));
-  const modelValue = trimOrEmpty(getBody(req, `${prefix}.modelValue`));
-  const model = modelValue || trimOrEmpty(getBody(req, `${prefix}.model`));
-  const baseDepthKey = `${prefix}.treadDepth`;
+// ---------- LIST (index) ----------
+export const indexInspections = async (req, res) => {
+  try {
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = 15;
+    const skip = (page - 1) * limit;
 
-  return {
-    size: trimOrEmpty(getBody(req, `${prefix}.size`)),
-    pressure: toNum(getBody(req, `${prefix}.pressure`)),
-    brand,
-    model,
-    dot: trimOrEmpty(getBody(req, `${prefix}.dot`)),
-    treadDepth: buildTreadDepth(req, baseDepthKey),
-    condition: getBody(req, `${prefix}.condition`),
-    notes: getBody(req, `${prefix}.notes`),
-    tags: toArr(getBody(req, `${prefix}.tags`)),
-  };
+    const search = trimOrEmpty(req.query.search || "");
+    const from = trimOrEmpty(req.query.from || "");
+    const to = trimOrEmpty(req.query.to || "");
+
+    const q = { user: req.user._id };
+
+    if (search) {
+      const rx = new RegExp(escapeRegex(search), "i");
+      q.$or = [{ vrm: rx }, { code: rx }];
+    }
+
+    if (from || to) {
+      q.createdAt = {};
+      if (from) {
+        const d = new Date(from);
+        d.setHours(0, 0, 0, 0);
+        q.createdAt.$gte = d;
+      }
+      if (to) {
+        const d = new Date(to);
+        d.setHours(23, 59, 59, 999);
+        q.createdAt.$lte = d;
+      }
+    }
+
+    const [items, total] = await Promise.all([
+      Inspection.find(q).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Inspection.countDocuments(q),
+    ]);
+
+    res.render("inspections/index", {
+      title: "Inspections — Tyre Inspector",
+      items,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      filters: { search, from, to }
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
 };
 
-const buildInspectionPayload = (req, code) => ({
-  user: req.user?._id,
-  code,
-  vrm: upperTrim(getBody(req, "vrm")),
-  mileage: toNum(getBody(req, "mileage")),
-  notes: getBody(req, "notes"),
-  offside: {
-    front: buildTyrePosition(req, "offside.front"),
-    rear: buildTyrePosition(req, "offside.rear"),
-  },
-  nearside: {
-    front: buildTyrePosition(req, "nearside.front"),
-    rear: buildTyrePosition(req, "nearside.rear"),
-  },
-});
+// ---------- SHOW by share code (public) ----------
+export const showByCode = async (req, res) => {
+  try {
+    const { code } = req.query;
+    if (!code) return res.status(400).send("Missing code");
 
+    const norm = upperTrim(String(code));
+    if (!isValidCode(norm)) return res.status(400).send("Invalid code format");
+
+    const inspection = await Inspection.findOne({ code: norm }).lean();
+    if (!inspection) return res.status(404).send("Inspection not found");
+
+    let vehicle = null;
+    try {
+      vehicle = await Vehicle.findOne({ vrm: inspection.vrm }).lean();
+    } catch {
+      vehicle = null;
+    }
+
+    return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send("Server error");
+  }
+};
+
+// ---------- NEW (pre-fill + form) ----------
 export const newInspection = async (req, res) => {
   try {
     const { vrm, tyreSize, mileage } = req.query;
@@ -97,6 +134,7 @@ export const newInspection = async (req, res) => {
   }
 };
 
+// ---------- Tyre lookups ----------
 export const listBrands = async (_req, res) => {
   try {
     const brandsDocs = await Tyre.find({}, "brand").sort({ brand: 1 }).lean();
@@ -121,39 +159,58 @@ export const listModelsByBrand = async (req, res) => {
   }
 };
 
-export const showByCode = async (req, res) => {
-  try {
-    const { code } = req.query;
-    if (!code) return res.status(400).send("Missing code");
-
-    const norm = upperTrim(String(code));
-    if (!isValidCode(norm)) return res.status(400).send("Invalid code format");
-
-    const inspection = await Inspection.findOne({ code: norm }).lean();
-    if (!inspection) return res.status(404).send("Inspection not found");
-
-    let vehicle = null;
-    try {
-      vehicle = await Vehicle.findOne({ vrm: inspection.vrm }).lean();
-    } catch {
-      vehicle = null;
-    }
-
-    return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).send("Server error");
-  }
-};
-
+// ---------- Create ----------
 export const createInspection = async (req, res) => {
   try {
     if (!req.user?._id) return res.status(401).send("Login required");
 
     const code = await Inspection.generateUniqueCode();
-    const doc = await Inspection.create(buildInspectionPayload(req, code));
 
-    // ✅ If no VRM lookup today for this VRM, log implicit usage
+    const getBody = (key) => req.body?.[key];
+    const buildTreadDepth = (baseKey) => ({
+      inner: toNum(getBody(`${baseKey}.inner`)),
+      middle: toNum(getBody(`${baseKey}.middle`)),
+      outer: toNum(getBody(`${baseKey}.outer`)),
+    });
+    const buildTyrePosition = (prefix) => {
+      const brandValue = trimOrEmpty(getBody(`${prefix}.brandValue`));
+      const brand = brandValue || trimOrEmpty(getBody(`${prefix}.brand`));
+      const modelValue = trimOrEmpty(getBody(`${prefix}.modelValue`));
+      const model = modelValue || trimOrEmpty(getBody(`${prefix}.model`));
+      const baseDepthKey = `${prefix}.treadDepth`;
+
+      return {
+        size: trimOrEmpty(getBody(`${prefix}.size`)),
+        pressure: toNum(getBody(`${prefix}.pressure`)),
+        brand,
+        model,
+        dot: trimOrEmpty(getBody(`${prefix}.dot`)),
+        treadDepth: buildTreadDepth(baseDepthKey),
+        condition: getBody(`${prefix}.condition`),
+        notes: getBody(`${prefix}.notes`),
+        tags: toArr(getBody(`${prefix}.tags`)),
+      };
+    };
+
+    const payload = {
+      user: req.user?._id,
+      code,
+      vrm: upperTrim(getBody("vrm")),
+      mileage: toNum(getBody("mileage")),
+      notes: getBody("notes"),
+      offside: {
+        front: buildTyrePosition("offside.front"),
+        rear: buildTyrePosition("offside.rear"),
+      },
+      nearside: {
+        front: buildTyrePosition("nearside.front"),
+        rear: buildTyrePosition("nearside.rear"),
+      },
+    };
+
+    const doc = await Inspection.create(payload);
+
+    // implicit VRM usage logging (once per day per VRM)
     try {
       const vrm = (doc.vrm || "").toUpperCase().trim();
       if (vrm) {

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= typeof title !== 'undefined' ? title : 'Inspections — Tyre Inspector' %></title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTMX for delete + VRM modal results -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
+      integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
+      crossorigin="anonymous"></script>
+
+    <style>
+      @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
+    </style>
+  </head>
+  <body class="h-full">
+    <!-- Mobile top bar -->
+    <header class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
+        <a href="/logout" class="text-sm text-slate-700">Logout</a>
+      </div>
+    </header>
+
+    <div class="md:pl-64">
+      <!-- Sidebar (md+) -->
+      <aside class="hidden md:flex fixed inset-y-0 left-0 w-64 border-r border-slate-200 bg-white z-40">
+        <div class="flex flex-col w-full h-full">
+          <nav class="flex-1 p-4 space-y-2">
+            <div class="px-2 py-1 text-xs font-semibold text-slate-500">Navigation</div>
+            <a href="/dashboard" class="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-50">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+              Dashboard
+            </a>
+            <a href="/inspections" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-50 text-sky-700 font-medium">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+              Inspections
+            </a>
+          </nav>
+
+          <!-- Desktop logout -->
+          <div class="p-4 border-t border-slate-200">
+            <a href="/logout" class="inline-flex items-center gap-2 text-slate-700 hover:text-slate-900">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M10 3h7a2 2 0 0 1 2 2v3h-2V5h-7v14h7v-3h2v3a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+                <path d="M14 12H5m0 0l3-3M5 12l3 3"/>
+              </svg>
+              Logout
+            </a>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Inspections</h1>
+            <p class="text-slate-600 mt-1">Browse, filter and manage your inspections.</p>
+          </div>
+          <div>
+            <button type="button" data-open-modal
+              class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 11V5h2v6h6v2h-2"/></svg>
+              Create Inspection
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <form class="rounded-xl border bg-white p-4 grid grid-cols-1 sm:grid-cols-3 gap-3" method="GET" action="/inspections">
+          <div>
+            <label class="block text-xs font-medium text-slate-600">Search (VRM or Code)</label>
+            <input type="text" name="search" value="<%= filters?.search || '' %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                   placeholder="e.g. NU59 WEP or ABC123" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600">From</label>
+            <input type="date" name="from" value="<%= filters?.from || '' %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600">To</label>
+            <input type="date" name="to" value="<%= filters?.to || '' %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+          <div class="sm:col-span-3 flex justify-end gap-2">
+            <a href="/inspections" class="inline-flex items-center rounded-lg border px-4 py-2 text-slate-700">Reset</a>
+            <button class="inline-flex items-center rounded-lg bg-slate-900 text-white px-4 py-2">Apply</button>
+          </div>
+        </form>
+
+        <!-- Results -->
+        <section class="rounded-2xl bg-white border border-slate-200 shadow-sm">
+          <div class="p-4 sm:p-6">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-900">Results</h2>
+              <p class="text-sm text-slate-500"><%= total %> total</p>
+            </div>
+
+            <% if (Array.isArray(items) && items.length) { %>
+              <!-- Desktop/tablet table -->
+              <div class="mt-4 overflow-x-auto hidden sm:block">
+                <table class="min-w-[820px] w-full text-sm">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="text-left px-3 py-2">Code</th>
+                      <th class="text-left px-3 py-2">VRM</th>
+                      <th class="text-left px-3 py-2">Mileage</th>
+                      <th class="text-left px-3 py-2">Created</th>
+                      <th class="text-left px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <% items.forEach(function(i){ %>
+                      <tr class="hover:bg-slate-50">
+                        <td class="px-3 py-2 font-mono font-medium"><%= i.code %></td>
+                        <td class="px-3 py-2"><%= i.vrm %></td>
+                        <td class="px-3 py-2"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></td>
+                        <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString() %></td>
+                        <td class="px-3 py-2">
+                          <div class="inline-flex items-center gap-3">
+                            <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
+                               href="/inspections?code=<%= i.code %>">
+                              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
+                              Open
+                            </a>
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
+                              hx-delete="/inspections/<%= i._id %>"
+                              hx-target="closest tr"
+                              hx-swap="outerHTML"
+                              hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"/>
+                              </svg>
+                              Delete
+                              <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Mobile cards -->
+              <div class="mt-3 space-y-3 sm:hidden">
+                <% items.forEach(function(i){ %>
+                  <article class="rounded-xl border p-3 bg-white">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <div class="font-mono text-base font-semibold text-slate-900"><%= i.code %></div>
+                        <div class="text-sm text-slate-600 mt-0.5"><%= i.vrm %></div>
+                      </div>
+                      <div class="text-right text-xs text-slate-500">
+                        <div><%= new Date(i.createdAt).toLocaleDateString() %></div>
+                        <div class="mt-0.5">Mileage: <%= typeof i.mileage === 'number' ? i.mileage : '—' %></div>
+                      </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-end gap-4">
+                      <a class="inline-flex items-center gap-1 text-sky-700 underline"
+                         href="/inspections?code=<%= i.code %>">
+                        Open
+                      </a>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 text-rose-700 underline"
+                        hx-delete="/inspections/<%= i._id %>"
+                        hx-target="closest article"
+                        hx-swap="outerHTML"
+                        hx-confirm="Delete inspection <%= i.code %>? This cannot be undone.">
+                        Delete
+                        <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                <% }) %>
+              </div>
+
+              <!-- Pagination -->
+              <% const pageNum = Number(page || 1); const pagesNum = Number(pages || 1);
+                 const qsp = (p) => {
+                   const u = new URLSearchParams(filters || {});
+                   u.set('page', String(p));
+                   return '?' + u.toString();
+                 };
+              %>
+              <% if (pagesNum > 1) { %>
+                <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+                  <a href="<%= pageNum > 1 ? qsp(pageNum - 1) : '#' %>"
+                     class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum > 1 ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
+                    Newer
+                  </a>
+                  <div class="text-sm text-slate-600">Page <%= pageNum %> of <%= pagesNum %></div>
+                  <a href="<%= pageNum < pagesNum ? qsp(pageNum + 1) : '#' %>"
+                     class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum < pagesNum ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>">
+                    Older
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5l7 7-7 7"/></svg>
+                  </a>
+                </nav>
+              <% } %>
+            <% } else { %>
+              <p class="mt-3 text-slate-600">No inspections match your filters.</p>
+            <% } %>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
+      <div class="grid grid-cols-2">
+        <a href="/dashboard" class="flex flex-col items-center py-2 text-slate-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z"/><path d="M4 10v9h6v-6h4v6h6v-9"/></svg>
+          <span class="text-xs font-medium">Dashboard</span>
+        </a>
+        <a href="/inspections" class="flex flex-col items-center py-2 text-sky-700">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+          <span class="text-xs font-medium">Inspections</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- ===== VRM Modal (Create Inspection) ===== -->
+    <div id="vrmModal" class="fixed inset-0 z-50 hidden" aria-labelledby="vrmModalLabel" aria-modal="true" role="dialog">
+      <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity" data-modal-overlay></div>
+
+      <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none" data-modal-panel tabindex="-1">
+          <div class="flex items-center justify-between p-4 border-b border-slate-200">
+            <h3 id="vrmModalLabel" class="text-base font-semibold text-slate-900">Confirm vehicle</h3>
+            <button type="button" class="p-2 rounded hover:bg-slate-100" data-close-modal aria-label="Close">
+              <svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <form id="vrmForm" class="p-4 space-y-3" hx-post="/vrm" hx-target="#vrmResult" hx-swap="innerHTML">
+            <div>
+              <label for="vrmInput" class="block text-sm font-medium text-slate-700">Vehicle registration (VRM)</label>
+              <div class="mt-1 flex gap-2">
+                <div class="relative flex-1">
+                  <input
+                    id="vrmInput"
+                    name="vrm"
+                    type="text"
+                    inputmode="latin"
+                    placeholder="e.g. NU59 WEP"
+                    autocomplete="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    required
+                    pattern="[A-Z0-9\\s]{1,10}"
+                    maxlength="10"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <div class="absolute inset-y-0 right-2 flex items-center" aria-hidden="true">
+                    <svg class="htmx-indicator hidden w-5 h-5 animate-spin text-sky-600" viewBox="0 0 24 24" fill="none">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                    </svg>
+                  </div>
+                </div>
+                <button type="submit" class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                  Look up
+                </button>
+              </div>
+              <p class="mt-1 text-xs text-slate-500">We’ll fetch tyre sizes and (if available) pressures.</p>
+            </div>
+
+            <div id="vrmResult" class="min-h-[3rem]"></div>
+            <div id="vrmError" class="hidden rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm p-2" role="alert"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactions: modal open/close + UX bits -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('vrmModal');
+        const overlay = modal.querySelector('[data-modal-overlay]');
+        const panel   = modal.querySelector('[data-modal-panel]');
+        const openers = document.querySelectorAll('[data-open-modal]');
+        const closers = modal.querySelectorAll('[data-close-modal]');
+        const vrmInput = document.getElementById('vrmInput');
+        const vrmForm = document.getElementById('vrmForm');
+        const vrmError = document.getElementById('vrmError');
+
+        openers.forEach(btn => btn.addEventListener('click', (e) => {
+          e.preventDefault(); openModal();
+        }));
+        closers.forEach(btn => btn.addEventListener('click', closeModal));
+        overlay.addEventListener('click', closeModal);
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
+
+        function openModal() {
+          modal.classList.remove('hidden');
+          requestAnimationFrame(() => {
+            overlay.classList.remove('opacity-0');
+            panel.classList.remove('opacity-0', 'translate-y-4');
+            panel.focus();
+            setTimeout(() => vrmInput?.focus(), 120);
+          });
+          document.addEventListener('keydown', trapFocus);
+        }
+        function closeModal() {
+          overlay.classList.add('opacity-0');
+          panel.classList.add('opacity-0', 'translate-y-4');
+          setTimeout(() => {
+            modal.classList.add('hidden');
+            document.removeEventListener('keydown', trapFocus);
+          }, 150);
+        }
+        function trapFocus(e) {
+          if (modal.classList.contains('hidden') || e.key !== 'Tab') return;
+          const focusables = panel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
+          if (!focusables.length) return;
+          const first = focusables[0], last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+
+        // Uppercase VRM while typing (preserve caret)
+        document.addEventListener('input', (e) => {
+          if (e.target === vrmInput) {
+            const { selectionStart, selectionEnd, value } = e.target;
+            const upper = value.toUpperCase();
+            if (upper !== value) { e.target.value = upper; e.target.setSelectionRange(selectionStart, selectionEnd); }
+          }
+        });
+
+        // HTMX states for VRM
+        document.body.addEventListener('htmx:beforeRequest', (evt) => {
+          if (evt.target === vrmForm) {
+            vrmForm.querySelector('.htmx-indicator')?.classList.remove('hidden');
+            vrmError?.classList.add('hidden');
+            if (vrmError) vrmError.textContent = '';
+          }
+        });
+        document.body.addEventListener('htmx:afterOnLoad', (evt) => {
+          if (evt.target === vrmForm) {
+            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
+          }
+        });
+        document.body.addEventListener('htmx:responseError', (evt) => {
+          if (evt.target === vrmForm) {
+            vrmForm.querySelector('.htmx-indicator')?.classList.add('hidden');
+            if (vrmError) {
+              vrmError.classList.remove('hidden');
+              vrmError.textContent = "We couldn’t fetch data right now. Please check the VRM and try again.";
+            }
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
+
+
