@@ -1,758 +1,112 @@
-<!-- views/inspections/new.ejs -->
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>New Inspection</title>
-
-    <!-- Tailwind (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <style>
-      /* Car + wheels */
-      .car-wrap { position: relative; max-width: 200px; margin-inline: auto; }
-      @media (min-width: 576px){ .car-wrap { max-width: 220px; } }
-      @media (min-width: 992px){ .car-wrap { max-width: 260px; } }
-      .car-svg { width: 100%; height: auto; display: block; }
-
-      .wheel-hotspot{
-        position: absolute; width: 22%; aspect-ratio: 1/1; border-radius: 9999px;
-        transform: translate(-50%, -50%);
-        border: 2px solid rgb(173,181,189); background: #fff;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: .8rem;
-        transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
-        cursor: pointer; user-select: none;
-      }
-      .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
-
-      /* Condition colours (applied ONLY when completed) */
-      .wheel-hotspot.cond-ok   { border-color:#15803d; background:#e6f4ea; color:#14532d; }
-      .wheel-hotspot.cond-adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
-      .wheel-hotspot.cond-fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
-
-      /* Tag chips */
-      .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
-      .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
-
-      /* Copy feedback flash */
-      .flash-updated{ box-shadow:0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
-    </style>
+    <%- include('../partials/head') %>
+    <script src="/js/inspection-form.js" defer></script>
   </head>
   <body class="h-full">
-    <div class="mx-auto max-w-6xl px-4 py-6">
-      <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
-        Home
-      </a>
+    <%- include('../partials/header-mobile') %>
 
-      <!-- Header -->
-      <header class="mb-4">
-        <div class="flex items-center justify-between">
-          <h1 class="text-lg font-semibold text-slate-900">New Inspection</h1>
-          <span class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1 text-sm font-mono text-slate-800">
-            <%= vehicle.vrm %>
-          </span>
-        </div>
-        <div class="text-sm text-slate-600 mt-1">
-          <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
-          <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
-          <% if (mileage) { %> • <strong>Mileage:</strong> <%= mileage %><% } %>
-        </div>
-      </header>
+    <div class="md:pl-64">
+      <%- include('../partials/sidebar', { active: 'inspections', user }) %>
 
-      <% /* ---------- EJS helpers (DRY names & options) ---------- */ %>
-      <%
-        const PATHS = { osf:'offside.front', nsf:'nearside.front', osr:'offside.rear', nsr:'nearside.rear' };
-        const path = function (k, field) { return PATHS[k] + '.' + field; };
+      <main class="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
+        <header class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">New Inspection</h1>
+            <p class="text-slate-600 mt-1">VRM <span class="font-semibold"><%= (vehicle?.vrm || '').toUpperCase() %></span></p>
+          </div>
+          <a href="/inspections" class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-800 hover:bg-slate-50">
+            Back to Inspections
+          </a>
+        </header>
 
-        // Tread depth options (8 -> 2 step 0.5, plus 1.6)
-        const TREADS = [];
-        for (let v = 8.0; v >= 2.0; v -= 0.5) { TREADS.push(v % 1 ? v.toFixed(1) : v.toFixed(0)); }
-        TREADS.push('1.6');
+        <!-- Vehicle summary -->
+        <section class="rounded-2xl border border-slate-200 bg-white p-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div>
+              <div class="text-slate-500">Make / Model</div>
+              <div class="font-medium text-slate-900"><%= vehicle?.make || '—' %> <%= vehicle?.model || '' %></div>
+            </div>
+            <div>
+              <div class="text-slate-500">Year</div>
+              <div class="font-medium text-slate-900"><%= vehicle?.year || '—' %></div>
+            </div>
+            <div>
+              <div class="text-slate-500">Fuel</div>
+              <div class="font-medium text-slate-900"><%= vehicle?.fuel || '—' %></div>
+            </div>
+            <div>
+              <div class="text-slate-500">Tyre sizes (last known)</div>
+              <div class="font-medium text-slate-900"><%= (defaults?.frontSize || '—') %> (front) · <%= (defaults?.rearSize || '—') %> (rear)</div>
+            </div>
+          </div>
+        </section>
 
-        const QUICK_TAGS = [
-          'Bald on inner edge','Bald on outer edge','Perished','Bulge','Puncture','Uneven wear','Cracked sidewall','Cord exposed'
-        ];
+        <form method="POST" action="/inspections" class="space-y-6">
+          <input type="hidden" name="vrm" value="<%= (vehicle?.vrm || '').toUpperCase() %>">
 
-        const panels = [
-          { key:'osf', title:'Offside Front (OSF)',  sizeDefault: defaults.frontSize },
-          { key:'nsf', title:'Nearside Front (NSF)', sizeDefault: defaults.frontSize },
-          { key:'osr', title:'Offside Rear (OSR)',   sizeDefault: defaults.rearSize  },
-          { key:'nsr', title:'Nearside Rear (NSR)',  sizeDefault: defaults.rearSize  }
-        ];
-
-        const LABELS = {
-          osf: 'Offside Front (OSF)',
-          nsf: 'Nearside Front (NSF)',
-          osr: 'Offside Rear (OSR)',
-          nsr: 'Nearside Rear (NSR)'
-        };
-      %>
-
-      <form method="POST" action="/inspections" id="inspection-form" class="space-y-4" novalidate>
-        <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
-        <input type="hidden" name="mileage" value="<%= mileage || '' %>" />
-
-        <!-- Ready banner (appears when all done) -->
-        <div id="complete-banner" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm flex items-center gap-2">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 12l2 2 4-4"/><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          All wheels complete — add notes and save.
-        </div>
-
-        <!-- Workspace -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          <!-- LEFT: Car / wheel picker -->
-          <section id="pick-screen" class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow" aria-labelledby="pick-heading">
-            <div class="px-4 py-3 border-b border-slate-200 font-semibold" id="pick-heading">Select a wheel to enter details</div>
-            <div class="p-4">
-              <div class="car-wrap" aria-hidden="true">
-                <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f3f5" stroke="#ced4da" />
-                  <rect x="80" y="80" width="240" height="120" rx="20" fill="#e9ecef" />
-                  <rect x="80" y="600" width="240" height="120" rx="20" fill="#e9ecef" />
-                  <rect x="90" y="240" width="220" height="280" rx="16" fill="#dee2e6" />
-                  <line x1="60" y1="400" x2="340" y2="400" stroke="#ced4da" stroke-dasharray="4 6" />
-                </svg>
-
-                <button type="button" class="wheel-hotspot" data-key="osf" style="left: 86%; top: 19%;">OSF</button>
-                <button type="button" class="wheel-hotspot" data-key="nsf" style="left: 14%; top: 19%;">NSF</button>
-                <button type="button" class="wheel-hotspot" data-key="osr" style="left: 86%; top: 81%;">OSR</button>
-                <button type="button" class="wheel-hotspot" data-key="nsr" style="left: 14%; top: 81%;">NSR</button>
+          <section class="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-slate-700" for="mileage">Mileage</label>
+                <input id="mileage" name="mileage" inputmode="numeric" value="<%= mileage || '' %>"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="e.g. 45210" />
               </div>
-              <p class="mt-2 text-xs text-slate-500">
-                Use the header copy button to copy DOT, Brand &amp; Model (size only copies into empty size fields).
-              </p>
+              <div class="sm:col-span-2">
+                <label class="block text-sm font-medium text-slate-700" for="notes">Overall notes</label>
+                <input id="notes" name="notes" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Optional" />
+              </div>
             </div>
           </section>
 
-          <!-- CENTER: Panels -->
-          <div id="panels-wrapper" class="lg:col-span-6 space-y-4 lg:space-y-0">
-            <% panels.forEach(function(p){ %>
-              <section id="panel-<%= p.key %>" class="hidden" aria-labelledby="panel-title-<%= p.key %>">
-                <div class="rounded-2xl border border-slate-200 bg-white shadow">
-                  <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                    <h2 id="panel-title-<%= p.key %>" class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
+          <!-- Tyre groups -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <%- include('../partials/forms/tyrePosition', {
+              prefix: 'offside.front',
+              title: 'Offside Front',
+              idBase: 'offside-front',
+              sizeDefault: (defaults?.frontSize || ''),
+              pressureDefault: (defaults?.pressures?.front),
+              brandOptions
+            }) %>
 
-                    <!-- Copy button -->
-                    <div class="flex items-center gap-2">
-                      <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5">Copied!</span>
-                      <button
-                        type="button"
-                        title="Copy DOT, Brand & Model to other wheels not yet treaded (won’t overwrite an existing Size)"
-                        class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
-                        data-copy-all-from="<%= p.key %>"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                          <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                          <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+            <%- include('../partials/forms/tyrePosition', {
+              prefix: 'offside.rear',
+              title: 'Offside Rear',
+              idBase: 'offside-rear',
+              sizeDefault: (defaults?.rearSize || ''),
+              pressureDefault: (defaults?.pressures?.rear),
+              brandOptions
+            }) %>
 
-                  <div class="p-4">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <!-- Size + DOT row -->
-                      <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Size -->
-                        <div>
-                          <label class="block text-sm font-medium text-slate-700" for="size-<%= p.key %>">Size</label>
-                          <input
-                            id="size-<%= p.key %>"
-                            name="<%= path(p.key,'size') %>"
-                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            value="<%= p.sizeDefault %>"
-                            placeholder="e.g. 225/45R17 91W"
-                          />
-                        </div>
+            <%- include('../partials/forms/tyrePosition', {
+              prefix: 'nearside.front',
+              title: 'Nearside Front',
+              idBase: 'nearside-front',
+              sizeDefault: (defaults?.frontSize || ''),
+              pressureDefault: (defaults?.pressures?.front),
+              brandOptions
+            }) %>
 
-                        <!-- DOT -->
-                        <div>
-                          <label class="block text-sm font-medium text-slate-700" for="dot-<%= p.key %>">DOT</label>
-                          <input
-                            id="dot-<%= p.key %>"
-                            name="<%= path(p.key,'dot') %>"
-                            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                            data-tyre-key="<%= p.key %>"
-                            placeholder="e.g. 2423"
-                          />
-                        </div>
-                      </div>
-
-                      <!-- Brand (autocomplete) -->
-                      <div>
-                        <label class="block text-sm font-medium text-slate-700" for="brand-<%= p.key %>">Brand</label>
-                        <input
-                          id="brand-<%= p.key %>"
-                          list="brands-list"
-                          class="brand-input mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                          data-tyre-key="<%= p.key %>"
-                          name="<%= path(p.key,'brand') %>"
-                          placeholder="Start typing brand…"
-                          autocomplete="off"
-                        />
-                      </div>
-
-                      <!-- Model (autocomplete, depends on brand) -->
-                      <div>
-                        <label class="block text-sm font-medium text-slate-700" for="model-<%= p.key %>">Model</label>
-                        <input
-                          id="model-<%= p.key %>"
-                          list="models-<%= p.key %>"
-                          class="model-input mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                          data-tyre-key="<%= p.key %>"
-                          name="<%= path(p.key,'model') %>"
-                          placeholder="Select or type model…"
-                          autocomplete="off"
-                        />
-                        <datalist id="models-<%= p.key %>"><!-- filled dynamically --></datalist>
-                      </div>
-
-                      <!-- Tread depth -->
-                      <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
-                        <div class="mt-1 grid grid-cols-3 gap-2">
-                          <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                  data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.inner') %>">
-                            <option value="">Inner</option>
-                            <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                          </select>
-                          <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                  data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.middle') %>">
-                            <option value="">Middle</option>
-                            <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                          </select>
-                          <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                  data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.outer') %>">
-                            <option value="">Outer</option>
-                            <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                          </select>
-                        </div>
-                        <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
-                      </div>
-
-                      <!-- Tags -->
-                      <div class="sm:col-span-2">
-                        <label class="block text-sm font-medium text-slate-700">Tags</label>
-                        <div class="mt-1 flex flex-wrap gap-2">
-                          <% QUICK_TAGS.forEach(function(tag){
-                               var id = (p.key + '-tag-' + tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase());
-                          %>
-                            <label class="chip inline-flex items-center gap-1" for="<%= id %>">
-                              <input id="<%= id %>" type="checkbox" class="hidden tag-input" name="<%= path(p.key,'tags') %>" value="<%= tag %>" />
-                              <span class="text-sm"><%= tag %></span>
-                            </label>
-                          <% }) %>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Footer actions (full-width Save on mobile only) -->
-                    <div class="mt-4 block lg:hidden">
-                      <button type="button" class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
-                              data-save-back="<%= p.key %>">
-                        Save <%= p.key.toUpperCase() %>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            <% }) %>
+            <%- include('../partials/forms/tyrePosition', {
+              prefix: 'nearside.rear',
+              title: 'Nearside Rear',
+              idBase: 'nearside-rear',
+              sizeDefault: (defaults?.rearSize || ''),
+              pressureDefault: (defaults?.pressures?.rear),
+              brandOptions
+            }) %>
           </div>
 
-          <!-- RIGHT: Sticky Review & Save (desktop only) -->
-          <aside id="review-aside" class="hidden lg:block lg:col-span-3">
-            <div class="sticky top-4 space-y-4">
-              <div class="rounded-2xl border border-slate-200 bg-white shadow">
-                <div class="px-4 py-3 border-b border-slate-200 font-semibold">Review &amp; Save</div>
-                <div class="p-4">
-                  <!-- Progress list -->
-                  <ul id="review-list" class="space-y-2 text-sm">
-                    <li id="review-osf" class="flex items-center justify-between">
-                      <span><%= LABELS.osf %></span>
-                      <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
-                    </li>
-                    <li id="review-nsf" class="flex items-center justify-between">
-                      <span><%= LABELS.nsf %></span>
-                      <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
-                    </li>
-                    <li id="review-osr" class="flex items-center justify-between">
-                      <span><%= LABELS.osr %></span>
-                      <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
-                    </li>
-                    <li id="review-nsr" class="flex items-center justify-between">
-                      <span><%= LABELS.nsr %></span>
-                      <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
-                    </li>
-                  </ul>
-
-                  <!-- Notes (proxy; syncs with real notes field) -->
-                  <div class="mt-4">
-                    <label for="notes-proxy" class="block text-sm font-medium text-slate-700">Notes</label>
-                    <textarea id="notes-proxy" rows="5"
-                      class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Overall findings, advisories, etc."></textarea>
-                    <p class="mt-1 text-xs text-slate-500">These notes save with the report.</p>
-                  </div>
-
-                  <!-- Desktop Save -->
-                  <button id="desktop-save-btn" form="inspection-form" disabled
-                    class="mt-4 w-full inline-flex items-center justify-center rounded-xl bg-emerald-600/50 px-4 py-3 text-white text-base font-semibold cursor-not-allowed">
-                    Save inspection
-                  </button>
-                  <p id="desktop-save-hint" class="mt-2 text-xs text-slate-500">Complete all 4 wheels to enable saving.</p>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <!-- Real notes + Save (mobile only; hidden on lg to avoid duplication) -->
-        <div id="notes-block" class="hidden lg:hidden">
-          <label for="notes" class="block text-sm font-medium text-slate-700">General notes</label>
-          <textarea id="notes" name="notes" rows="3"
-            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="Overall findings, advisories, etc."></textarea>
-        </div>
-
-        <div id="save-block" class="hidden lg:hidden">
-          <button class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            Save inspection
-          </button>
-        </div>
-      </form>
+          <div class="flex items-center justify-end gap-2">
+            <a href="/inspections" class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50">Cancel</a>
+            <button class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold">Save inspection</button>
+          </div>
+        </form>
+      </main>
     </div>
 
-    <!-- Sticky Save (mobile only, appears when complete) -->
-    <div id="save-sticky" class="hidden lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur p-3">
-      <div class="mx-auto max-w-6xl">
-        <button form="inspection-form"
-          class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          Save inspection
-        </button>
-      </div>
-    </div>
-
-    <!-- Shared brand datalist (autocomplete source) -->
-    <datalist id="brands-list">
-      <% (brandOptions || []).forEach(function(b){ %>
-        <option value="<%= b %>"></option>
-      <% }) %>
-    </datalist>
-
-    <!-- Page JS -->
-    <script>
-      // =========================
-      // Tyre Inspector — Page JS
-      // =========================
-
-      // ---------- Config / constants ----------
-      var PATHS = { osf: "offside.front", nsf: "nearside.front", osr: "offside.rear", nsr: "nearside.rear" };
-
-      var FAIL_TAGS = new Set(["Bulge", "Cord exposed", "Puncture"]);
-      var ADV_TAGS  = new Set(["Perished", "Cracked sidewall", "Uneven wear", "Bald on inner edge", "Bald on outer edge"]);
-
-      // ---------- Small helpers ----------
-      function isLarge(){ return window.matchMedia("(min-width: 1024px)").matches; }
-      function isNum(v){ return v !== "" && !isNaN(Number(v)); }
-      function filled(v){ return v != null && String(v).trim() !== ""; }
-      function q(name){ return document.querySelector('[name="'+name+'"]'); }
-      function $(sel, root){ return (root||document).querySelector(sel); }
-      function $all(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }
-
-      // ---------- API ----------
-      function fetchModels(brand){
-        if (!brand) return Promise.resolve([]);
-        return fetch("/inspections/api/tyres/models?brand=" + encodeURIComponent(brand))
-          .then(function(res){ return res.json(); })
-          .catch(function(){ return []; });
-      }
-
-      // Populate the model datalist for a given panel key
-      function setModelOptionsFor(key, models){
-        var list = $("#models-" + key);
-        if (!list) return;
-        list.innerHTML = "";
-        (models || []).forEach(function(m){
-          var opt = document.createElement("option");
-          opt.value = m;
-          list.appendChild(opt);
-        });
-      }
-
-      // ---------- Completion & condition ----------
-      function hasAllTreads(path){
-        var i = q(path + ".treadDepth.inner");  i = i ? i.value : "";
-        var m = q(path + ".treadDepth.middle"); m = m ? m.value : "";
-        var o = q(path + ".treadDepth.outer");  o = o ? o.value : "";
-        return isNum(i) && isNum(m) && isNum(o);
-      }
-
-      function tyreComplete(path){
-        var size  = q(path + ".size");  size  = size  ? size.value  : "";
-        var brand = q(path + ".brand"); brand = brand ? brand.value : "";
-        var model = q(path + ".model"); model = model ? model.value : "";
-        return filled(size) && filled(brand) && filled(model) && hasAllTreads(path);
-      }
-
-      function readTagsFor(path){
-        var safe = path.replace(/\./g, "\\.");
-        var inputs = document.querySelectorAll('input[name="'+safe+'.tags"]');
-        var out = [];
-        for (var i=0;i<inputs.length;i++){ if (inputs[i].checked) out.push(inputs[i].value); }
-        return out;
-      }
-
-      function determineCondition(path){
-        var tags = readTagsFor(path);
-        for (var i=0;i<tags.length;i++){ if (FAIL_TAGS.has(tags[i])) return "fail"; }
-        var advFromTags = tags.some(function(t){ return ADV_TAGS.has(t); });
-
-        var iv = q(path + ".treadDepth.inner");  iv = iv ? Number(iv.value) : NaN;
-        var mv = q(path + ".treadDepth.middle"); mv = mv ? Number(mv.value) : NaN;
-        var ov = q(path + ".treadDepth.outer");  ov = ov ? Number(ov.value) : NaN;
-        var vals = []; if(!isNaN(iv)) vals.push(iv); if(!isNaN(mv)) vals.push(mv); if(!isNaN(ov)) vals.push(ov);
-
-        if (vals.length){
-          if (vals.some(function(v){ return v < 3; })) return "fail";
-          if (vals.some(function(v){ return v < 4; })) return "advisory";
-        }
-        if (advFromTags) return "advisory";
-        return "ok";
-      }
-
-      function applyWheelColour(key){
-        var el = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
-        if (!el) return;
-        el.classList.remove("cond-ok","cond-adv","cond-fail");
-        if (tyreComplete(PATHS[key])){
-          var c = determineCondition(PATHS[key]);
-          if (c === "ok") el.classList.add("cond-ok");
-          else if (c === "advisory") el.classList.add("cond-adv");
-          else if (c === "fail") el.classList.add("cond-fail");
-        }
-      }
-
-      function markWheel(key){
-        applyWheelColour(key);
-        updateReviewList();
-        updateSaveVisibility();
-      }
-
-      var saveCueShown = false;
-
-      function setBadgeEl(el, text, tone){
-        // tone: "pending" | "ok" | "advisory" | "fail"
-        var cls = {
-          pending: "bg-slate-100 text-slate-700",
-          ok: "bg-emerald-100 text-emerald-800",
-          advisory: "bg-amber-100 text-amber-800",
-          fail: "bg-rose-100 text-rose-800"
-        }[tone] || "bg-slate-100 text-slate-700";
-
-        el.className = "badge inline-flex items-center rounded-full px-2 py-0.5 text-xs " + cls;
-        el.textContent = text;
-      }
-
-      function updateReviewList(){
-        Object.keys(PATHS).forEach(function(key){
-          var li = $("#review-" + key);
-          if (!li) return;
-          var badge = li.querySelector(".badge");
-          var done = tyreComplete(PATHS[key]);
-          if (!done){
-            setBadgeEl(badge, "Pending", "pending");
-          }else{
-            var c = determineCondition(PATHS[key]); // "ok" | "advisory" | "fail"
-            var label = c === "ok" ? "OK" : (c === "advisory" ? "Advisory" : "Fail");
-            setBadgeEl(badge, label, c === "ok" ? "ok" : (c === "advisory" ? "advisory" : "fail"));
-          }
-        });
-      }
-
-      function updateSaveVisibility(){
-        var keys = Object.keys(PATHS);
-        var allDone = keys.every(function(k){ return tyreComplete(PATHS[k]); });
-        var nb = $("#notes-block");
-        var sb = $("#save-block");
-        var sticky = $("#save-sticky");
-        var banner = $("#complete-banner");
-
-        if (nb) nb.classList.toggle("hidden", !allDone);
-        if (sb) sb.classList.toggle("hidden", !allDone);
-        if (sticky) sticky.classList.toggle("hidden", !allDone);
-        if (banner) banner.classList.toggle("hidden", !allDone);
-
-        // Desktop save button enable/disable
-        var dBtn = $("#desktop-save-btn");
-        var hint = $("#desktop-save-hint");
-        if (dBtn){
-          dBtn.disabled = !allDone;
-          dBtn.classList.toggle("cursor-not-allowed", !allDone);
-          dBtn.classList.toggle("bg-emerald-600/50", !allDone);
-          dBtn.classList.toggle("bg-emerald-600", allDone);
-          dBtn.classList.toggle("hover:bg-emerald-700", allDone);
-          if (hint) hint.classList.toggle("hidden", allDone);
-        }
-
-        if (nb){
-          nb.classList.toggle("ring-2", allDone);
-          nb.classList.toggle("ring-emerald-300", allDone);
-          nb.classList.toggle("shadow", allDone);
-        }
-
-        if (allDone && !saveCueShown){
-          saveCueShown = true;
-          setTimeout(function(){
-            if (isLarge()){
-              var aside = $("#review-aside");
-              if (aside) aside.scrollIntoView({ behavior: "smooth", block: "nearest" });
-            } else {
-              (banner || nb || sb).scrollIntoView({ behavior: "smooth", block: "center" });
-            }
-          }, 150);
-        }
-      }
-
-      // ---------- Panels / navigation ----------
-      function showPanel(key){
-        document.querySelectorAll('section[id^="panel-"]').forEach(function(s){ s.classList.add("hidden"); });
-        var panel = $("#panel-" + key);
-        if (panel) panel.classList.remove("hidden");
-
-        document.querySelectorAll(".wheel-hotspot").forEach(function(h){ h.classList.remove("active"); });
-        var spot = document.querySelector('.wheel-hotspot[data-key="'+key+'"]');
-        if (spot) spot.classList.add("active");
-
-        if (!isLarge()){
-          var pick = $("#pick-screen");
-          if (pick) pick.classList.add("hidden");
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-      }
-
-      function bindWheelClicks(){
-        $all(".wheel-hotspot").forEach(function(btn){
-          var go = function(){ showPanel(btn.dataset.key); };
-          btn.addEventListener("click", go);
-          btn.addEventListener("touchstart", function(e){ e.preventDefault(); go(); }, {passive:false});
-        });
-      }
-
-      // ---------- Autocomplete (brand/model) ----------
-      var brandDebounceTimers = Object.create(null);
-
-      function bindBrandAutocomplete(){
-        document.addEventListener("input", function(e){
-          if (!e.target.classList.contains("brand-input")) return;
-          var key = e.target.getAttribute("data-tyre-key");
-          var brand = e.target.value.trim();
-          clearTimeout(brandDebounceTimers[key]);
-          brandDebounceTimers[key] = setTimeout(function(){
-            if (!brand) { setModelOptionsFor(key, []); return; }
-            fetchModels(brand).then(function(models){ setModelOptionsFor(key, models); });
-          }, 250);
-        });
-
-        document.addEventListener("change", function(e){
-          if (!e.target.classList.contains("brand-input")) return;
-          var key = e.target.getAttribute("data-tyre-key");
-          var brand = e.target.value.trim();
-          if (!brand) { setModelOptionsFor(key, []); return; }
-          fetchModels(brand).then(function(models){ setModelOptionsFor(key, models); });
-        });
-      }
-
-      // ---------- Track inputs (brand/model/size/dot/treads) ----------
-      function bindFieldTracking(){
-        $all(".tyre-field").forEach(function(el){
-          el.addEventListener("input", function(e){
-            var key = e.target.getAttribute("data-tyre-key");
-            if (key) markWheel(key);
-          });
-          el.addEventListener("change", function(e){
-            var key = e.target.getAttribute("data-tyre-key");
-            if (key) markWheel(key);
-          });
-        });
-      }
-
-      // Auto-fill treads if one chosen and the others blank (per panel)
-      function bindTreadAutofill(){
-        $all('section[id^="panel-"]').forEach(function(panel){
-          var selects = panel.querySelectorAll('select[name$="treadDepth.inner"], select[name$="treadDepth.middle"], select[name$="treadDepth.outer"]');
-          selects.forEach(function(sel){
-            sel.addEventListener("change", function(){
-              if (!sel.value) return;
-              selects.forEach(function(other){
-                if (other !== sel && !other.value) other.value = sel.value;
-              });
-              var key = panel.id.replace("panel-","");
-              markWheel(key);
-            });
-          });
-        });
-      }
-
-      // ---------- Tags (chips) ----------
-      function bindTagChips(){
-        $all(".chip").forEach(function(ch){
-          ch.addEventListener("click", function(e){
-            var input = ch.querySelector(".tag-input");
-            if (!input) return;
-            input.checked = !input.checked;
-            ch.classList.toggle("active", input.checked);
-            var panel = ch.closest('section[id^="panel-"]');
-            var key = panel ? panel.id.replace("panel-","") : null;
-            if (key) markWheel(key);
-            e.preventDefault();
-          });
-        });
-      }
-
-      // ---------- Single header "Copy to others" ----------
-      function hasAllTreadsPath(path){
-        var i = q(path + ".treadDepth.inner");  i = i ? i.value : "";
-        var m = q(path + ".treadDepth.middle"); m = m ? m.value : "";
-        var o = q(path + ".treadDepth.outer");  o = o ? o.value : "";
-        return isNum(i) && isNum(m) && isNum(o);
-      }
-
-      function bindCopyCore(){
-        function copyCoreFrom(fromKey){
-          var src   = PATHS[fromKey];
-          var sizeI = q(src + ".size");  var size  = sizeI  ? sizeI.value  : "";
-          var dotI  = q(src + ".dot");   var dot   = dotI   ? dotI.value   : "";
-          var brI   = q(src + ".brand"); var brand = brI    ? brI.value    : "";
-          var moI   = q(src + ".model"); var model = moI    ? moI.value    : "";
-
-          var flashed = [];
-
-          function doOne(k, p){
-            if (k === fromKey) return Promise.resolve();
-            // Only copy to wheels that do NOT already have all tread depths filled
-            if (hasAllTreadsPath(p)) return Promise.resolve();
-
-            // Size: only copy if target size is empty (do not overwrite)
-            var sEl = q(p + ".size");
-            if (sEl && !sEl.value) sEl.value = size;
-
-            // DOT: overwrite
-            var dEl = q(p + ".dot");
-            if (dEl) dEl.value = dot;
-
-            // Brand & Model (autocomplete inputs)
-            var bIn = q(p + ".brand");
-            var mIn = q(p + ".model");
-
-            function afterModels(models){
-              setModelOptionsFor(k, models || []);
-              if (mIn && model) mIn.value = model; // set typed model
-            }
-
-            var brandPromise = Promise.resolve();
-            if (bIn){
-              if (brand) bIn.value = brand;
-              if (bIn.value){
-                brandPromise = fetchModels(bIn.value).then(afterModels);
-              } else {
-                afterModels([]);
-              }
-            }
-
-            var hotspot = document.querySelector('.wheel-hotspot[data-key="'+k+'"]');
-            if (hotspot){ hotspot.classList.add("flash-updated"); flashed.push(hotspot); }
-
-            markWheel(k);
-            return brandPromise;
-          }
-
-          var chain = Promise.resolve();
-          Object.keys(PATHS).forEach(function(k){ chain = chain.then(function(){ return doOne(k, PATHS[k]); }); });
-
-          return chain.then(function(){
-            setTimeout(function(){ flashed.forEach(function(h){ h.classList.remove("flash-updated"); }); }, 700);
-          });
-        }
-
-        document.addEventListener("click", function(e){
-          var btn = e.target.closest("[data-copy-all-from]");
-          if (!btn) return;
-          var fromKey = btn.getAttribute("data-copy-all-from");
-          btn.disabled = true;
-
-          copyCoreFrom(fromKey).then(function(){
-            var pill = $("#copy-pill-" + fromKey);
-            if (pill){
-              pill.textContent = "Copied!";
-              pill.classList.remove("hidden");
-              setTimeout(function(){ pill.classList.add("hidden"); }, 1300);
-            }
-            btn.classList.add("bg-slate-100");
-            setTimeout(function(){ btn.classList.remove("bg-slate-100"); btn.disabled = false; }, 300);
-          });
-        });
-      }
-
-      // ---------- Notes proxy sync (desktop aside <-> real field) ----------
-      function bindNotesSync(){
-        var real = $("#notes");
-        var proxy = $("#notes-proxy");
-        if (!proxy) return; // desktop only UI; real may be offscreen (mobile only container)
-        // Ensure real exists; if not (on desktop), create a hidden one so form posts notes
-        if (!real){
-          real = document.createElement("textarea");
-          real.id = "notes";
-          real.name = "notes";
-          real.className = "hidden";
-          $("#inspection-form").appendChild(real);
-        }
-        proxy.value = real.value || "";
-        proxy.addEventListener("input", function(){ real.value = proxy.value; });
-        real.addEventListener("input", function(){ proxy.value = real.value; });
-      }
-
-      // ---------- Mobile Save: hide form, show car ----------
-      function bindMobileSave(){
-        $all("[data-save-back]").forEach(function(btn){
-          btn.addEventListener("click", function(){
-            var key = btn.getAttribute("data-save-back");
-            markWheel(key);
-            if (!isLarge()){
-              var panel = $("#panel-" + key); if (panel) panel.classList.add("hidden");
-              var pick = $("#pick-screen");   if (pick)  pick.classList.remove("hidden");
-              $all(".wheel-hotspot").forEach(function(h){ h.classList.remove("active"); });
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }
-          });
-        });
-      }
-
-      // ---------- Init ----------
-      function initTyreInspector(){
-        bindBrandAutocomplete();
-        bindWheelClicks();
-        bindFieldTracking();
-        bindTreadAutofill();
-        bindTagChips();
-        bindCopyCore();
-        bindMobileSave();
-        bindNotesSync();
-
-        // Initial state
-        Object.keys(PATHS).forEach(function(k){ applyWheelColour(k); });
-        updateReviewList();
-        updateSaveVisibility();
-      }
-
-      if (document.readyState === "loading"){
-        document.addEventListener("DOMContentLoaded", initTyreInspector);
-      } else {
-        initTyreInspector();
-      }
-    </script>
+    <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
   </body>
 </html>

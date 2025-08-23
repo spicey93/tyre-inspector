@@ -1,0 +1,117 @@
+<!-- views/partials/forms/tyrePosition.ejs -->
+<%
+// locals expected:
+//  - prefix (e.g. 'offside.front')
+//  - title  (e.g. 'Offside Front')
+//  - idBase (e.g. 'offside-front')
+//  - sizeDefault, pressureDefault
+//  - brandOptions (array of strings)
+%>
+<fieldset class="rounded-2xl border border-slate-200 bg-white">
+  <legend class="px-3 py-2 text-sm font-semibold text-slate-700"><%= title %></legend>
+  <div class="p-3 md:p-4 space-y-3" data-tyre-group>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-brand">Brand</label>
+        <input
+          id="<%= idBase %>-brand"
+          name="<%= prefix %>.brandValue"
+          list="<%= idBase %>-brandlist"
+          data-brand-input
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          placeholder="e.g. Michelin" />
+        <datalist id="<%= idBase %>-brandlist">
+          <% (brandOptions || []).forEach(function(b){ %>
+            <option value="<%= b %>"></option>
+          <% }) %>
+        </datalist>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-model">Model</label>
+        <input
+          id="<%= idBase %>-model"
+          name="<%= prefix %>.modelValue"
+          list="<%= idBase %>-modellist"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          placeholder="(choose brand first)" />
+        <datalist id="<%= idBase %>-modellist" data-model-datalist></datalist>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-size">Tyre size</label>
+        <input
+          id="<%= idBase %>-size"
+          name="<%= prefix %>.size"
+          value="<%= sizeDefault || '' %>"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          placeholder="e.g. 205/55 R16 91V" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-pressure">Pressure</label>
+        <input
+          id="<%= idBase %>-pressure"
+          name="<%= prefix %>.pressure"
+          type="number" min="0" step="0.1"
+          value="<%= (typeof pressureDefault === 'number') ? pressureDefault : '' %>"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          placeholder="e.g. 32" />
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700">Tread depth (mm)</label>
+      <div class="mt-1 grid grid-cols-3 gap-3">
+        <div>
+          <span class="text-xs text-slate-500">Inner</span>
+          <input name="<%= prefix %>.treadDepth.inner" type="number" min="0" max="20" step="0.1"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+        <div>
+          <span class="text-xs text-slate-500">Middle</span>
+          <input name="<%= prefix %>.treadDepth.middle" type="number" min="0" max="20" step="0.1"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+        <div>
+          <span class="text-xs text-slate-500">Outer</span>
+          <input name="<%= prefix %>.treadDepth.outer" type="number" min="0" max="20" step="0.1"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-dot">DOT</label>
+        <input id="<%= idBase %>-dot" name="<%= prefix %>.dot" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Optional" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-condition">Condition</label>
+        <select id="<%= idBase %>-condition" name="<%= prefix %>.condition" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+          <option value="ok" selected>OK</option>
+          <option value="advisory">Advisory</option>
+          <option value="fail">Fail</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-slate-700" for="<%= idBase %>-notes">Notes</label>
+      <textarea id="<%= idBase %>-notes" name="<%= prefix %>.notes" rows="3"
+                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                placeholder="Optional notes..."></textarea>
+    </div>
+
+    <div data-tags-root="<%= prefix %>.tags">
+      <div class="flex items-center justify-between">
+        <label class="block text-sm font-medium text-slate-700">Tags (optional)</label>
+        <button type="button" data-add-tag class="inline-flex items-center rounded-md border px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+          Add tag
+        </button>
+      </div>
+      <div class="mt-1 space-y-2" data-tags-list></div>
+    </div>
+  </div>
+</fieldset>
