@@ -33,14 +33,19 @@ export const getRegister = (req, res) => {
 export const postRegister = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    // dailyLimit fixed to 5
     const dailyLimit = 3;
 
-    // hash password however you do it
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    const user = await User.create({ name, email, passwordHash, dailyLimit });
+    // 🔥 Default new users to admin role
+    const user = await User.create({
+      name,
+      email,
+      passwordHash,
+      dailyLimit,
+      role: "admin",
+    });
 
     req.session.regenerate((err) => {
       if (err) return res.status(500).render("auth/register", { error: "Session error" });

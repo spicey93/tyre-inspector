@@ -27,7 +27,7 @@ const userSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-userSchema.index({ email: 1 }, { unique: true });
+// Removed: userSchema.index({ email: 1 }, { unique: true });
 
 userSchema.methods.setPassword = async function (plain) {
   this.passwordHash = await bcrypt.hash(plain, 12);

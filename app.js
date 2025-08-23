@@ -14,6 +14,8 @@ import requireAdmin from "./middleware/requireAdmin.js";
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
+const isTest = process.env.NODE_ENV === "test";
+const hasMongoUrl = !!process.env.DB_URL;
 
 // trust proxy for secure cookies behind Nginx/Heroku/etc.
 app.set("trust proxy", 1);
@@ -43,22 +45,26 @@ app.use(
   })
 );
 
-app.use(
-  session({
-    name: "ti.sid",
-    secret: process.env.SESSION_SECRET || "changeme",
-    resave: false,
-    saveUninitialized: false,
-    proxy: true,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: isProd,
-      maxAge: 1000 * 60 * 60 * 24 * 14,
-    },
-    store: MongoStore.create({ mongoUrl: process.env.DB_URL }),
-  })
-);
+// Sessions
+const sessionOptions = {
+  name: "ti.sid",
+  secret: process.env.SESSION_SECRET || "changeme",
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProd,
+    maxAge: 1000 * 60 * 60 * 24 * 14,
+  },
+};
+
+// ✅ Important: never use connect-mongo in tests, only in dev/prod
+if (!isTest && hasMongoUrl) {
+  sessionOptions.store = MongoStore.create({ mongoUrl: process.env.DB_URL });
+}
+app.use(session(sessionOptions));
 
 // attach user from session
 app.use(async (req, _res, next) => {

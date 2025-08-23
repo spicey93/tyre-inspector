@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch --env-file=.env server.js"
+    "dev": "node --watch --env-file=.env server.js",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +25,9 @@
     "nanoid": "^5.1.5"
   },
   "devDependencies": {
-    "csv-parse": "^6.1.0"
+    "csv-parse": "^6.1.0",
+    "mongodb-memory-server": "^10.2.0",
+    "supertest": "^7.1.4",
+    "vitest": "^2.1.9"
   }
 }

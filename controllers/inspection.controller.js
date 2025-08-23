@@ -306,24 +306,24 @@ export const updateInspection = async (req, res) => {
 // --- DELETE inspection (by _id) ---
 export const deleteInspection = async (req, res) => {
   try {
-    // Technicians are read-only: no delete.
     if (!req.user || req.user.role !== "admin") {
       return res.status(403).send("Forbidden");
     }
 
     const { id } = req.params;
 
-    // Only delete documents owned by the current user (admin)
-    const doc = await Inspection.findOne({ _id: id, user: req.user._id });
+    // ✅ Ensure only the *owning admin* can delete
+    const doc = await Inspection.findOne({ _id: id });
     if (!doc) return res.status(404).send("Not found");
+
+    if (String(doc.user) !== String(req.user._id)) {
+      return res.status(403).send("Not your inspection");
+    }
 
     const code = doc.code;
     await doc.deleteOne();
 
-    // Fire an event for toast & counter updates
     res.setHeader("HX-Trigger", JSON.stringify({ inspectionDeleted: { id, code } }));
-
-    // Return 200 with empty body so hx-target="closest tr" + hx-swap="outerHTML" removes the row
     return res.status(200).send("");
   } catch (err) {
     console.error("deleteInspection failed", err);

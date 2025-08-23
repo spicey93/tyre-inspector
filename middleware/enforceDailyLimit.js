@@ -18,6 +18,9 @@ function getRequestedVrm(req) {
 
 export default async function enforceDailyLimit(req, res, next) {
   try {
+    // Ensure locals object exists even in tests/mocks
+    res.locals = res.locals || {};
+
     if (!req.user?._id) return res.status(401).send("Login required");
 
     // Determine the billing account (admin) and the actor (may be a technician)
@@ -57,17 +60,6 @@ export default async function enforceDailyLimit(req, res, next) {
         : 0,
     ]);
 
-    // Expose counts so handlers (e.g., VRM lookup) can emit HX-Trigger deltas
-    res.locals.limitInfo = {
-      used: usedActor,
-      limit: actorLimit,
-      scope: "actor",
-      billedPoolUsed: usedPool,
-      billedPoolLimit: adminPoolLimit,
-      billedTo: accountId,
-      actorId,
-    };
-
     // Helper: allow if request is clearly finishing a create flow after a recent lookup for the same VRM
     async function allowIfRecentLookupForSameVRM() {
       const vrm = getRequestedVrm(req);
@@ -87,15 +79,40 @@ export default async function enforceDailyLimit(req, res, next) {
 
     // Per-actor cap (technicians in particular)
     if (isTech && actorLimit > 0 && usedActor >= actorLimit) {
-      if (await allowIfRecentLookupForSameVRM()) return next();
+      if (await allowIfRecentLookupForSameVRM()) {
+        // still pass through, but expose pool/actor usage info
+        res.locals.limitInfo = {
+          used: usedPool,
+          limit: adminPoolLimit,
+          actorUsed: usedActor,
+          actorLimit,
+        };
+        return next();
+      }
       return res.status(429).send("Technician daily limit reached");
     }
 
     // Admin pool cap
     if (adminPoolLimit > 0 && usedPool >= adminPoolLimit) {
-      if (await allowIfRecentLookupForSameVRM()) return next();
+      if (await allowIfRecentLookupForSameVRM()) {
+        res.locals.limitInfo = {
+          used: usedPool,
+          limit: adminPoolLimit,
+          actorUsed: usedActor,
+          actorLimit,
+        };
+        return next();
+      }
       return res.status(429).send("Account daily limit reached");
     }
+
+    // Under limits — expose usage info for downstream (e.g. HX-Trigger updates)
+    res.locals.limitInfo = {
+      used: usedPool,
+      limit: adminPoolLimit,
+      actorUsed: usedActor,
+      actorLimit,
+    };
 
     return next();
   } catch (err) {
@@ -104,3 +121,4 @@ export default async function enforceDailyLimit(req, res, next) {
     return next();
   }
 }
+
