@@ -51,6 +51,7 @@ export const indexInspections = async (req, res) => {
 
     res.render("inspections/index", {
       title: "Inspections — Tyre Inspector",
+      active: "inspections",
       items,
       total,
       page,

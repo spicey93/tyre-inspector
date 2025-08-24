@@ -17,11 +17,6 @@ import requireAdmin from "../middleware/requireAdmin.js";
 
 const router = express.Router();
 
-/**
- * GET /inspections
- * - If ?code=XXXXXX is present -> public "show by code"
- * - Otherwise -> authenticated Inspections Index
- */
 router.get("/", (req, res, next) => {
   if (req.query?.code) return showByCode(req, res, next);
   return requireAuth(req, res, () => indexInspections(req, res, next));
