@@ -1,0 +1,118 @@
+<div
+  id="vrmModal"
+  class="fixed inset-0 z-50 hidden"
+  aria-labelledby="vrmModalLabel"
+  aria-modal="true"
+  role="dialog"
+>
+  <div
+    class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity"
+    data-modal-overlay
+  ></div>
+
+  <div class="absolute inset-0 flex items-center justify-center p-4">
+    <div
+      class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none"
+      data-modal-panel
+      tabindex="-1"
+    >
+      <div class="flex items-center justify-between p-4 border-b border-slate-200">
+        <h3 id="vrmModalLabel" class="text-base font-semibold text-slate-900">
+          Confirm vehicle
+        </h3>
+        <button
+          type="button"
+          class="p-2 rounded hover:bg-slate-100"
+          data-close-modal
+          aria-label="Close"
+        >
+          <svg
+            class="w-5 h-5 text-slate-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form
+        id="vrmForm"
+        class="p-4 space-y-3"
+        hx-post="/vrm"
+        hx-target="#vrmResult"
+        hx-swap="innerHTML"
+      >
+        <div>
+          <label
+            for="vrmInput"
+            class="block text-sm font-medium text-slate-700"
+          >
+            Vehicle registration (VRM)
+          </label>
+          <div class="mt-1 flex gap-2">
+            <div class="relative flex-1">
+              <input
+                id="vrmInput"
+                name="vrm"
+                type="text"
+                inputmode="latin"
+                placeholder="e.g. NU59 WEP"
+                autocomplete="off"
+                autocapitalize="characters"
+                spellcheck="false"
+                required
+                pattern="[A-Z0-9\\s]{1,10}"
+                maxlength="10"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 uppercase focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <div
+                class="absolute inset-y-0 right-2 flex items-center"
+                aria-hidden="true"
+              >
+                <svg
+                  class="htmx-indicator hidden w-5 h-5 animate-spin text-sky-600"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
+                  ></path>
+                </svg>
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="rounded-lg bg-sky-600 text-white px-4 py-2 font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              Look up
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">
+            We’ll fetch tyre sizes and (if available) pressures.
+          </p>
+        </div>
+
+        <div id="vrmResult" class="min-h-[3rem]"></div>
+        <div
+          id="vrmError"
+          class="hidden rounded-lg border border-rose-300 bg-rose-50 text-rose-700 text-sm p-2"
+          role="alert"
+        ></div>
+      </form>
+    </div>
+  </div>
+</div>;
