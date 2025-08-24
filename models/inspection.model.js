@@ -42,9 +42,6 @@ const inspectionSchema = new Schema(
     // OWNER of the record (always the admin account)
     user: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
 
-    // Who created it (admin or technician)
-    createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null, index: true },
-
     code: {
       type: String,
       required: true,
@@ -67,6 +64,13 @@ const inspectionSchema = new Schema(
 // indexes
 inspectionSchema.index({ vrm: 1, createdAt: -1 });
 inspectionSchema.index({ user: 1, createdAt: -1 });
+
+inspectionSchema.pre("save", function (next) {
+  if (!this.createdBy && this.user) {
+    this.createdBy = this.user;
+  }
+  next();
+});
 
 // unique code generator (with retries)
 inspectionSchema.statics.generateUniqueCode = async function () {

@@ -11,20 +11,28 @@ export const postLogin = async (req, res) => {
   const nextUrl = req.body.next || req.query.next || "/dashboard";
 
   const user = await User.findOne({ email }).select("+passwordHash");
-  if (!user) return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
+  if (!user)
+    return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
 
   const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
+  if (!ok)
+    return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
 
-  req.session.regenerate((err) => {
-    if (err) return res.status(500).render("auth/login", { error: "Session error", next: nextUrl });
+  req.session.regenerate(async (err) => {
+    if (err)
+      return res.status(500).render("auth/login", { error: "Session error", next: nextUrl });
+
     req.session.userId = user._id;
-    req.session.save((err2) => {
-      if (err2) return res.status(500).render("auth/login", { error: "Session error", next: nextUrl });
-      res.redirect(nextUrl);
+
+    // 🔑 Promise wrapper ensures session is fully saved before redirect
+    await new Promise((resolve, reject) => {
+      req.session.save((err2) => (err2 ? reject(err2) : resolve()));
     });
+
+    res.redirect(nextUrl);
   });
 };
+
 
 export const getRegister = (req, res) => {
   res.render("auth/register");
