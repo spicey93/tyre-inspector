@@ -15,75 +15,7 @@
         }
       }
     </script>
-
-    <style>
-      /* ---------------- Screen vs Print toggles ---------------- */
-      .print-only { display: none; }
-
-      /* Wheel diagram dots for SCREEN */
-      .wheel-print{
-        position:absolute; width:22%; aspect-ratio:1/1; border-radius:9999px;
-        transform: translate(-50%,-50%);
-        border:2px solid #94a3b8; background:#fff;
-        display:flex; align-items:center; justify-content:center;
-        font-weight:800; font-size:11px; color:#0f172a;
-        left: var(--left); top: var(--top);
-        box-shadow: inset 0 0 0 2px rgba(255,255,255,.8), 0 1px 2px rgba(0,0,0,.08);
-      }
-      .wheel-print.ok   { border-color:#16a34a; background:#bbf7d0; color:#065f46; }
-      .wheel-print.adv  { border-color:#f59e0b; background:#fde68a; color:#7c5206; }
-      .wheel-print.fail { border-color:#ef4444; background:#fecaca; color:#7f1d1d; }
-
-      /* Row tinting for screen (subtle) */
-      .row-ok   { background: rgba(16,185,129,.14); }
-      .row-adv  { background: rgba(245,158,11,.16); }
-      .row-fail { background: rgba(239,68,68,.16); }
-
-      .table-scroll { max-height: 60vh; overflow:auto; -webkit-overflow-scrolling: touch; }
-
-      /* Tiny colour tokens for legend (screen) */
-      .swatch{ width:10px; height:10px; border-radius:9999px; display:inline-block; box-shadow: inset 0 0 0 2px rgba(255,255,255,.9), 0 0 0 1px rgba(0,0,0,.06); }
-      .sw-ok   { background:#22c55e; }
-      .sw-adv  { background:#f59e0b; }
-      .sw-fail { background:#ef4444; }
-
-      /* ---------------------- PRINT: one-page sheet ---------------------- */
-      @media print {
-        html, body { background:#fff !important; }
-        .screen-root { display: none !important; }
-        .print-only { display: block !important; }
-
-        @page { size: A4 portrait; margin: 10mm; }
-
-        .print-sheet { font-size: 10.5px; line-height: 1.25; color: #0f172a; }
-        .print-title { font-size: 16px; font-weight: 700; }
-        .print-muted { color: #475569; }
-        .print-table { border-collapse: collapse; width: 100%; table-layout: fixed; }
-        .print-table th, .print-table td { border: 1px solid #cbd5e1; padding: 3px 5px; vertical-align: top; }
-        .print-table th { background: #f1f5f9; }
-
-        .col-pos   { width: 16%; }
-        .col-size  { width: 12%; }
-        .col-brand { width: 12%; }
-        .col-model { width: 12%; }
-        .col-dot   { width: 10%; }
-        .col-tread { width: 20%; }
-        .col-tags  { width: 10%; }
-        .col-cond  { width: 8%;  }
-
-        .print-diagram { max-width: 130px; }
-        .wheel-dot {
-          position:absolute; width:20%; aspect-ratio:1/1; border-radius:9999px;
-          transform: translate(-50%,-50%);
-          border:1px solid #94a3b8; background:#fff;
-          font-weight:700; font-size:9px; display:flex; align-items:center; justify-content:center;
-          left: var(--left); top: var(--top);
-        }
-        .wheel-dot.ok   { background:#d1fae5; border-color:#10b981; }
-        .wheel-dot.adv  { background:#fef3c7; border-color:#f59e0b; }
-        .wheel-dot.fail { background:#fee2e2; border-color:#ef4444; }
-      }
-    </style>
+    <link rel="stylesheet" href="/css/show-inspection.css">
   </head>
   <body class="h-full">
 
