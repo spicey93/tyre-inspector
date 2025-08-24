@@ -1,15 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <%- include('partials/head', { title: 'Tyre Inspector — Find report' }) %>
-    <style>
-      body{
-        background:
-          radial-gradient(900px 300px at 110% -20%, rgba(63, 135, 245, 0.06), transparent 60%),
-          #f8fafc;
-      }
-      @media (prefers-reduced-motion: reduce){ *{ animation:none!important; transition:none!important; } }
-    </style>
+    <%- include('partials/head', { title: typeof title !== 'undefined' ? title : 'Tyre Inspector — Find report' }) %>
+    <link rel="stylesheet" href="/css/index.css">
   </head>
   <body class="h-full">
     <%- include('partials/header-mobile') %>
@@ -17,35 +10,63 @@
     <main class="max-w-xl mx-auto px-4 md:px-8 py-10 space-y-6">
       <header class="text-center">
         <h1 class="text-3xl font-extrabold text-slate-900">Find your inspection report</h1>
-        <p class="mt-2 text-slate-600">Enter the 6-character code to view your report.</p>
+        <p class="mt-2 text-slate-600">Enter the 6‑character share code to view your report.</p>
       </header>
 
-      <form class="rounded-2xl border border-slate-200 bg-white p-4 space-y-3" method="GET" action="/inspections">
+      <!-- Find by share code -->
+      <form class="rounded-2xl border border-slate-200 bg-white p-4 space-y-3" method="GET" action="/inspections" aria-describedby="code-help" novalidate>
         <div>
           <label for="code" class="block text-sm font-medium text-slate-700">Share code</label>
-          <input
-            id="code"
-            name="code"
-            pattern="[A-Za-z0-9]{6}"
-            maxlength="6"
-            required
-            class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 uppercase tracking-widest font-mono text-lg"
-            placeholder="ABC123" />
+          <div class="mt-1 relative">
+            <input
+              id="code"
+              name="code"
+              pattern="[A-Za-z0-9]{6}"
+              maxlength="6"
+              inputmode="latin"
+              autocapitalize="characters"
+              autocomplete="off"
+              required
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 uppercase tracking-widest font-mono text-lg pr-10"
+              placeholder="ABC123"
+              aria-describedby="code-help" />
+            <!-- live state icon -->
+            <div class="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <svg id="code-valid" class="hidden w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+              <svg id="code-invalid" class="hidden w-5 h-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5M12 16h.01" />
+              </svg>
+            </div>
+          </div>
+          <p id="code-help" class="mt-1 text-xs text-slate-500">The code uses letters A–Z and numbers only (no spaces).</p>
         </div>
+
         <div class="flex items-center justify-end">
-          <button class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold">
+          <button
+            id="open-btn"
+            class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 font-semibold"
+            aria-label="Open report">
             Open report
           </button>
         </div>
+
+        <noscript>
+          <p class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            JavaScript is disabled. You can still submit the form once you have entered a 6‑character code.
+          </p>
+        </noscript>
       </form>
 
       <% if (!user) { %>
-        <!-- Clear Login / Register CTAs -->
+        <!-- Inspectors CTA (visible when logged out) -->
         <section class="rounded-2xl border border-slate-200 bg-white p-5">
           <div class="flex items-start gap-3">
             <div class="shrink-0">
-              <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-700">
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sky-700" aria-hidden="true">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/>
                 </svg>
               </span>
@@ -72,6 +93,7 @@
           </div>
         </section>
       <% } else { %>
+        <!-- Quick actions (visible when logged in) -->
         <section class="rounded-2xl border border-slate-200 bg-white p-5 text-center">
           <p class="text-sm text-slate-700">
             Logged in as <span class="font-medium"><%= user.email %></span>.
@@ -87,5 +109,7 @@
         </section>
       <% } %>
     </main>
+
+    <script src="/js/index.js" defer></script>
   </body>
 </html>
