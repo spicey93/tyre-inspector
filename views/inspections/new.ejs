@@ -8,37 +8,7 @@
 
     <!-- Tailwind (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <style>
-      /* Car + wheels */
-      .car-wrap { position: relative; max-width: 200px; margin-inline: auto; }
-      @media (min-width: 576px){ .car-wrap { max-width: 220px; } }
-      @media (min-width: 992px){ .car-wrap { max-width: 260px; } }
-      .car-svg { width: 100%; height: auto; display: block; }
-
-      .wheel-hotspot{
-        position: absolute; width: 22%; aspect-ratio: 1/1; border-radius: 9999px;
-        transform: translate(-50%, -50%);
-        border: 2px solid rgb(173,181,189); background: #fff;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: .8rem;
-        transition: box-shadow .15s, transform .05s, border-color .15s, background-color .15s, color .15s;
-        cursor: pointer; user-select: none;
-      }
-      .wheel-hotspot.active{ box-shadow: inset 0 0 0 .45rem rgba(13,110,253,.25); }
-
-      /* Condition colours (applied ONLY when completed) */
-      .wheel-hotspot.cond-ok   { border-color:#15803d; background:#e6f4ea; color:#14532d; }
-      .wheel-hotspot.cond-adv  { border-color:#f59e0b; background:#fff7d6; color:#7c5206; }
-      .wheel-hotspot.cond-fail { border-color:#e11d48; background:#fde2e4; color:#7f1d1d; }
-
-      /* Tag chips */
-      .chip{ border:1px solid rgb(203 213 225); border-radius:9999px; padding:.25rem .6rem; cursor:pointer; user-select:none; }
-      .chip.active{ background:#e7f1ff; border-color:#9ec5fe; }
-
-      /* Copy feedback flash */
-      .flash-updated{ box-shadow:0 0 0 .55rem rgba(16,185,129,.28) inset !important; }
-    </style>
+    <link rel="stylesheet" href="/css/new-inspection.css">
   </head>
   <body class="h-full">
     <div class="mx-auto max-w-6xl px-4 py-6">
