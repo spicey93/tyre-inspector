@@ -65,13 +65,6 @@ const inspectionSchema = new Schema(
 inspectionSchema.index({ vrm: 1, createdAt: -1 });
 inspectionSchema.index({ user: 1, createdAt: -1 });
 
-inspectionSchema.pre("save", function (next) {
-  if (!this.createdBy && this.user) {
-    this.createdBy = this.user;
-  }
-  next();
-});
-
 // unique code generator (with retries)
 inspectionSchema.statics.generateUniqueCode = async function () {
   for (let i = 0; i < 5; i++) {
