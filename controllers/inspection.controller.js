@@ -312,7 +312,7 @@ export const updateInspection = async (req, res) => {
     const mileage = toNum(req.body?.mileage);
     const notes = trimOrEmpty(req.body?.notes);
 
-    if (typeof mileage === "number") doc.mileage = mileage;
+    if (typeof mileage === "number" && !isNaN(mileage)) doc.mileage = mileage;
     doc.notes = notes;
 
     await doc.save();

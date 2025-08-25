@@ -5,7 +5,7 @@
 import Vehicle from "../../../models/vehicle.model.js";
 
 export default async function vrmLookupMock(vrm) {
-  if (!vrm) return null;
+  if (!vrm || vrm === "NOTFOUND") return null;
 
   // Create (or return existing) a minimal vehicle with tyre records
   let v = await Vehicle.findOne({ vrm }).lean();

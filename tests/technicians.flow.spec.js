@@ -68,7 +68,7 @@ describe("Technicians admin flow", () => {
   it("disallows VRM lookup for inactive technician", async () => {
     const { a } = await registerAndLoginAdmin();
 
-    // Create a tech then deactivate
+    // Create a tech
     await a
       .post("/technicians")
       .type("form")
@@ -77,6 +77,14 @@ describe("Technicians admin flow", () => {
 
     const tech = await User.findOne({ email: "inactive@example.com" }).lean();
 
+    // Login as that tech while they're still active
+    const techAgent = mkAgent();
+    await techAgent
+      .post("/login")
+      .type("form")
+      .send({ email: "inactive@example.com", password: "techpass", next: "/dashboard" });
+
+    // Now deactivate the tech while they have an active session
     const resUpdate = await a
       .post(`/technicians/${tech._id}/update`)
       .type("form")
@@ -84,14 +92,7 @@ describe("Technicians admin flow", () => {
       .redirects(0);
     expect(resUpdate.status).toBe(302);
 
-    // Login as that tech
-    const techAgent = mkAgent();
-    await techAgent
-      .post("/login")
-      .type("form")
-      .send({ email: "inactive@example.com", password: "techpass", next: "/dashboard" });
-
-    // VRM lookup should be blocked
+    // VRM lookup should be blocked even though they have an active session
     const vrmRes = await techAgent.post("/vrm").type("form").send({ vrm: "AB12 CDE" }).redirects(0);
     expect(vrmRes.status).toBe(403);
     expect(vrmRes.text).toMatch(/Technician is inactive/);

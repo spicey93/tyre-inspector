@@ -14,6 +14,11 @@ export const postLogin = async (req, res) => {
   if (!user)
     return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
 
+  // Check if technician is active
+  if (user.role === "technician" && !user.active) {
+    return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });
+  }
+
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok)
     return res.status(401).render("auth/login", { error: "Incorrect credentials", next: nextUrl });

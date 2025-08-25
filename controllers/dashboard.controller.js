@@ -22,13 +22,14 @@ export const dashboard = async (req, res) => {
   const weekStart = startOfWeek();
   const monthStart = startOfMonth();
 
-  const [total, todayCount, weekCount, monthCount, distinctVrms, latest] = await Promise.all([
+  const [total, todayCount, weekCount, monthCount, distinctVrms, latest, recent] = await Promise.all([
     Inspection.countDocuments({ user: accountId }),
     Inspection.countDocuments({ user: accountId, createdAt: { $gte: today } }),
     Inspection.countDocuments({ user: accountId, createdAt: { $gte: weekStart } }),
     Inspection.countDocuments({ user: accountId, createdAt: { $gte: monthStart } }),
     Inspection.distinct("vrm", { user: accountId }),
     Inspection.findOne({ user: accountId }).sort({ createdAt: -1 }).lean(),
+    Inspection.find({ user: accountId }).sort({ createdAt: -1 }).limit(5).lean(),
   ]);
 
   // Daily VRM usage for the *account* (pool). Include fallback for legacy events without billedTo
@@ -54,6 +55,7 @@ export const dashboard = async (req, res) => {
       month: monthCount,
       uniqueVrms: Array.isArray(distinctVrms) ? distinctVrms.length : 0,
       latest,
+      recent,
     },
     usedToday,
     dailyLimit,

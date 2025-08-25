@@ -147,9 +147,9 @@
         </section>
 
         <!-- Daily limit / usage -->
-        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { 
+        <% if (typeof dailyLimit === 'number') { 
              const noneLeft = remaining === 0;
-             const usedPct = Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100));
+             const usedPct = dailyLimit > 0 ? Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100)) : 0;
         %>
           <section class="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -164,7 +164,7 @@
               </div>
               <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
                            <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
-                <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
+                <%= remaining === '∞' ? '∞ left today' : (noneLeft ? '0 left today' : (remaining + ' left today')) %>
               </span>
             </div>
 
