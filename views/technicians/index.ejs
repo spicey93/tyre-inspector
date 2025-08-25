@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
+    <% const title = 'Technicians — Tyre Inspector'; %>
     <%- include('../partials/head') %>
   </head>
   <body class="h-full">
@@ -12,7 +13,7 @@
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="text-2xl md:3xl font-extrabold text-slate-900">Technicians</h1>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Technicians</h1>
             <p class="text-slate-600 mt-1">Create, manage and set limits for your technicians.</p>
             <p class="mt-2 text-sm">
               You can create up to <span class="font-semibold"><%= max %></span> technicians.
@@ -27,7 +28,9 @@
             <% } %>
           </div>
           <div>
-            <button type="button" id="openCreate"
+            <button
+              type="button"
+              id="openCreate"
               class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold <%= remaining === 0 ? 'opacity-50 cursor-not-allowed' : '' %>"
               <%= remaining === 0 ? 'disabled' : '' %>>
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 11V5h2v6h6v2h-2"/></svg>

@@ -2,15 +2,9 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>
-      <%= typeof title !== 'undefined' ? title : 'Inspections — Tyre Inspector'
-      %>
-    </title>
+    <%- include('../partials/head', { title: 'Inspections — Tyre Inspector' }) %>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- HTMX for delete + VRM modal results -->
+    <!-- HTMX for delete + VRM modal results (page-specific need) -->
     <script
       src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"
       integrity="sha384-Akqfrbj/HpNVo8k11SXBb6TlBWmXXlYQrCSqEWmyKJe+hDm3Z/B2WVG4smwBkRVm"
@@ -19,23 +13,13 @@
 
     <style>
       @media (prefers-reduced-motion: reduce) {
-        * {
-          animation: none !important;
-          transition: none !important;
-        }
+        * { animation: none !important; transition: none !important; }
       }
     </style>
   </head>
   <body class="h-full">
-    <!-- Mobile top bar -->
-    <header
-      class="md:hidden sticky top-0 z-40 bg-white/80 backdrop-blur border-b border-slate-200"
-    >
-      <div class="px-4 py-3 flex items-center justify-between">
-        <a href="/" class="font-semibold text-slate-800">Tyre Inspector</a>
-        <a href="/logout" class="text-sm text-slate-700">Logout</a>
-      </div>
-    </header>
+    <!-- Consistent mobile header -->
+    <%- include('../partials/header-mobile') %>
 
     <div class="md:pl-64">
       <%- include('../partials/sidebar', { active: 'inspections', user }) %>
@@ -47,39 +31,33 @@
         || ''; const activeFilters = (fSearch ? 1 : 0) + (fFrom ? 1 : 0) + (fTo
         ? 1 : 0); %>
 
-        <div
-          class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
-        >
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
-              Inspections
-            </h1>
-            <p class="text-slate-600 mt-1">
-              Browse, filter and manage your inspections.
-            </p>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Inspections</h1>
+            <p class="text-slate-600 mt-1">Browse, filter and manage your inspections.</p>
             <% if (activeFilters) { %>
-            <div
-              class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600"
-            >
-              <span>Active filters:</span>
-              <% if (fSearch) { %><span
-                class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50"
-                >q: <strong class="ml-1"><%= fSearch %></strong></span
-              ><% } %> <% if (fFrom) { %><span
-                class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50"
-                >from: <strong class="ml-1"><%= fFrom %></strong></span
-              ><% } %> <% if (fTo) { %><span
-                class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50"
-                >to: <strong class="ml-1"><%= fTo %></strong></span
-              ><% } %>
-              <a
-                href="/inspections"
-                class="inline-flex items-center gap-1 underline hover:text-slate-800"
-                >Clear</a
-              >
-            </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span>Active filters:</span>
+                <% if (fSearch) { %>
+                  <span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">
+                    q: <strong class="ml-1"><%= fSearch %></strong>
+                  </span>
+                <% } %>
+                <% if (fFrom) { %>
+                  <span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">
+                    from: <strong class="ml-1"><%= fFrom %></strong>
+                  </span>
+                <% } %>
+                <% if (fTo) { %>
+                  <span class="inline-flex items-center rounded-full border px-2 py-0.5 bg-slate-50">
+                    to: <strong class="ml-1"><%= fTo %></strong>
+                  </span>
+                <% } %>
+                <a href="/inspections" class="inline-flex items-center gap-1 underline hover:text-slate-800">Clear</a>
+              </div>
             <% } %>
           </div>
+
           <div class="flex items-center gap-2">
             <!-- Filters button (opens modal) -->
             <button
@@ -90,11 +68,9 @@
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M3 5h18v2H3zM6 11h12v2H6zM10 17h4v2h-4z" />
               </svg>
-              Filters <% if (activeFilters) { %>
-              <span
-                class="ml-1 inline-flex items-center justify-center text-xs font-bold rounded-full bg-sky-600 text-white w-5 h-5"
-                ><%= activeFilters %></span
-              >
+              Filters
+              <% if (activeFilters) { %>
+                <span class="ml-1 inline-flex items-center justify-center text-xs font-bold rounded-full bg-sky-600 text-white w-5 h-5"><%= activeFilters %></span>
               <% } %>
             </button>
 
@@ -121,441 +97,169 @@
             </div>
 
             <% if (Array.isArray(items) && items.length) { %>
-            <!-- Desktop/tablet table -->
-            <div class="mt-4 overflow-x-auto hidden sm:block">
-              <table class="min-w-[920px] w-full text-sm">
-                <thead class="bg-slate-100">
-                  <tr>
-                    <th class="text-left px-3 py-2">Code</th>
-                    <th class="text-left px-3 py-2">VRM</th>
-                    <th class="text-left px-3 py-2">Mileage</th>
-                    <th class="text-left px-3 py-2">Created</th>
-                    <th class="text-left px-3 py-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                  <% items.forEach(function(i){ %>
-                  <tr class="hover:bg-slate-50">
-                    <td class="px-3 py-2 font-mono font-medium">
-                      <%= i.code %>
-                    </td>
-                    <td class="px-3 py-2"><%= i.vrm %></td>
-                    <td class="px-3 py-2">
-                      <%= typeof i.mileage === 'number' ? i.mileage : '—' %>
-                    </td>
-                    <td class="px-3 py-2">
-                      <%= new Date(i.createdAt).toLocaleString('en-GB') %>
-                    </td>
-                    <td class="px-3 py-2">
-                      <div class="inline-flex items-center gap-3">
-                        <a
-                          class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline"
-                          href="/inspections?code=<%= i.code %>"
-                        >
-                          <svg
-                            class="w-4 h-4"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M5 12h13m-6-7l7 7-7 7" />
-                          </svg>
-                          Open
-                        </a>
+              <!-- Desktop/tablet table -->
+              <div class="mt-4 overflow-x-auto hidden sm:block">
+                <table class="min-w-[920px] w-full text-sm">
+                  <thead class="bg-slate-100">
+                    <tr>
+                      <th class="text-left px-3 py-2">Code</th>
+                      <th class="text-left px-3 py-2">VRM</th>
+                      <th class="text-left px-3 py-2">Mileage</th>
+                      <th class="text-left px-3 py-2">Created</th>
+                      <th class="text-left px-3 py-2">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-200">
+                    <% items.forEach(function(i){ %>
+                      <tr class="hover:bg-slate-50">
+                        <td class="px-3 py-2 font-mono font-medium"><%= i.code %></td>
+                        <td class="px-3 py-2"><%= i.vrm %></td>
+                        <td class="px-3 py-2"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></td>
+                        <td class="px-3 py-2"><%= new Date(i.createdAt).toLocaleString('en-GB') %></td>
+                        <td class="px-3 py-2">
+                          <div class="inline-flex items-center gap-3">
+                            <a class="inline-flex items-center gap-1 text-sky-700 hover:text-sky-900 underline" href="/inspections?code=<%= i.code %>">
+                              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7" /></svg>
+                              Open
+                            </a>
 
-                        <% if (user && user.role === 'admin') { %>
-                        <a
-                          class="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 underline"
-                          href="/inspections/<%= i._id %>/edit"
-                        >
-                          <svg
-                            class="w-4 h-4"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4" />
-                          </svg>
-                          Edit
-                        </a>
-                        <% } %>
+                            <% if (user && user.role === 'admin') { %>
+                              <a class="inline-flex items-center gap-1 text-slate-700 hover:text-slate-900 underline" href="/inspections/<%= i._id %>/edit">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4" /></svg>
+                                Edit
+                              </a>
+                            <% } %>
 
-                        <button
-                          type="button"
-                          class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
-                          hx-delete="/inspections/<%= i._id %>"
-                          hx-target="closest tr"
-                          hx-swap="outerHTML"
-                          hx-confirm="Delete inspection <%= i.code %>? This cannot be undone."
-                        >
-                          <svg
-                            class="w-4 h-4"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path
-                              d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z"
-                            />
-                          </svg>
-                          Delete
-                          <svg
-                            class="htmx-indicator hidden w-4 h-4 animate-spin"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                          >
-                            <circle
-                              class="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              stroke-width="4"
-                            ></circle>
-                            <path
-                              class="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                            ></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <% }) %>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Mobile cards — tidy, UK date, with admin Edit -->
-            <div class="mt-3 space-y-3 sm:hidden">
-              <% items.forEach(function(i){ const created = new
-              Date(i.createdAt); const createdUKDate =
-              created.toLocaleDateString('en-GB'); const createdUKTime =
-              created.toLocaleTimeString('en-GB', { hour: '2-digit', minute:
-              '2-digit' }); %>
-              <article
-                class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-              >
-                <div class="p-3">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <div
-                        class="truncate text-xl font-extrabold tracking-tight text-slate-900"
-                      >
-                        <%= i.vrm %>
-                      </div>
-                      <div
-                        class="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5"
-                      >
-                        <span
-                          class="text-[10px] font-semibold text-slate-600 uppercase"
-                          >Code</span
-                        >
-                        <span class="font-mono text-xs font-bold text-slate-800"
-                          ><%= i.code %></span
-                        >
-                      </div>
-                    </div>
-                    <div class="shrink-0 text-right text-xs text-slate-500">
-                      <div class="flex items-center gap-1 justify-end">
-                        <svg
-                          class="w-3.5 h-3.5"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="1.8"
-                        >
-                          <rect x="3" y="4" width="18" height="18" rx="2" />
-                          <path d="M16 2v4M8 2v4M3 10h18" />
-                        </svg>
-                        <span><%= createdUKDate %></span>
-                      </div>
-                      <div class="mt-0.5"><%= createdUKTime %></div>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 grid grid-cols-2 gap-2">
-                    <div
-                      class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2"
-                    >
-                      <div class="text-[11px] leading-none text-slate-500">
-                        Mileage
-                      </div>
-                      <div class="text-sm font-medium text-slate-900">
-                        <%= typeof i.mileage === 'number' ? i.mileage : '—' %>
-                      </div>
-                    </div>
-                    <div
-                      class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2"
-                    >
-                      <div class="text-[11px] leading-none text-slate-500">
-                        Share code
-                      </div>
-                      <div
-                        class="font-mono text-sm font-semibold text-slate-900"
-                      >
-                        <%= i.code %>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="mt-3 flex items-center justify-between">
-                    <a
-                      href="/inspections?code=<%= i.code %>"
-                      class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white text-sm font-semibold hover:bg-sky-700"
-                    >
-                      Open
-                      <svg
-                        class="w-4 h-4"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M5 12h13m-6-7l7 7-7 7" />
-                      </svg>
-                    </a>
-
-                    <div class="inline-flex items-center gap-2">
-                      <% if (user && user.role === 'admin') { %>
-                      <a
-                        href="/inspections/<%= i._id %>/edit"
-                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-700 text-sm hover:bg-slate-50"
-                      >
-                        Edit
-                      </a>
-                      <% } %>
-                      <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-rose-700 text-sm hover:bg-rose-100"
-                        hx-delete="/inspections/<%= i._id %>"
-                        hx-target="closest article"
-                        hx-swap="outerHTML"
-                        hx-confirm="Delete inspection <%= i.code %>? This cannot be undone."
-                      >
-                        Delete
-                        <svg
-                          class="htmx-indicator hidden ml-2 w-4 h-4 animate-spin"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                          ></circle>
-                          <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"
-                          ></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </article>
-              <% }) %>
-            </div>
-
-            <!-- Pagination -->
-            <% const pageNum = Number(page || 1); const pagesNum = Number(pages
-            || 1); const qsp = (p) => { const u = new URLSearchParams(f || {});
-            u.set('page', String(p)); return '?' + u.toString(); }; %> <% if
-            (pagesNum > 1) { %>
-            <nav
-              class="mt-4 flex items-center justify-between"
-              aria-label="Pagination"
-            >
-              <a
-                href="<%= pageNum > 1 ? qsp(pageNum - 1) : '#' %>"
-                class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum > 1 ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>"
-              >
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15 19l-7-7 7-7" />
-                </svg>
-                Newer
-              </a>
-              <div class="text-sm text-slate-600">
-                Page <%= pageNum %> of <%= pagesNum %>
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 underline"
+                              hx-delete="/inspections/<%= i._id %>"
+                              hx-target="closest tr"
+                              hx-swap="outerHTML"
+                              hx-confirm="Delete inspection <%= i.code %>? This cannot be undone."
+                            >
+                              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M9 3h6l1 2h5v2H3V5h5l1-2Zm0 6h2v9H9V9Zm4 0h2v9h-2V9Z" />
+                              </svg>
+                              Delete
+                              <svg class="htmx-indicator hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
               </div>
-              <a
-                href="<%= pageNum < pagesNum ? qsp(pageNum + 1) : '#' %>"
-                class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum < pagesNum ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>"
-              >
-                Older
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </nav>
-            <% } %> <% } else { %>
-            <p class="mt-3 text-slate-600">
-              No inspections match your filters.
-            </p>
+
+              <!-- Mobile cards — tidy, UK date, with admin Edit -->
+              <div class="mt-3 space-y-3 sm:hidden">
+                <% items.forEach(function(i){
+                  const created = new Date(i.createdAt);
+                  const createdUKDate = created.toLocaleDateString('en-GB');
+                  const createdUKTime = created.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                }) %>
+                <% items.forEach(function(i){ const created = new Date(i.createdAt); const createdUKDate = created.toLocaleDateString('en-GB'); const createdUKTime = created.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); %>
+                  <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div class="p-3">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="truncate text-xl font-extrabold tracking-tight text-slate-900"><%= i.vrm %></div>
+                          <div class="mt-1 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5">
+                            <span class="text-[10px] font-semibold text-slate-600 uppercase">Code</span>
+                            <span class="font-mono text-xs font-bold text-slate-800"><%= i.code %></span>
+                          </div>
+                        </div>
+                        <div class="shrink-0 text-right text-xs text-slate-500">
+                          <div class="flex items-center gap-1 justify-end">
+                            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                              <rect x="3" y="4" width="18" height="18" rx="2" />
+                              <path d="M16 2v4M8 2v4M3 10h18" />
+                            </svg>
+                            <span><%= createdUKDate %></span>
+                          </div>
+                          <div class="mt-0.5"><%= createdUKTime %></div>
+                        </div>
+                      </div>
+
+                      <div class="mt-3 grid grid-cols-2 gap-2">
+                        <div class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2">
+                          <div class="text-[11px] leading-none text-slate-500">Mileage</div>
+                          <div class="text-sm font-medium text-slate-900"><%= typeof i.mileage === 'number' ? i.mileage : '—' %></div>
+                        </div>
+                        <div class="rounded-lg bg-slate-50 border border-slate-200 px-2.5 py-2">
+                          <div class="text-[11px] leading-none text-slate-500">Share code</div>
+                          <div class="font-mono text-sm font-semibold text-slate-900"><%= i.code %></div>
+                        </div>
+                      </div>
+
+                      <div class="mt-3 flex items-center justify-between">
+                        <a href="/inspections?code=<%= i.code %>" class="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-3 py-2 text-white text-sm font-semibold hover:bg-sky-700">
+                          Open
+                          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7" /></svg>
+                        </a>
+
+                        <div class="inline-flex items-center gap-2">
+                          <% if (user && user.role === 'admin') { %>
+                            <a href="/inspections/<%= i._id %>/edit" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-700 text-sm hover:bg-slate-50">
+                              Edit
+                            </a>
+                          <% } %>
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-rose-700 text-sm hover:bg-rose-100"
+                            hx-delete="/inspections/<%= i._id %>"
+                            hx-target="closest article"
+                            hx-swap="outerHTML"
+                            hx-confirm="Delete inspection <%= i.code %>? This cannot be undone."
+                          >
+                            Delete
+                            <svg class="htmx-indicator hidden ml-2 w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4A4 4 0 004 12z"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                <% }) %>
+              </div>
+
+              <!-- Pagination -->
+              <% const pageNum = Number(page || 1); const pagesNum = Number(pages || 1); const qsp = (p) => { const u = new URLSearchParams(f || {}); u.set('page', String(p)); return '?' + u.toString(); }; %>
+              <% if (pagesNum > 1) { %>
+                <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+                  <a
+                    href="<%= pageNum > 1 ? qsp(pageNum - 1) : '#' %>"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum > 1 ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>"
+                  >
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7" /></svg>
+                    Newer
+                  </a>
+                  <div class="text-sm text-slate-600">Page <%= pageNum %> of <%= pagesNum %></div>
+                  <a
+                    href="<%= pageNum < pagesNum ? qsp(pageNum + 1) : '#' %>"
+                    class="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm <%= pageNum < pagesNum ? 'border-slate-300 text-slate-700 hover:bg-slate-50' : 'border-slate-200 text-slate-400 cursor-not-allowed' %>"
+                  >
+                    Older
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 5l7 7-7 7" /></svg>
+                  </a>
+                </nav>
+              <% } %>
+            <% } else { %>
+              <p class="mt-3 text-slate-600">No inspections match your filters.</p>
             <% } %>
           </div>
         </section>
       </main>
     </div>
 
-    <!-- Mobile bottom nav -->
-    <nav class="md:hidden fixed inset-x-0 bottom-0 z-40 border-t bg-white">
-      <div class="grid grid-cols-3">
-        <a
-          href="/dashboard"
-          class="flex flex-col items-center py-2 text-slate-700"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 3l9 7-1 1-8-6-8 6-1-1 9-7z" />
-            <path d="M4 10v9h6v-6h4v6h6v-9" />
-          </svg>
-          <span class="text-xs font-medium">Dashboard</span>
-        </a>
-        <a
-          href="/inspections"
-          class="flex flex-col items-center py-2 text-sky-700"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z" />
-          </svg>
-          <span class="text-xs font-medium">Inspections</span>
-        </a>
-        <% if (user && user.role === 'admin') { %>
-        <a
-          href="/technicians"
-          class="flex flex-col items-center py-2 text-slate-700"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path
-              d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"
-            />
-          </svg>
-          <span class="text-xs font-medium">Technicians</span>
-        </a>
-        <% } %>
-      </div>
-    </nav>
-
-    <!-- ===== Filters Modal ===== -->
-    <div
-      id="filtersModal"
-      class="fixed inset-0 z-50 hidden"
-      aria-labelledby="filtersModalLabel"
-      aria-modal="true"
-      role="dialog"
-    >
-      <div
-        class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0 transition-opacity"
-        data-filters-overlay
-      ></div>
-
-      <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div
-          class="w-full max-w-lg transform rounded-2xl bg-white shadow-lg border border-slate-200 opacity-0 translate-y-4 transition-all outline-none"
-          data-filters-panel
-          tabindex="-1"
-        >
-          <div
-            class="flex items-center justify-between p-4 border-b border-slate-200"
-          >
-            <h3
-              id="filtersModalLabel"
-              class="text-base font-semibold text-slate-900"
-            >
-              Filters
-            </h3>
-            <button
-              type="button"
-              class="p-2 rounded hover:bg-slate-100"
-              data-close-filters
-              aria-label="Close"
-            >
-              <svg
-                class="w-5 h-5 text-slate-600"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <form class="p-4 space-y-3" method="GET" action="/inspections">
-            <div>
-              <label
-                class="block text-sm font-medium text-slate-700"
-                for="f-search"
-                >Search (VRM or Code)</label
-              >
-              <input
-                id="f-search"
-                name="search"
-                value="<%= fSearch %>"
-                placeholder="e.g. NU59 WEP or ABC123"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label
-                  class="block text-sm font-medium text-slate-700"
-                  for="f-from"
-                  >From</label
-                >
-                <input
-                  id="f-from"
-                  type="date"
-                  name="from"
-                  value="<%= fFrom %>"
-                  class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-sm font-medium text-slate-700"
-                  for="f-to"
-                  >To</label
-                >
-                <input
-                  id="f-to"
-                  type="date"
-                  name="to"
-                  value="<%= fTo %>"
-                  class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between pt-2">
-              <a
-                href="/inspections"
-                class="inline-flex items-center gap-1 text-slate-700 underline hover:text-slate-900"
-                >Clear all</a
-              >
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  data-close-filters
-                  class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  class="inline-flex items-center rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 font-semibold"
-                >
-                  Apply filters
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <!-- Consistent mobile bottom nav -->
+    <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
 
     <%- include("../partials/inspections/createModal") %>
     <script src="/js/index-inspection.js"></script>

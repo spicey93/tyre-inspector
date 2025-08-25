@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <%- include('partials/head') %>
+    <% const title = 'Dashboard — Tyre Inspector'; %> <%-
+    include('partials/head') %>
     <style>
-      body{
-        background:
-          radial-gradient(1000px 400px at 10% -10%, rgba(63, 135, 245, 0.08), transparent 60%),
-          radial-gradient(900px 300px at 110% -20%, rgba(63, 135, 245, 0.06), transparent 60%),
+      body {
+        background: radial-gradient(
+            1000px 400px at 10% -10%,
+            rgba(63, 135, 245, 0.08),
+            transparent 60%
+          ),
+          radial-gradient(
+            900px 300px at 110% -20%,
+            rgba(63, 135, 245, 0.06),
+            transparent 60%
+          ),
           #f8fafc;
       }
     </style>
@@ -18,66 +26,103 @@
       <%- include('partials/sidebar', { active: 'dashboard', user }) %>
 
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        <div class="mt-2 md:mt-6">
-          <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Dashboard</h1>
-          <p class="text-slate-600 mt-1">Quick overview of your activity.</p>
+        <div
+          class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
+        >
+          <div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
+              Dashboard
+            </h1>
+            <p class="text-slate-600 mt-1">Quick overview of your activity.</p>
+          </div>
         </div>
 
-        <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <section
+          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4"
+        >
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">Total</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.total || 0 %></div>
+            <div class="mt-1 text-2xl font-bold text-slate-900">
+              <%= stats?.total || 0 %>
+            </div>
           </div>
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">Today</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.today || 0 %></div>
+            <div class="mt-1 text-2xl font-bold text-slate-900">
+              <%= stats?.today || 0 %>
+            </div>
           </div>
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">This week</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.week || 0 %></div>
+            <div class="mt-1 text-2xl font-bold text-slate-900">
+              <%= stats?.week || 0 %>
+            </div>
           </div>
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">This month</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.month || 0 %></div>
+            <div class="mt-1 text-2xl font-bold text-slate-900">
+              <%= stats?.month || 0 %>
+            </div>
           </div>
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">Unique VRMs</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900"><%= stats?.uniqueVrms || 0 %></div>
+            <div class="mt-1 text-2xl font-bold text-slate-900">
+              <%= stats?.uniqueVrms || 0 %>
+            </div>
           </div>
           <div class="rounded-xl border bg-white p-4">
             <div class="text-xs text-slate-500">Last inspection</div>
             <div class="mt-1 text-sm font-medium text-slate-900">
-              <%= stats?.latest ? new Date(stats.latest.createdAt).toLocaleString('en-GB') : '—' %>
+              <%= stats?.latest ? new
+              Date(stats.latest.createdAt).toLocaleString('en-GB') : '—' %>
             </div>
           </div>
         </section>
 
-        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { 
-             const noneLeft = remaining === 0;
-             const usedPct = Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100));
-        %>
-          <section class="rounded-xl border bg-white p-4">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="text-sm font-semibold text-slate-900">Daily VRM usage</div>
-                <p class="text-xs text-slate-600 mt-0.5"><%= usedToday %> / <%= dailyLimit %> used</p>
+        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { const
+        noneLeft = remaining === 0; const usedPct = Math.min(100,
+        Math.round((usedToday / Math.max(1, dailyLimit)) * 100)); %>
+        <section class="rounded-xl border bg-white p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold text-slate-900">
+                Daily VRM usage
               </div>
-              <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
-                           <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
-                <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
-              </span>
+              <p class="text-xs text-slate-600 mt-0.5">
+                <%= usedToday %> / <%= dailyLimit %> used
+              </p>
             </div>
-            <div class="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-              <div class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= usedPct %>%"></div>
-            </div>
-          </section>
+            <span
+              class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>"
+            >
+              <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
+            </span>
+          </div>
+          <div
+            class="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden"
+          >
+            <div
+              class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>"
+              style="width: <%= usedPct %>%"
+            ></div>
+          </div>
+        </section>
         <% } %>
 
-        <section class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <p class="text-sm text-slate-600">Want to review or create? Head to your inspections.</p>
-          <a href="/inspections" class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
+        <section
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        >
+          <p class="text-sm text-slate-600">
+            Want to review or create? Head to your inspections.
+          </p>
+          <a
+            href="/inspections"
+            class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold"
+          >
             Go to Inspections
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M5 12h13m-6-7l7 7-7 7"/></svg>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5 12h13m-6-7l7 7-7 7" />
+            </svg>
           </a>
         </section>
       </main>
