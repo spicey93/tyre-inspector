@@ -12,24 +12,20 @@
       <%- include('../partials/sidebar', { active: 'inspections', user }) %>
 
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6">
-        <!-- Back link -->
-        <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800 mb-3">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 19l-7-7 7-7" /></svg>
-          Home
-        </a>
-
         <!-- Header -->
-        <header class="mb-4">
+        <header class="mb-6">
           <div class="flex items-center justify-between">
-            <h1 class="text-lg font-semibold text-slate-900">New Inspection</h1>
-            <span class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-1 text-sm font-mono text-slate-800">
+            <div>
+              <h1 class="text-2xl font-bold text-slate-900">New Inspection</h1>
+              <div class="text-sm text-slate-600 mt-1">
+                <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
+                <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
+                <% if (mileage) { %> • <strong>Mileage:</strong> <%= mileage %><% } %>
+              </div>
+            </div>
+            <span class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 shadow-sm">
               <%= vehicle.vrm %>
             </span>
-          </div>
-          <div class="text-sm text-slate-600 mt-1">
-            <%= vehicle.make %> <%= vehicle.model %> (<%= vehicle.year %>)
-            <% if (vehicle.torque) { %> • <%= vehicle.torque %> Nm<% } %>
-            <% if (mileage) { %> • <strong>Mileage:</strong> <%= mileage %><% } %>
           </div>
         </header>
 
@@ -62,21 +58,21 @@
           };
         %>
 
-        <form method="POST" action="/inspections" id="inspection-form" class="space-y-4" novalidate>
+        <form method="POST" action="/inspections" id="inspection-form" class="space-y-6" novalidate>
           <input type="hidden" name="vrm" value="<%= vehicle.vrm %>" />
           <input type="hidden" name="mileage" value="<%= mileage || '' %>" />
 
           <!-- Ready banner (appears when all done) -->
-          <div id="complete-banner" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-3 py-2 text-sm flex items-center gap-2">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 12l2 2 4-4"/><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          <div id="complete-banner" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm flex items-center gap-2">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 12l2 2 4-4"/><path d="M12 22C6.5 22 2 17.5 2 12S6.5 2 12 2s10 4.5 10 10-4.5 10-10 10Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
             All wheels complete — add notes and save.
           </div>
 
           <!-- Workspace -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <!-- LEFT: Car / wheel picker -->
-            <section id="pick-screen" class="lg:col-span-3 rounded-2xl border border-slate-200 bg-white shadow" aria-labelledby="pick-heading">
-              <div class="px-4 py-3 border-b border-slate-200 font-semibold" id="pick-heading">Select a wheel to enter details</div>
+            <section id="pick-screen" class="lg:col-span-3 rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="pick-heading">
+              <div class="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900" id="pick-heading">Select a wheel</div>
               <div class="p-4">
                 <div class="car-wrap" aria-hidden="true">
                   <svg class="car-svg" viewBox="0 0 400 800" xmlns="http://www.w3.org/2000/svg">
@@ -92,16 +88,16 @@
                   <button type="button" class="wheel-hotspot" data-key="osr" style="left: 86%; top: 81%;">OSR</button>
                   <button type="button" class="wheel-hotspot" data-key="nsr" style="left: 14%; top: 81%;">NSR</button>
                 </div>
-                <p class="mt-2 text-xs text-slate-500">
-                  Use the header copy button to copy DOT, Brand &amp; Model (size only copies into empty size fields).
+                <p class="mt-3 text-xs text-slate-500">
+                  Use the copy button to copy DOT, Brand &amp; Model to other wheels.
                 </p>
               </div>
             </section>
             <!-- CENTER: Panels -->
-            <div id="panels-wrapper" class="lg:col-span-6 space-y-4 lg:space-y-0">
+            <div id="panels-wrapper" class="lg:col-span-6 space-y-6 lg:space-y-0">
               <% panels.forEach(function(p){ %>
                 <section id="panel-<%= p.key %>" class="hidden" aria-labelledby="panel-title-<%= p.key %>">
-                  <div class="rounded-2xl border border-slate-200 bg-white shadow">
+                  <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
                       <h2 id="panel-title-<%= p.key %>" class="text-sm font-semibold text-slate-900"><%= p.title %></h2>
 
@@ -110,11 +106,11 @@
                         <span id="copy-pill-<%= p.key %>" class="hidden text-xs rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5">Copied!</span>
                         <button
                           type="button"
-                          title="Copy DOT, Brand & Model to other wheels not yet treaded (won't overwrite an existing Size)"
-                          class="inline-flex items-center rounded-md border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50"
+                          title="Copy DOT, Brand & Model to other wheels"
+                          class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                           data-copy-all-from="<%= p.key %>"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
                             <rect x="9" y="9" width="13" height="13" rx="2" stroke-width="1.6"></rect>
                             <rect x="2" y="2" width="13" height="13" rx="2" stroke-width="1.6"></rect>
                           </svg>
@@ -122,17 +118,17 @@
                       </div>
                     </div>
 
-                    <div class="p-4">
-                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="p-6">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <!-- Size + DOT row -->
-                        <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="sm:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                           <!-- Size -->
                           <div>
-                            <label class="block text-sm font-medium text-slate-700" for="size-<%= p.key %>">Size</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1" for="size-<%= p.key %>">Size</label>
                             <input
                               id="size-<%= p.key %>"
                               name="<%= path(p.key,'size') %>"
-                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
                               data-tyre-key="<%= p.key %>"
                               value="<%= p.sizeDefault %>"
                               placeholder="e.g. 225/45R17 91W"
@@ -141,11 +137,11 @@
 
                           <!-- DOT -->
                           <div>
-                            <label class="block text-sm font-medium text-slate-700" for="dot-<%= p.key %>">DOT</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1" for="dot-<%= p.key %>">DOT</label>
                             <input
                               id="dot-<%= p.key %>"
                               name="<%= path(p.key,'dot') %>"
-                              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                              class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
                               data-tyre-key="<%= p.key %>"
                               placeholder="e.g. 2423"
                             />
@@ -154,11 +150,11 @@
 
                         <!-- Brand (autocomplete) -->
                         <div>
-                          <label class="block text-sm font-medium text-slate-700" for="brand-<%= p.key %>">Brand</label>
+                          <label class="block text-sm font-medium text-slate-700 mb-1" for="brand-<%= p.key %>">Brand</label>
                           <input
                             id="brand-<%= p.key %>"
                             list="brands-list"
-                            class="brand-input mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            class="brand-input w-full rounded-lg border border-slate-300 px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
                             data-tyre-key="<%= p.key %>"
                             name="<%= path(p.key,'brand') %>"
                             placeholder="Start typing brand…"
@@ -168,11 +164,11 @@
 
                         <!-- Model (autocomplete, depends on brand) -->
                         <div>
-                          <label class="block text-sm font-medium text-slate-700" for="model-<%= p.key %>">Model</label>
+                          <label class="block text-sm font-medium text-slate-700 mb-1" for="model-<%= p.key %>">Model</label>
                           <input
                             id="model-<%= p.key %>"
                             list="models-<%= p.key %>"
-                            class="model-input mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
+                            class="model-input w-full rounded-lg border border-slate-300 px-3 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
                             data-tyre-key="<%= p.key %>"
                             name="<%= path(p.key,'model') %>"
                             placeholder="Select or type model…"
@@ -183,31 +179,40 @@
 
                         <!-- Tread depth -->
                         <div class="sm:col-span-2">
-                          <label class="block text-sm font-medium text-slate-700">Tread depth (in, mid, out)</label>
-                          <div class="mt-1 grid grid-cols-3 gap-2">
-                            <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                    data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.inner') %>">
-                              <option value="">Inner</option>
-                              <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                            </select>
-                            <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                    data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.middle') %>">
-                              <option value="">Middle</option>
-                              <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                            </select>
-                            <select class="w-full rounded-lg border border-slate-300 px-2 py-2 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 tyre-field"
-                                    data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.outer') %>">
-                              <option value="">Outer</option>
-                              <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %> mm</option><% }) %>
-                            </select>
+                          <label class="block text-sm font-medium text-slate-700 mb-2">Tread depth (mm)</label>
+                          <div class="grid grid-cols-3 gap-3">
+                            <div>
+                              <label class="block text-xs text-slate-500 mb-1">Inner</label>
+                              <select class="w-full rounded-lg border border-slate-300 px-3 py-2.5 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
+                                      data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.inner') %>">
+                                <option value="">-</option>
+                                <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %></option><% }) %>
+                              </select>
+                            </div>
+                            <div>
+                              <label class="block text-xs text-slate-500 mb-1">Middle</label>
+                              <select class="w-full rounded-lg border border-slate-300 px-3 py-2.5 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
+                                      data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.middle') %>">
+                                <option value="">-</option>
+                                <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %></option><% }) %>
+                              </select>
+                            </div>
+                            <div>
+                              <label class="block text-xs text-slate-500 mb-1">Outer</label>
+                              <select class="w-full rounded-lg border border-slate-300 px-3 py-2.5 bg-white text-center focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 tyre-field"
+                                      data-tyre-key="<%= p.key %>" name="<%= path(p.key,'treadDepth.outer') %>">
+                                <option value="">-</option>
+                                <% TREADS.forEach(function(v){ %><option value="<%= v %>"><%= v %></option><% }) %>
+                              </select>
+                            </div>
                           </div>
-                          <p class="mt-1 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
+                          <p class="mt-2 text-xs text-slate-500">Select one value and the others auto-fill if blank.</p>
                         </div>
 
                         <!-- Tags -->
                         <div class="sm:col-span-2">
-                          <label class="block text-sm font-medium text-slate-700">Tags</label>
-                          <div class="mt-1 flex flex-wrap gap-2">
+                          <label class="block text-sm font-medium text-slate-700 mb-2">Tags</label>
+                          <div class="flex flex-wrap gap-2">
                             <% QUICK_TAGS.forEach(function(tag){
                                  var id = (p.key + '-tag-' + tag.replace(/[^a-z0-9]+/gi,'-').toLowerCase());
                             %>
@@ -221,8 +226,8 @@
                       </div>
 
                       <!-- Footer actions (full-width Save on mobile only) -->
-                      <div class="mt-4 block lg:hidden">
-                        <button type="button" class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-2.5 text-white font-semibold hover:bg-sky-700"
+                      <div class="mt-6 block lg:hidden">
+                        <button type="button" class="w-full inline-flex items-center justify-center rounded-lg bg-sky-600 px-4 py-3 text-white font-semibold hover:bg-sky-700 transition-colors"
                                 data-save-back="<%= p.key %>">
                           Save <%= p.key.toUpperCase() %>
                         </button>
@@ -235,41 +240,41 @@
             <!-- RIGHT: Sticky Review & Save (desktop only) -->
             <aside id="review-aside" class="hidden lg:block lg:col-span-3">
               <div class="sticky top-4 space-y-4">
-                <div class="rounded-2xl border border-slate-200 bg-white shadow">
-                  <div class="px-4 py-3 border-b border-slate-200 font-semibold">Review &amp; Save</div>
+                <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div class="px-4 py-3 border-b border-slate-200 font-semibold text-slate-900">Review &amp; Save</div>
                   <div class="p-4">
                     <!-- Progress list -->
-                    <ul id="review-list" class="space-y-2 text-sm">
+                    <ul id="review-list" class="space-y-3 text-sm">
                       <li id="review-osf" class="flex items-center justify-between">
-                        <span><%= LABELS.osf %></span>
+                        <span class="text-slate-700"><%= LABELS.osf %></span>
                         <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
                       </li>
                       <li id="review-nsf" class="flex items-center justify-between">
-                        <span><%= LABELS.nsf %></span>
+                        <span class="text-slate-700"><%= LABELS.nsf %></span>
                         <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
                       </li>
                       <li id="review-osr" class="flex items-center justify-between">
-                        <span><%= LABELS.osr %></span>
+                        <span class="text-slate-700"><%= LABELS.osr %></span>
                         <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
                       </li>
                       <li id="review-nsr" class="flex items-center justify-between">
-                        <span><%= LABELS.nsr %></span>
+                        <span class="text-slate-700"><%= LABELS.nsr %></span>
                         <span class="badge inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-slate-100 text-slate-700">Pending</span>
                       </li>
                     </ul>
 
                     <!-- Notes (proxy; syncs with real notes field) -->
-                    <div class="mt-4">
-                      <label for="notes-proxy" class="block text-sm font-medium text-slate-700">Notes</label>
-                      <textarea id="notes-proxy" rows="5"
-                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    <div class="mt-6">
+                      <label for="notes-proxy" class="block text-sm font-medium text-slate-700 mb-1">Notes</label>
+                      <textarea id="notes-proxy" rows="4"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         placeholder="Overall findings, advisories, etc."></textarea>
                       <p class="mt-1 text-xs text-slate-500">These notes save with the report.</p>
                     </div>
 
                     <!-- Desktop Save -->
                     <button id="desktop-save-btn" form="inspection-form" disabled
-                      class="mt-4 w-full inline-flex items-center justify-center rounded-xl bg-emerald-600/50 px-4 py-3 text-white text-base font-semibold cursor-not-allowed">
+                      class="mt-4 w-full inline-flex items-center justify-center rounded-lg bg-emerald-600/50 px-4 py-3 text-white text-base font-semibold cursor-not-allowed transition-colors">
                       Save inspection
                     </button>
                     <p id="desktop-save-hint" class="mt-2 text-xs text-slate-500">Complete all 4 wheels to enable saving.</p>
@@ -281,14 +286,14 @@
 
           <!-- Real notes + Save (mobile only; hidden on lg to avoid duplication) -->
           <div id="notes-block" class="hidden lg:hidden">
-            <label for="notes" class="block text-sm font-medium text-slate-700">General notes</label>
+            <label for="notes" class="block text-sm font-medium text-slate-700 mb-1">General notes</label>
             <textarea id="notes" name="notes" rows="3"
-              class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="Overall findings, advisories, etc."></textarea>
           </div>
 
           <div id="save-block" class="hidden lg:hidden">
-            <button class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <button class="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
               Save inspection
             </button>
           </div>
@@ -300,7 +305,7 @@
     <div id="save-sticky" class="hidden lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/90 backdrop-blur p-3">
       <div class="mx-auto max-w-6xl">
         <button form="inspection-form"
-          class="w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          class="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-3 text-white text-base font-semibold hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500">
           Save inspection
         </button>
       </div>
