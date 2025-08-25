@@ -1,11 +1,11 @@
 // utils/inspectionViewModel.js
-const fmt = (v) => ((v ?? "") === "" ? "—" : v);
 
-const rank = (c) =>
-  c === "fail" ? 3 : c === "advisory" ? 2 : c === "ok" ? 1 : 0;
+const fmt = (v) => (v ?? "") === "" ? "—" : v;
+
+const rank = (c) => (c === "fail" ? 3 : c === "advisory" ? 2 : c === "ok" ? 1 : 0);
+
 const worstOf = (a, b) => {
-  const ra = rank(a),
-    rb = rank(b);
+  const ra = rank(a), rb = rank(b);
   if (ra === 0 && rb === 0) return "—";
   return rb > ra ? b : a;
 };
@@ -43,9 +43,7 @@ const deriveFromData = (node) => {
 };
 
 const finalCondition = (node) => {
-  const explicit = node?.condition
-    ? String(node.condition).toLowerCase()
-    : null;
+  const explicit = node?.condition ? String(node.condition).toLowerCase() : null;
   const derived = deriveFromData(node);
   if (!explicit && derived !== "—") return derived;
   if (explicit && derived === "—") return explicit;
@@ -54,13 +52,7 @@ const finalCondition = (node) => {
 };
 
 const classForWheel = (cond) =>
-  cond === "ok"
-    ? "ok"
-    : cond === "advisory"
-    ? "adv"
-    : cond === "fail"
-    ? "fail"
-    : "";
+  cond === "ok" ? "ok" : cond === "advisory" ? "adv" : cond === "fail" ? "fail" : "";
 
 const hasTag = (t, name) =>
   Array.isArray(t?.tags) &&
@@ -98,7 +90,8 @@ const tagAdvice = (t) => {
   if (hasTag(t, "Bald on inner edge"))
     out.push({
       why: "Inner-edge wear pattern.",
-      action: "Check alignment (camber/toe), bushings and tyre pressures.",
+      action:
+        "Check alignment (camber/toe), bushings and tyre pressures.",
     });
   if (hasTag(t, "Bald on outer edge"))
     out.push({
@@ -227,14 +220,26 @@ export function buildInspectionVM(inspection, vehicle) {
     t,
     cond: finalCondition(t),
     tagStr: Array.isArray(t?.tags) ? t.tags.join(", ") : "—",
-    treadStr: `${fmt(t?.treadDepth?.inner)} / ${fmt(
-      t?.treadDepth?.middle
-    )} / ${fmt(t?.treadDepth?.outer)}`,
+    treadStr: `${fmt(t?.treadDepth?.inner)} / ${fmt(t?.treadDepth?.middle)} / ${fmt(
+      t?.treadDepth?.outer
+    )}`,
   }));
 
-  const analyses = Object.entries(tyres).map(([pos, t]) =>
-    summariseTyre(pos, t)
+  const analyses = Object.entries(tyres).map(([pos, t]) => summariseTyre(pos, t));
+
+  const counts = analyses.reduce(
+    (a, x) => {
+      a[x.cond ?? "—"] = (a[x.cond ?? "—"] || 0) + 1;
+      return a;
+    },
+    { ok: 0, advisory: 0, fail: 0, "—": 0 }
   );
+
+  const allDepths = analyses
+    .map((a) => a.minDepth)
+    .filter((d) => typeof d === "number");
+  const minDepthOverall = allDepths.length ? Math.min(...allDepths) : null;
+
   const worst = analyses
     .map((a) => a.cond)
     .reduce((acc, v) => worstOf(acc, v), "—");
@@ -252,16 +257,24 @@ export function buildInspectionVM(inspection, vehicle) {
   );
 
   return {
+    // helpers that views might still use
     fmt,
     finalCondition,
-    classForWheel, // if you still want tiny helpers in the view
+    classForWheel,
+
+    // view data
     createdAtStr,
     vehicleLine,
     wheelPos,
     tyresList,
     analyses,
     needsAttention,
+    counts,
+    minDepthOverall,
     overallHeadline,
-    inspection: { ...inspection, vehicle }, // keep original if needed
+
+    inspection: { ...inspection, vehicle },
   };
 }
+
+export { fmt, finalCondition, classForWheel };

@@ -1,4 +1,5 @@
 <div class="print-only print-sheet">
+  <!-- Header -->
   <div class="mb-2">
     <div class="print-title">Tyre Inspection Report</div>
     <div class="print-muted" style="margin-top: 2px;">
@@ -19,6 +20,7 @@
     <% } %>
   </div>
 
+  <!-- Tiny car diagram -->
   <div style="display:flex; justify-content:center; margin: 4px 0 6px;">
     <div class="print-diagram" style="position:relative; width:130px;">
       <svg viewBox="0 0 400 800" style="width:100%;height:auto;">
@@ -27,7 +29,7 @@
         <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
         <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
       </svg>
-      <% for (const w of wheelPos) { 
+      <% for (const w of wheelPos) {
            const a = analyses.find(x => x.pos === w.label);
       %>
         <div class="wheel-dot <%= classForWheel(a?.cond) %>" style="--left:<%= w.left %>; --top:<%= w.top %>;"><%= w.k %></div>
@@ -35,14 +37,17 @@
     </div>
   </div>
 
+  <!-- Legend -->
   <div class="print-muted" style="margin-bottom: 6px;">
     <strong>Legend:</strong> OK / Advisory / Fail
   </div>
 
+  <!-- Summary -->
   <div class="print-muted" style="margin-bottom: 6px;">
     <strong>Summary:</strong> <%= overallHeadline %>
   </div>
 
+  <!-- Concise recommendations -->
   <div style="margin: 4px 0 6px;">
     <% for (const a of analyses.filter(x => x.cond !== 'ok' && x.cond !== '—')) { %>
       <div style="margin-bottom:4px;">
@@ -55,10 +60,28 @@
     <% } %>
   </div>
 
+  <!-- Fixed-width compact table -->
   <table class="print-table">
+    <colgroup>
+      <col class="col-pos" />
+      <col class="col-size" />
+      <col class="col-brand" />
+      <col class="col-model" />
+      <col class="col-dot" />
+      <col class="col-tread" />
+      <col class="col-tags" />
+      <col class="col-cond" />
+    </colgroup>
     <thead>
       <tr>
-        <th>Position</th><th>Size</th><th>Brand</th><th>Model</th><th>DOT</th><th>Tread (I/M/O)</th><th>Tags</th><th>Cond.</th>
+        <th>Position</th>
+        <th>Size</th>
+        <th>Brand</th>
+        <th>Model</th>
+        <th>DOT</th>
+        <th>Tread (I/M/O)</th>
+        <th>Tags</th>
+        <th>Cond.</th>
       </tr>
     </thead>
     <tbody>

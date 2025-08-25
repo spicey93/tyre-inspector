@@ -7,9 +7,11 @@
       <div class="rounded-xl border border-slate-200 p-3">
         <div class="flex items-center justify-between">
           <div class="font-medium text-slate-900"><%= a.pos %></div>
-          <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-            <%= a.cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
-                a.cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= a.cond %></span>
+          <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border"
+            title="<%= a.cond==='advisory'?'Advisory: attention soon':a.cond==='fail'?'Fail: replace immediately':'OK' %>"
+            style="<%= a.cond==='advisory'?'background:#fde68a;color:#7c5206;border-color:#f59e0b':
+                      a.cond==='fail'?'background:#fecaca;color:#7f1d1d;border-color:#ef4444':
+                      'background:#f1f5f9;color:#1f2937;border-color:#94a3b8' %>"><%= a.cond %></span>
         </div>
 
         <ul class="mt-2 text-sm list-disc pl-5 space-y-1">
@@ -22,7 +24,9 @@
           <div class="mt-2">
             <div class="text-xs font-semibold text-slate-900">Recommended actions</div>
             <ul class="mt-1 text-sm list-disc pl-5 space-y-1">
-              <% a.actions.forEach(act => { %><li class="text-slate-700"><%= act %></li><% }) %>
+              <% a.actions.forEach(act => { %>
+                <li class="text-slate-700"><%= act %></li>
+              <% }) %>
             </ul>
           </div>
         <% } %>

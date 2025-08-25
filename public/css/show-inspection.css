@@ -50,10 +50,12 @@
   background: rgba(239, 68, 68, 0.16);
 }
 
+/* Scroll container for the desktop table */
 .table-scroll {
-  max-height: 60vh;
+  max-height: 65vh;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 /* Tiny colour tokens for legend (screen) */
@@ -73,6 +75,20 @@
 }
 .sw-fail {
   background: #ef4444;
+}
+
+/* Improve numerals alignment in chips/tables */
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+/* Sticky first column elevation (inside table body) */
+tbody td.sticky {
+  position: sticky;
+  z-index: 1;
+}
+
+/* Subtle zebra striping for rows without explicit tint */
+tbody tr:nth-child(odd):not(.row-ok):not(.row-adv):not(.row-fail) td {
+  background-image: linear-gradient(rgba(0,0,0,0.014), rgba(0,0,0,0.014));
 }
 
 /* ---------------------- PRINT: one-page sheet ---------------------- */
@@ -120,34 +136,16 @@
     background: #f1f5f9;
   }
 
-  .col-pos {
-    width: 16%;
-  }
-  .col-size {
-    width: 12%;
-  }
-  .col-brand {
-    width: 12%;
-  }
-  .col-model {
-    width: 12%;
-  }
-  .col-dot {
-    width: 10%;
-  }
-  .col-tread {
-    width: 20%;
-  }
-  .col-tags {
-    width: 10%;
-  }
-  .col-cond {
-    width: 8%;
-  }
+  .col-pos   { width: 16%; }
+  .col-size  { width: 12%; }
+  .col-brand { width: 12%; }
+  .col-model { width: 12%; }
+  .col-dot   { width: 10%; }
+  .col-tread { width: 20%; }
+  .col-tags  { width: 10%; }
+  .col-cond  { width: 8%; }
 
-  .print-diagram {
-    max-width: 130px;
-  }
+  .print-diagram { max-width: 130px; }
   .wheel-dot {
     position: absolute;
     width: 20%;
@@ -164,16 +162,16 @@
     left: var(--left);
     top: var(--top);
   }
-  .wheel-dot.ok {
-    background: #d1fae5;
-    border-color: #10b981;
-  }
-  .wheel-dot.adv {
-    background: #fef3c7;
-    border-color: #f59e0b;
-  }
-  .wheel-dot.fail {
-    background: #fee2e2;
-    border-color: #ef4444;
+  .wheel-dot.ok { background: #d1fae5; border-color: #10b981; }
+  .wheel-dot.adv { background: #fef3c7; border-color: #f59e0b; }
+  .wheel-dot.fail { background: #fee2e2; border-color: #ef4444; }
+}
+
+@media (max-width: 640px) {
+  .screen-root .rounded-xl > .text-[12px] {
+    line-height: 1.1;
   }
 }
+
+/* Align numbers inside small chips */
+.tabular-nums { font-variant-numeric: tabular-nums; }

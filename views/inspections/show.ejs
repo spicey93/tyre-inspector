@@ -17,31 +17,8 @@
         Home
       </a>
     </div>
+    <%- include("../partials/inspections/headerPanel") %>
 
-    <!-- Header -->
-    <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3 sm:gap-4">
-          <span class="inline-flex items-center rounded-md text-black text-sm sm:text-base font-extrabold tracking-widest px-3 py-1 select-none"
-                style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
-            <%= inspection.vrm %><small class="ml-2 text-white font-semibold tracking-normal">UK</small>
-          </span>
-          <div class="min-w-0">
-            <div class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">Tyre Inspection Report</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button type="button" id="copyLink" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50" title="Copy link" aria-label="Copy link">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
-          </button>
-          <button type="button" id="printBtn" class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 text-white hover:bg-slate-800" title="Print" aria-label="Print">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <%- include("../partials/inspections/vehicleCard") %>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
       <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">

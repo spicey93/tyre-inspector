@@ -1,0 +1,86 @@
+<div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
+  <!-- Row 1: VRM + Title + Actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+      <!-- VRM plate -->
+      <span class="inline-flex items-center rounded-md text-black text-base sm:text-lg font-extrabold tracking-widest px-3 py-1.5 select-none shadow-sm"
+            style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
+        <%= inspection.vrm %>
+        <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
+      </span>
+      <div class="min-w-0">
+        <div class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">Tyre Inspection Report</div>
+        <div class="text-xs text-slate-500">
+          Code <span class="font-mono"><%= inspection.code %></span>
+          <% if (createdAtStr) { %>
+            &middot; <span title="Inspection date/time"><%= createdAtStr %></span>
+          <% } %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-1.5">
+      <button type="button" id="copyLink" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-400" aria-label="Copy link" title="Copy link">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
+      </button>
+      <button type="button" id="printBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-900 text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-400" aria-label="Print" title="Print">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Row 2: Vehicle microgrid + Overview chips -->
+  <div class="mt-3 sm:mt-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+    <!-- Vehicle details (auto-wrap) -->
+    <div class="rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2">
+      <div class="text-[12px] font-semibold text-slate-900 mb-1">Vehicle</div>
+      <div class="text-[13px] sm:text-sm text-slate-700 flex flex-wrap gap-x-4 gap-y-1">
+        <% if (vehicleLine) { %>
+          <span><span class="font-medium">Make/Model:</span> <%= vehicleLine %></span>
+        <% } %>
+        <% if (typeof inspection.mileage === "number") { %>
+          <span><span class="font-medium">Mileage:</span> <%= inspection.mileage %></span>
+        <% } %>
+        <% if (inspection.vehicle?.torque) { %>
+          <span><span class="font-medium">Torque:</span> <%= inspection.vehicle.torque %> Nm</span>
+        <% } %>
+        <% if (inspection.notes) { %>
+          <span class="basis-full text-slate-600"><span class="font-medium">Notes:</span> <%= inspection.notes %></span>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Overview chips (counts) -->
+    <div class="rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2">
+      <div class="text-[12px] font-semibold text-slate-900 mb-1">Status</div>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-emerald-50 text-emerald-900 border-emerald-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          OK: <strong class="tabular-nums"><%= counts.ok %></strong>
+        </span>
+        <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-amber-50 text-amber-900 border-amber-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+          Advisory: <strong class="tabular-nums"><%= counts.advisory %></strong>
+        </span>
+        <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-rose-50 text-rose-900 border-rose-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+          Fail: <strong class="tabular-nums"><%= counts.fail %></strong>
+        </span>
+      </div>
+    </div>
+
+    <!-- Overview: min tread + headline -->
+    <div class="rounded-xl border border-slate-200 bg-slate-50/40 px-3 py-2">
+      <div class="text-[12px] font-semibold text-slate-900 mb-1">Overview</div>
+      <div class="text-[13px] sm:text-sm text-slate-700">
+        <% if (minDepthOverall != null) { %>
+          <div>Min tread measured: <span class="font-medium text-slate-900"><%= minDepthOverall.toFixed(1) %> mm</span></div>
+        <% } else { %>
+          <div>No tread measurements recorded</div>
+        <% } %>
+        <div class="mt-1"><span class="text-slate-600">Summary:</span> <%= overallHeadline %></div>
+      </div>
+    </div>
+  </div>
+</div>

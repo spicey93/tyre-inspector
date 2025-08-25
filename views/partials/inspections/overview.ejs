@@ -1,0 +1,24 @@
+<div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-3 sm:p-4 mb-4">
+  <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+    <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-emerald-50 text-emerald-900 border-emerald-200">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+      OK: <strong class="tabular-nums"><%= counts.ok %></strong>
+    </span>
+    <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-amber-50 text-amber-900 border-amber-200">
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+      Advisory: <strong class="tabular-nums"><%= counts.advisory %></strong>
+    </span>
+    <span class="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs sm:text-sm bg-rose-50 text-rose-900 border-rose-200">
+      <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+      Fail: <strong class="tabular-nums"><%= counts.fail %></strong>
+    </span>
+
+    <div class="ml-auto text-[12px] sm:text-sm text-slate-600">
+      <% if (minDepthOverall != null) { %>
+        Min tread measured: <span class="font-medium text-slate-900"><%= minDepthOverall.toFixed(1) %> mm</span>
+      <% } else { %>
+        No tread measurements recorded
+      <% } %>
+    </div>
+  </div>
+</div>

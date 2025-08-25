@@ -15,17 +15,17 @@
           <dt class="text-slate-500">Brand</dt><dd class="text-right text-slate-900"><%= fmt(row.t.brand) %></dd>
           <dt class="text-slate-500">Model</dt><dd class="text-right text-slate-900"><%= fmt(row.t.model) %></dd>
           <dt class="text-slate-500">DOT</dt><dd class="text-right text-slate-900"><%= fmt(row.t.dot) %></dd>
-          <dt class="text-slate-500">Tread</dt><dd class="text-right text-slate-900"><%= row.treadStr %></dd>
+          <dt class="text-slate-500">Tread</dt><dd class="text-right text-slate-900 tabular-nums"><%= row.treadStr %></dd>
         </dl>
-        <% if ((Array.isArray(row.t?.tags) && row.t.tags.length) || row.t?.notes) { %>
-          <div class="mt-2 space-y-1 text-xs">
-            <% if (Array.isArray(row.t?.tags) && row.t.tags.length) { %>
-              <div><strong>Tags:</strong> <%= row.t.tags.join(", ") %></div>
-            <% } %>
-            <% if (row.t?.notes) { %>
-              <div><strong>Notes:</strong> <%= row.t.notes %></div>
-            <% } %>
+        <% if (Array.isArray(row.t?.tags) && row.t.tags.length) { %>
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <% row.t.tags.forEach(tag => { %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border bg-slate-50 text-slate-700 border-slate-200"><%= tag %></span>
+            <% }) %>
           </div>
+        <% } %>
+        <% if (row.t?.notes) { %>
+          <div class="mt-1 text-xs text-slate-600"><strong>Notes:</strong> <%= row.t.notes %></div>
         <% } %>
       </div>
     <% } %>
@@ -37,7 +37,7 @@
       <h3 class="text-sm font-semibold text-slate-900">Tyre details</h3>
     </div>
     <div class="table-scroll">
-      <table class="min-w-[860px] w-full text-sm">
+      <table class="min-w-[920px] w-full text-sm">
         <thead class="bg-slate-100 sticky top-0 z-10">
           <tr>
             <th class="text-left px-4 py-2">Position</th>
@@ -45,7 +45,7 @@
             <th class="text-left px-4 py-2">Brand</th>
             <th class="text-left px-4 py-2">Model</th>
             <th class="text-left px-4 py-2">DOT</th>
-            <th class="text-left px-4 py-2">Tread (In / Mid / Out)</th>
+            <th class="text-right px-4 py-2">Tread (In / Mid / Out)</th>
             <th class="text-left px-4 py-2">Tags</th>
             <th class="text-left px-4 py-2">Condition</th>
           </tr>
@@ -55,13 +55,21 @@
                const rowCls = row.cond==='ok' ? 'row-ok' : row.cond==='advisory' ? 'row-adv' : row.cond==='fail' ? 'row-fail' : '';
           %>
             <tr class="<%= rowCls %>">
-              <td class="px-4 py-2 font-medium text-slate-900"><%= row.pos %></td>
+              <td class="px-4 py-2 font-medium text-slate-900 sticky left-0 bg-inherit backdrop-blur-[1px]"><%= row.pos %></td>
               <td class="px-4 py-2"><%= fmt(row.t.size) %></td>
               <td class="px-4 py-2"><%= fmt(row.t.brand) %></td>
               <td class="px-4 py-2"><%= fmt(row.t.model) %></td>
               <td class="px-4 py-2"><%= fmt(row.t.dot) %></td>
-              <td class="px-4 py-2"><%= row.treadStr %></td>
-              <td class="px-4 py-2"><%= row.tagStr %></td>
+              <td class="px-4 py-2 text-right tabular-nums"><%= row.treadStr %></td>
+              <td class="px-4 py-2">
+                <% if (Array.isArray(row.t?.tags) && row.t.tags.length) { %>
+                  <div class="flex flex-wrap gap-1">
+                    <% row.t.tags.forEach(tag => { %>
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border bg-slate-50 text-slate-700 border-slate-200"><%= tag %></span>
+                    <% }) %>
+                  </div>
+                <% } else { %> — <% } %>
+              </td>
               <td class="px-4 py-2">
                 <span class="inline-flex items-center text-xs capitalize px-2 py-0.5 rounded-full border
                   <%= row.cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
