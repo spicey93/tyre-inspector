@@ -4,6 +4,7 @@ import Tyre from "../models/tyre.model.js";
 import Inspection from "../models/inspection.model.js";
 import UsageEvent from "../models/usageEvent.model.js";
 import { buildInspectionVM } from "../utils/inspectionViewModel.js";
+import User from "../models/user.model.js";
 
 const toNum = (v) => (v === "" || v == null ? undefined : Number(v));
 const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
@@ -23,12 +24,34 @@ export const indexInspections = async (req, res) => {
     const from = trimOrEmpty(req.query.from || "");
     const to = trimOrEmpty(req.query.to || "");
 
-    // Technicians should only ever see their own inspections.
-    const q = { user: req.user._id };
+    // Build query based on user role
+    let q = {};
+    
+    if (req.user.role === "technician") {
+      // Technicians should only ever see their own inspections
+      q.user = req.user._id;
+    } else if (req.user.role === "admin") {
+      // Admins can see their own inspections plus those created by their technicians
+      const technicianIds = await User.find({ 
+        role: "technician", 
+        owner: req.user._id,
+        active: true 
+      }).select("_id").lean();
+      
+      const techIds = technicianIds.map(t => t._id);
+      q.$or = [
+        { user: req.user._id }, // Admin's own inspections
+        { user: { $in: techIds } } // Inspections by admin's technicians
+      ];
+    } else {
+      // Fallback for other roles - only their own
+      q.user = req.user._id;
+    }
 
     if (search) {
       const rx = new RegExp(escapeRegex(search), "i");
-      q.$or = [{ vrm: rx }, { code: rx }];
+      q.$and = q.$and || [];
+      q.$and.push({ $or: [{ vrm: rx }, { code: rx }] });
     }
 
     if (from || to) {
