@@ -42,6 +42,9 @@
         </div>
       </main>
     </div>
+
+    <!-- Consistent mobile bottom nav (signed-in only) -->
+    <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
   <% } else { %>
 
     <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
@@ -70,9 +73,6 @@
 
   <!-- Print sheet available in both cases -->
   <%- include("../partials/inspections/printSheet") %>
-
-  <!-- Consistent mobile bottom nav -->
-  <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
 
   <script src="/js/show-inspection.js"></script>
 </body>
