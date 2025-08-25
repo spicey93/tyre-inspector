@@ -1,0 +1,13 @@
+body {
+  background: radial-gradient(
+      1000px 400px at 10% -10%,
+      rgba(63, 135, 245, 0.08),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 300px at 110% -20%,
+      rgba(63, 135, 245, 0.06),
+      transparent 60%
+    ),
+    #f8fafc;
+}

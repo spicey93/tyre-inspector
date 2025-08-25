@@ -1,23 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
   <head>
-    <% const title = 'Dashboard — Tyre Inspector'; %> <%-
-    include('partials/head') %>
-    <style>
-      body {
-        background: radial-gradient(
-            1000px 400px at 10% -10%,
-            rgba(63, 135, 245, 0.08),
-            transparent 60%
-          ),
-          radial-gradient(
-            900px 300px at 110% -20%,
-            rgba(63, 135, 245, 0.06),
-            transparent 60%
-          ),
-          #f8fafc;
-      }
-    </style>
+    <%- include('partials/head', { title: 'Dashboard — Tyre Inspector' }) %>
+<link rel="stylesheet" href="/css/dashboard.css">
   </head>
   <body class="h-full">
     <%- include('partials/header-mobile') %>
@@ -26,105 +11,197 @@
       <%- include('partials/sidebar', { active: 'dashboard', user }) %>
 
       <main class="max-w-6xl mx-auto px-4 md:px-8 py-6 space-y-6">
-        <div
-          class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
-        >
+        <!-- Heading row (consistent with other pages) -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">
-              Dashboard
-            </h1>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900">Dashboard</h1>
             <p class="text-slate-600 mt-1">Quick overview of your activity.</p>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="flex items-center gap-2">
+            <a href="/inspections"
+               class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h16v2H4z"/></svg>
+              Open Inspections
+            </a>
+            <% if (user && user.role === 'admin') { %>
+              <a href="/technicians"
+                 class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2.5 font-semibold">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm-9 9a9 9 0 1 1 18 0Z"/></svg>
+                Technicians
+              </a>
+            <% } %>
           </div>
         </div>
 
-        <section
-          class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4"
-        >
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">Total</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900">
-              <%= stats?.total || 0 %>
+        <% 
+          // ------- Derived stats (safe fallbacks) -------
+          const total = Number(stats?.total || 0);
+          const today = Number(stats?.today || 0);
+          const week = Number(stats?.week || 0);
+          const month = Number(stats?.month || 0);
+          const uniqueVrms = Number(stats?.uniqueVrms || 0);
+          const latest = stats?.latest;
+
+          const avgPerDayWeek = week ? (week / 7) : 0;
+          const avgPerDayMonth = month ? (month / 30) : 0;
+
+          // Optional sparkline: pass stats.spark7 = [sun..sat] numbers
+          const spark = Array.isArray(stats?.spark7) ? stats.spark7 : null;
+          const sparkMax = spark ? Math.max(1, ...spark) : 1;
+
+          function fmt(n) {
+            return (typeof n === 'number' && !Number.isNaN(n)) ? n.toLocaleString('en-GB') : '0';
+          }
+        %>
+
+        <!-- KPI cards -->
+        <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+          <!-- Total inspections -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">Total</div>
+              <div class="rounded-lg bg-sky-50 text-sky-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zM6 8h12v2H6zM8 12h8v2H8zM10 16h4v2h-4z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900"><%= fmt(total) %></div>
+            <% if (spark) { %>
+              <div class="mt-3 h-8">
+                <svg viewBox="0 0 100 24" class="w-full h-full">
+                  <polyline fill="none" stroke="currentColor" stroke-width="2"
+                            class="text-sky-500"
+                            points="<% for (let i=0;i<spark.length;i++){ 
+                                       const x = (i/(spark.length-1))*100; 
+                                       const y = 24 - (spark[i]/sparkMax)*24; %><%= x %>,<%= y %> <% } %>"/>
+                </svg>
+                <div class="mt-1 text-[10px] text-slate-500">Last 7 days</div>
+              </div>
+            <% } %>
           </div>
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">Today</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900">
-              <%= stats?.today || 0 %>
+
+          <!-- Today -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">Today</div>
+              <div class="rounded-lg bg-emerald-50 text-emerald-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7 11h10v2H7zM5 4h14v2H5zM5 18h14v2H5z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900"><%= fmt(today) %></div>
+            <div class="mt-1 text-xs text-slate-600">Working towards daily limit</div>
           </div>
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">This week</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900">
-              <%= stats?.week || 0 %>
+
+          <!-- This week -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">This week</div>
+              <div class="rounded-lg bg-violet-50 text-violet-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zM3 9h18v2H3zM3 13h18v2H3zM3 17h18v2H3z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900"><%= fmt(week) %></div>
+            <div class="mt-1 text-xs text-slate-600">Avg/day: <span class="font-semibold"><%= avgPerDayWeek.toFixed(1) %></span></div>
           </div>
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">This month</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900">
-              <%= stats?.month || 0 %>
+
+          <!-- This month -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">This month</div>
+              <div class="rounded-lg bg-amber-50 text-amber-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v3H7zM15 2h2v3h-2zM4 7h16v13H4z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900"><%= fmt(month) %></div>
+            <div class="mt-1 text-xs text-slate-600">Avg/day: <span class="font-semibold"><%= avgPerDayMonth.toFixed(1) %></span></div>
           </div>
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">Unique VRMs</div>
-            <div class="mt-1 text-2xl font-bold text-slate-900">
-              <%= stats?.uniqueVrms || 0 %>
+
+          <!-- Unique VRMs -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">Unique VRMs</div>
+              <div class="rounded-lg bg-cyan-50 text-cyan-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.31 0-6 2.02-6 4.5V20h12v-1.5c0-2.48-2.69-4.5-6-4.5z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-2xl font-bold text-slate-900"><%= fmt(uniqueVrms) %></div>
+            <div class="mt-1 text-xs text-slate-600">Across all time</div>
           </div>
-          <div class="rounded-xl border bg-white p-4">
-            <div class="text-xs text-slate-500">Last inspection</div>
-            <div class="mt-1 text-sm font-medium text-slate-900">
-              <%= stats?.latest ? new
-              Date(stats.latest.createdAt).toLocaleString('en-GB') : '—' %>
+
+          <!-- Last inspection -->
+          <div class="rounded-2xl border bg-white p-4 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-medium text-slate-500">Last inspection</div>
+              <div class="rounded-lg bg-slate-100 text-slate-700 p-1.5">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7v5l4 2M12 22a10 10 0 1 1 10-10 10.012 10.012 0 0 1-10 10z"/></svg>
+              </div>
             </div>
+            <div class="mt-2 text-sm font-medium text-slate-900">
+              <%= latest ? new Date(latest.createdAt).toLocaleString('en-GB') : '—' %>
+            </div>
+            <% if (latest && latest.vrm) { %>
+              <div class="mt-1 text-xs text-slate-600">VRM: <span class="font-semibold"><%= latest.vrm %></span></div>
+            <% } %>
           </div>
         </section>
 
-        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { const
-        noneLeft = remaining === 0; const usedPct = Math.min(100,
-        Math.round((usedToday / Math.max(1, dailyLimit)) * 100)); %>
-        <section class="rounded-xl border bg-white p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-sm font-semibold text-slate-900">
-                Daily VRM usage
+        <!-- Daily limit / usage -->
+        <% if (typeof dailyLimit === 'number' && dailyLimit > 0) { 
+             const noneLeft = remaining === 0;
+             const usedPct = Math.min(100, Math.round((usedToday / Math.max(1, dailyLimit)) * 100));
+        %>
+          <section class="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="rounded-xl bg-emerald-50 text-emerald-700 p-2">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 13h16v2H4zm0-6h16v2H4zm0 12h16v2H4z"/></svg>
+                </div>
+                <div>
+                  <div class="text-sm font-semibold text-slate-900">Daily VRM usage</div>
+                  <p class="text-xs text-slate-600 mt-0.5"><%= usedToday %> / <%= dailyLimit %> used</p>
+                </div>
               </div>
-              <p class="text-xs text-slate-600 mt-0.5">
-                <%= usedToday %> / <%= dailyLimit %> used
-              </p>
+              <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm
+                           <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>">
+                <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
+              </span>
             </div>
-            <span
-              class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm <%= noneLeft ? 'border-rose-300 bg-rose-50 text-rose-700' : 'border-emerald-300 bg-emerald-50 text-emerald-700' %>"
-            >
-              <%= noneLeft ? '0 left today' : (remaining + ' left today') %>
-            </span>
-          </div>
-          <div
-            class="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden"
-          >
-            <div
-              class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>"
-              style="width: <%= usedPct %>%"
-            ></div>
-          </div>
-        </section>
+
+            <!-- Progress -->
+            <div class="mt-3 h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+              <div class="h-full <%= noneLeft ? 'bg-rose-500' : 'bg-emerald-600' %>" style="width:<%= usedPct %>%"></div>
+            </div>
+
+            <!-- Helpful hint -->
+            <div class="mt-3 text-xs text-slate-600">
+              Tip: if you’re hitting your cap regularly, consider increasing the technician daily limit in <a href="/technicians" class="underline hover:text-slate-800">Technicians</a>.
+            </div>
+          </section>
         <% } %>
 
-        <section
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-        >
-          <p class="text-sm text-slate-600">
-            Want to review or create? Head to your inspections.
-          </p>
-          <a
-            href="/inspections"
-            class="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white px-4 py-2.5 font-semibold"
-          >
-            Go to Inspections
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M5 12h13m-6-7l7 7-7 7" />
-            </svg>
-          </a>
-        </section>
+        <!-- (Optional) Recent activity list: pass an array 'recent' to show last few inspections -->
+        <% if (Array.isArray(stats?.recent) && stats.recent.length) { %>
+          <section class="rounded-2xl border bg-white p-4 md:p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-900">Recent activity</h2>
+              <a href="/inspections" class="text-sm text-sky-700 hover:text-sky-900 underline">View all</a>
+            </div>
+            <ul class="mt-3 divide-y divide-slate-200">
+              <% stats.recent.slice(0,5).forEach(function(i){ %>
+                <li class="py-2.5 flex items-center justify-between">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium text-slate-900 truncate"><%= i.vrm || '—' %></div>
+                    <div class="text-xs text-slate-600">Code: <span class="font-mono"><%= i.code %></span></div>
+                  </div>
+                  <div class="text-xs text-slate-500 ml-3 shrink-0">
+                    <%= new Date(i.createdAt).toLocaleString('en-GB') %>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          </section>
+        <% } %>
       </main>
     </div>
 
