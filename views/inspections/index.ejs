@@ -262,6 +262,67 @@
     <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
 
     <%- include("../partials/inspections/createModal") %>
+
+    <!-- put this near the bottom of the page, before the closing </body> -->
+<!-- Filters modal -->
+<div id="filtersModal" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
+  <!-- backdrop -->
+  <button class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-150"
+          data-filters-overlay
+          data-close-filters
+          aria-label="Close filters"></button>
+
+  <!-- panel -->
+  <div class="absolute inset-x-0 top-16 mx-auto w-[min(560px,92vw)]
+              rounded-2xl border border-slate-200 bg-white shadow-xl
+              opacity-0 translate-y-4 transition-all duration-150 focus:outline-none"
+       data-filters-panel
+       tabindex="-1">
+    <div class="p-4 sm:p-6">
+      <div class="flex items-start justify-between">
+        <h3 class="text-lg font-bold text-slate-900">Filter inspections</h3>
+        <button class="text-slate-500 hover:text-slate-700" data-close-filters aria-label="Close">✕</button>
+      </div>
+
+      <form class="mt-4 grid gap-4" method="GET" action="/inspections">
+        <div>
+          <label class="block text-sm font-medium text-slate-700">Search</label>
+          <input type="text" name="search" value="<%= fSearch %>"
+                 class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700">From</label>
+            <input type="date" name="from" value="<%= fFrom %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700">To</label>
+            <input type="date" name="to" value="<%= fTo %>"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+          </div>
+        </div>
+
+        <div class="mt-2 flex items-center justify-between">
+          <a href="/inspections" class="text-sm underline text-slate-600 hover:text-slate-800">Clear all</a>
+          <div class="flex gap-2">
+            <button type="button" data-close-filters
+                    class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm">
+              Cancel
+            </button>
+            <button type="submit"
+                    class="rounded-lg bg-sky-600 hover:bg-sky-700 px-4 py-2 text-sm font-semibold text-white">
+              Apply
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
     <script src="/js/index-inspection.js"></script>
   </body>
 </html>
