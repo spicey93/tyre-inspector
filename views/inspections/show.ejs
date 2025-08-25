@@ -9,36 +9,70 @@
   <link rel="stylesheet" href="/css/show-inspection.css">
 </head>
 <body class="h-full">
-  <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
 
-    <div class="mb-3 sm:mb-4">
-      <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
-        Home
-      </a>
+  <!-- Consistent mobile header -->
+  <%- include('../partials/header-mobile') %>
+
+  <% if (user) { %>
+    <!-- Signed-in layout: sidebar (md+) -->
+    <div class="md:pl-64">
+      <%- include('../partials/sidebar', { active: 'inspections', user }) %>
+
+      <!-- Content -->
+      <main class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
+        <%- include("../partials/inspections/headerPanel") %>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
+          <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
+            <%- include("../partials/inspections/wheelDiagram") %>
+          </div>
+
+          <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
+            <%- include("../partials/inspections/customerSummary") %>
+
+            <% if (inspection && inspection.notes) { %>
+              <div class="mt-4 rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2">
+                <h4 class="text-sm font-semibold text-slate-900 mb-1">Notes</h4>
+                <p class="text-sm text-slate-700 whitespace-pre-wrap"><%= inspection.notes %></p>
+              </div>
+            <% } %>
+
+            <%- include("../partials/inspections/tyreTable") %>
+          </div>
+        </div>
+      </main>
     </div>
-    <%- include("../partials/inspections/headerPanel") %>
+  <% } else { %>
 
+    <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
+      <%- include("../partials/inspections/headerPanel") %>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
-      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
-           <%- include("../partials/inspections/wheelDiagram") %>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
+        <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
+          <%- include("../partials/inspections/wheelDiagram") %>
+        </div>
+
+        <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
+          <%- include("../partials/inspections/customerSummary") %>
+
+          <% if (inspection && inspection.notes) { %>
+            <div class="mt-4 rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2">
+              <h4 class="text-sm font-semibold text-slate-900 mb-1">Notes</h4>
+              <p class="text-sm text-slate-700 whitespace-pre-wrap"><%= inspection.notes %></p>
+            </div>
+          <% } %>
+
+          <%- include("../partials/inspections/tyreTable") %>
+        </div>
       </div>
-
-      <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
-           <%- include("../partials/inspections/customerSummary") %>
-             <% if (inspection && inspection.notes) { %>
-    <div class="mt-4 rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2">
-      <h4 class="text-sm font-semibold text-slate-900 mb-1">Notes</h4>
-      <p class="text-sm text-slate-700 whitespace-pre-wrap"><%= inspection.notes %></p>
     </div>
   <% } %>
-              <%- include("../partials/inspections/tyreTable") %>
-      </div>
-    </div>
-  </div>
 
-   <%- include("../partials/inspections/printSheet") %>
+  <!-- Print sheet available in both cases -->
+  <%- include("../partials/inspections/printSheet") %>
+
+  <!-- Consistent mobile bottom nav -->
+  <%- include('../partials/bottom-nav', { active: 'inspections', user }) %>
 
   <script src="/js/show-inspection.js"></script>
 </body>
