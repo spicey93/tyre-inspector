@@ -1,0 +1,20 @@
+<h2 class="text-sm font-semibold text-slate-900 mb-3">Tyre positions</h2>
+<div class="relative" style="max-width:240px;margin:0 auto;">
+  <svg viewBox="0 0 400 800" class="w-full h-auto">
+    <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0"/>
+    <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
+    <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
+  </svg>
+  <% for (const w of wheelPos) { 
+       const node = analyses.find(a => a.pos === w.label) || {};
+  %>
+    <div class="wheel-print <%= classForWheel(node.cond) %>" style="--left:<%= w.left %>; --top:<%= w.top %>;" title="<%= w.label %> — <%= node.cond %>"><%= w.k %></div>
+  <% } %>
+</div>
+
+<div class="mt-4 border-t pt-3 text-[12px] sm:text-[13px] text-slate-700 flex flex-wrap items-center gap-3 justify-center">
+  <span class="inline-flex items-center gap-2"><span class="swatch sw-ok"></span> <span>OK</span></span>
+  <span class="inline-flex items-center gap-2"><span class="swatch sw-adv"></span> <span>Advisory</span></span>
+  <span class="inline-flex items-center gap-2"><span class="swatch sw-fail"></span> <span>Fail</span></span>
+</div>

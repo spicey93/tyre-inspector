@@ -3,6 +3,7 @@ import Vehicle from "../models/vehicle.model.js";
 import Tyre from "../models/tyre.model.js";
 import Inspection from "../models/inspection.model.js";
 import UsageEvent from "../models/usageEvent.model.js";
+import { buildInspectionVM } from "../utils/inspectionViewModel.js";
 
 const toNum = (v) => (v === "" || v == null ? undefined : Number(v));
 const toArr = (v) => (Array.isArray(v) ? v.filter(Boolean) : v ? [v] : []);
@@ -75,23 +76,16 @@ export const showByCode = async (req, res) => {
     const inspection = await Inspection.findOne({ code: norm }).lean();
     if (!inspection) return res.status(404).send("Inspection not found");
 
-    // If a technician is logged in, they may only view inspections they created.
     if (req.user && req.user.role === "technician") {
       const createdByTech = String(inspection.user) === String(req.user._id);
-      if (!createdByTech) {
-        // Mask existence to avoid leaking information.
-        return res.status(404).send("Inspection not found");
-      }
+      if (!createdByTech) return res.status(404).send("Inspection not found");
     }
 
     let vehicle = null;
-    try {
-      vehicle = await Vehicle.findOne({ vrm: inspection.vrm }).lean();
-    } catch {
-      vehicle = null;
-    }
+    try { vehicle = await Vehicle.findOne({ vrm: inspection.vrm }).lean(); } catch {}
 
-    return res.render("inspections/show", { inspection: { ...inspection, vehicle } });
+    const vm = buildInspectionVM(inspection, vehicle);
+    return res.render("inspections/show", vm); // << pass the view model directly
   } catch (e) {
     console.error(e);
     return res.status(500).send("Server error");

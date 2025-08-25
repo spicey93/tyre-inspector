@@ -1,528 +1,62 @@
-<!-- views/inspections/show.ejs -->
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-50">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Inspection <%= inspection.code %></title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Inspection <%= inspection.code %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { boxShadow: { soft: '0 6px 24px rgba(0,0,0,.06)' } } } }</script>
+  <link rel="stylesheet" href="/css/show-inspection.css">
+</head>
+<body class="h-full">
+  <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
 
-    <!-- Tailwind (CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: { boxShadow: { soft: '0 6px 24px rgba(0,0,0,.06)' } }
-        }
-      }
-    </script>
-    <link rel="stylesheet" href="/css/show-inspection.css">
-  </head>
-  <body class="h-full">
-
-    <% /* ---------- Shared helpers & derived data ---------- */ %>
-    <%
-      const fmt = (v) => (v ?? "") === "" ? "—" : v;
-
-      const rank = (c) => c === 'fail' ? 3 : (c === 'advisory' ? 2 : (c === 'ok' ? 1 : 0));
-      const worstOf = (a, b) => {
-        const ra = rank(a), rb = rank(b);
-        if (ra === 0 && rb === 0) return "—";
-        return (rb > ra) ? b : a;
-      };
-
-      const deriveFromData = (node) => {
-        const tags = Array.isArray(node?.tags) ? node.tags : [];
-        const failTags = new Set(["Bulge","Cord exposed","Puncture"]);
-        const advTags  = new Set(["Perished","Cracked sidewall","Uneven wear","Bald on inner edge","Bald on outer edge"]);
-
-        let tagCond = null;
-        if (tags.some(t => failTags.has(String(t)))) tagCond = "fail";
-        else if (tags.some(t => advTags.has(String(t)))) tagCond = "advisory";
-
-        const t = node?.treadDepth || {};
-        const vals = [t.inner, t.middle, t.outer].map(Number).filter(n => !isNaN(n));
-        let treadCond = null;
-        if (vals.length) {
-          if (vals.some(v => v < 3)) treadCond = "fail";
-          else if (vals.some(v => v < 4)) treadCond = "advisory";
-          else treadCond = "ok";
-        }
-
-        if (!tagCond && !treadCond) return "—";
-        if (tagCond && !treadCond) return tagCond;
-        if (!tagCond && treadCond) return treadCond;
-        return worstOf(tagCond, treadCond);
-      };
-
-      const finalCondition = (node) => {
-        const explicit = node?.condition ? String(node.condition).toLowerCase() : null;
-        const derived  = deriveFromData(node);
-        if (!explicit && derived !== "—") return derived;
-        if (explicit && derived === "—") return explicit;
-        if (!explicit && derived === "—") return "—";
-        return worstOf(explicit, derived);
-      };
-
-      const classForWheel = (cond) => cond === "ok" ? "ok" : (cond === "advisory" ? "adv" : (cond === "fail" ? "fail" : ""));
-
-      const tyres = {
-        "Offside Front (OSF)": inspection.offside?.front || {},
-        "Nearside Front (NSF)": inspection.nearside?.front || {},
-        "Offside Rear (OSR)":  inspection.offside?.rear  || {},
-        "Nearside Rear (NSR)": inspection.nearside?.rear || {},
-      };
-
-      const wheelPos = [
-        {k:"OSF", label:"Offside Front (OSF)", left:"86%", top:"19%"},
-        {k:"NSF", label:"Nearside Front (NSF)", left:"14%", top:"19%"},
-        {k:"OSR", label:"Offside Rear (OSR)",  left:"86%", top:"81%"},
-        {k:"NSR", label:"Nearside Rear (NSR)", left:"14%", top:"81%"},
-      ];
-
-      const createdAtStr = inspection.createdAt ? new Date(inspection.createdAt).toLocaleString() : null;
-
-      var vehicleLine = "";
-      if (inspection.vehicle) {
-        vehicleLine = (inspection.vehicle.make || "") + " " + (inspection.vehicle.model || "");
-        vehicleLine = vehicleLine.trim();
-        if (inspection.vehicle.year) vehicleLine += " (" + inspection.vehicle.year + ")";
-      }
-
-      const tagsText = (t) => {
-        const arr = Array.isArray(t?.tags) ? t.tags : [];
-        return arr.join(", ");
-      };
-      const short = (str, n) => {
-        str = String(str || "");
-        return str.length > n ? (str.slice(0, n - 1) + "…") : str;
-      };
-
-      // ---------- Analysis helpers ----------
-      const n = (v) => {
-        const x = Number(v);
-        return Number.isFinite(x) ? x : null;
-      };
-
-      const hasTag = (t, name) =>
-        Array.isArray(t?.tags) && t.tags.some(s => String(s).toLowerCase() === String(name).toLowerCase());
-
-      const tagAdvice = (t) => {
-        const out = [];
-        if (hasTag(t, "Bulge")) out.push({ why: "Sidewall bulge present (risk of blowout).", action: "Replace immediately; do not drive at speed." });
-        if (hasTag(t, "Cord exposed")) out.push({ why: "Cord exposed — tyre is beyond legal/safe use.", action: "Replace immediately." });
-        if (hasTag(t, "Puncture")) out.push({ why: "Puncture noted.", action: "Repair if within the repairable zone and size; otherwise replace." });
-        if (hasTag(t, "Perished") || hasTag(t, "Cracked sidewall")) out.push({ why: "Perishing/cracked rubber (age/UV/ozone).", action: "Replace soon; aged tyres can fail unexpectedly." });
-        if (hasTag(t, "Uneven wear")) out.push({ why: "Uneven tread wear observed.", action: "Check wheel alignment and suspension joints; rotate tyres if pattern allows." });
-        if (hasTag(t, "Bald on inner edge")) out.push({ why: "Inner-edge wear pattern.", action: "Check alignment (camber/toe), bushings and tyre pressures." });
-        if (hasTag(t, "Bald on outer edge")) out.push({ why: "Outer-edge wear pattern.", action: "Check alignment and under-inflation; driving style (cornering) may contribute." });
-        return out;
-      };
-
-      const treadFindings = (t) => {
-        const di = n(t?.treadDepth?.inner), dm = n(t?.treadDepth?.middle), do_ = n(t?.treadDepth?.outer);
-        const vals = [di, dm, do_].filter(v => v != null);
-        if (!vals.length) return { bullets: [], minDepth: null };
-
-        const minDepth = Math.min(...vals);
-        const bullets = [];
-        const TH = 0.8;
-
-        if (di!=null && dm!=null && do_!=null) {
-          if (dm + TH <= di && dm + TH <= do_) {
-            bullets.push({ why: "Centre more worn than edges.", cause: "Likely over-inflation.", action: "Set pressures to spec and re-check regularly." });
-          } else if ( (di + TH <= dm && di + TH <= do_) || (do_ + TH <= dm && do_ + TH <= di) ) {
-            const which = (di + TH <= dm && di + TH <= do_) ? "inner edge" : "outer edge";
-            bullets.push({ why: `More wear on ${which}.`, cause: "Likely alignment (camber/toe) or pressure issue.", action: "Book wheel alignment; check suspension and pressures." });
-          } else if (Math.max(di, dm, do_) - Math.min(di, dm, do_) >= TH) {
-            bullets.push({ why: "Noticeable uneven wear across the tyre.", cause: "Possible alignment/rotation/balance issue.", action: "Inspect alignment and rotation pattern." });
-          }
-        }
-
-        if (minDepth < 3) bullets.push({ why: `Tread at ${minDepth.toFixed(1)}mm.`, cause: "Below safe threshold.", action: "Replace now." });
-        else if (minDepth < 4) bullets.push({ why: `Tread at ${minDepth.toFixed(1)}mm.`, cause: "Approaching limit.", action: "Plan replacement soon." });
-
-        return { bullets, minDepth };
-      };
-
-      const summariseTyre = (pos, t) => {
-        const cond = finalCondition(t);
-        const tFind = treadFindings(t);
-        const tagFinds = tagAdvice(t);
-
-        const reasons = [];
-        const actions = new Set();
-
-        tagFinds.forEach(x => { reasons.push(x.why); actions.add(x.action); });
-        tFind.bullets.forEach(b => { reasons.push([b.why, b.cause].filter(Boolean).join(" — ")); if (b.action) actions.add(b.action); });
-
-        if (!reasons.length && (cond === "fail" || cond === "advisory")) {
-          reasons.push(`Marked as ${cond}.`);
-        }
-
-        let replace = false, plan = false;
-        if (cond === "fail") replace = true;
-        else if (cond === "advisory") plan = true;
-
-        return {
-          pos,
-          cond,
-          minDepth: tFind.minDepth,
-          reasons,
-          actions: Array.from(actions),
-          replace,
-          plan,
-        };
-      };
-
-      const allAnalyses = Object.entries(tyres).map(([pos, t]) => summariseTyre(pos, t));
-
-      const overallHeadline = (() => {
-        const worst = allAnalyses.map(a => a.cond).reduce(worstOf, "—");
-        if (worst === "fail") return "One or more tyres need immediate replacement.";
-        if (worst === "advisory") return "Some tyres require attention soon.";
-        if (worst === "ok") return "All tyres OK at time of inspection.";
-        return "Tyre status not fully specified.";
-      })();
-
-      const needsAttention = allAnalyses.filter(a => a.cond && a.cond !== "ok" && a.cond !== "—");
-    %>
-
-    <!-- ======================= SCREEN LAYOUT ======================= -->
-    <div class="screen-root mx-auto max-w-6xl px-3 sm:px-4 py-4 sm:py-6">
-
-      <!-- Back link -->
-      <div class="mb-3 sm:mb-4">
-        <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
-          Home
-        </a>
-      </div>
-
-      <!-- Top card: title + VRM + small icon buttons -->
-      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3 sm:gap-4">
-            <!-- VRM plate -->
-            <span class="inline-flex items-center rounded-md text-black text-sm sm:text-base font-extrabold tracking-widest px-3 py-1 select-none"
-                  style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
-              <%= inspection.vrm %>
-              <small class="ml-2 text-white font-semibold tracking-normal">UK</small>
-            </span>
-            <div class="min-w-0">
-              <div class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">Tyre Inspection Report</div>
-            </div>
-          </div>
-
-          <!-- Icon-only actions -->
-          <div class="flex items-center gap-1.5">
-            <button type="button" id="copyLink" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50" aria-label="Copy link" title="Copy link">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
-            </button>
-            <button type="button" id="printBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-900 text-white hover:bg-slate-800" aria-label="Print" title="Print">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Vehicle details card (under header) -->
-      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
-        <h2 class="text-sm font-semibold text-slate-900 mb-2">Vehicle details</h2>
-        <div class="text-[13px] sm:text-sm text-slate-700 flex flex-wrap gap-x-4 gap-y-1">
-          <span><span class="font-medium">Code:</span> <span class="font-mono"><%= inspection.code %></span></span>
-          <% if (typeof inspection.mileage === "number") { %>
-            <span><span class="font-medium">Mileage:</span> <%= inspection.mileage %></span>
-          <% } %>
-          <% if (createdAtStr) { %>
-            <span><span class="font-medium">Date:</span> <%= createdAtStr %></span>
-          <% } %>
-          <% if (vehicleLine) { %>
-            <span><span class="font-medium">Vehicle:</span> <%= vehicleLine %></span>
-          <% } %>
-          <% if (inspection.vehicle?.torque) { %>
-            <span><span class="font-medium">Torque:</span> <%= inspection.vehicle.torque %> Nm</span>
-          <% } %>
-          <% if (inspection.notes) { %>
-            <span class="basis-full text-slate-600"><span class="font-medium">Notes:</span> <%= inspection.notes %></span>
-          <% } %>
-        </div>
-      </div>
-
-      <!-- Content grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
-
-        <!-- Diagram + Legend (left column) -->
-        <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
-          <h2 class="text-sm font-semibold text-slate-900 mb-3">Tyre positions</h2>
-          <div class="relative" style="max-width:240px;margin:0 auto;">
-            <svg viewBox="0 0 400 800" class="w-full h-auto">
-              <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
-              <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0"/>
-              <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
-              <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
-            </svg>
-            <% for (const w of wheelPos) {
-                 const node = tyres[w.label] || {};
-                 const cond = finalCondition(node);
-            %>
-              <div
-                class="wheel-print <%= classForWheel(cond) %>"
-                style="--left:<%= w.left %>; --top:<%= w.top %>;"
-                title="<%= w.label %> — <%= cond %>"
-              ><%= w.k %></div>
-            <% } %>
-          </div>
-
-          <!-- Legend under diagram, same card -->
-          <div class="mt-4 border-t pt-3 text-[12px] sm:text-[13px] text-slate-700 flex flex-wrap items-center gap-3 justify-center">
-            <span class="inline-flex items-center gap-2"><span class="swatch sw-ok"></span> <span>OK</span></span>
-            <span class="inline-flex items-center gap-2"><span class="swatch sw-adv"></span> <span>Advisory</span></span>
-            <span class="inline-flex items-center gap-2"><span class="swatch sw-fail"></span> <span>Fail</span></span>
-          </div>
-        </div>
-
-        <!-- Right column: Customer summary + TABLE IN SAME CARD -->
-        <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
-          <h3 class="text-base font-semibold text-slate-900">Customer summary</h3>
-          <p class="mt-1 text-sm text-slate-700"><%= overallHeadline %></p>
-
-          <% if (needsAttention.length) { %>
-            <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <% for (const a of needsAttention) { %>
-                <div class="rounded-xl border border-slate-200 p-3">
-                  <div class="flex items-center justify-between">
-                    <div class="font-medium text-slate-900"><%= a.pos %></div>
-                    <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-                      <%= a.cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
-                          a.cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= a.cond %></span>
-                  </div>
-
-                  <ul class="mt-2 text-sm list-disc pl-5 space-y-1">
-                    <% (a.reasons.length ? a.reasons : ["Issue noted."]).forEach(r => { %>
-                      <li class="text-slate-700"><%= r %></li>
-                    <% }) %>
-                  </ul>
-
-                  <% if (a.actions.length) { %>
-                    <div class="mt-2">
-                      <div class="text-xs font-semibold text-slate-900">Recommended actions</div>
-                      <ul class="mt-1 text-sm list-disc pl-5 space-y-1">
-                        <% a.actions.forEach(act => { %>
-                          <li class="text-slate-700"><%= act %></li>
-                        <% }) %>
-                      </ul>
-                    </div>
-                  <% } %>
-
-                  <% if (typeof a.minDepth === 'number') { %>
-                    <div class="mt-2 text-xs text-slate-600">Minimum measured tread: <%= a.minDepth.toFixed(1) %> mm</div>
-                  <% } %>
-
-                  <% if (a.replace) { %>
-                    <div class="mt-2 text-sm font-medium text-rose-700">⚠ Replace this tyre now.</div>
-                  <% } else if (a.plan) { %>
-                    <div class="mt-2 text-sm font-medium text-amber-700">△ Plan replacement soon.</div>
-                  <% } %>
-                </div>
-              <% } %>
-            </div>
-          <% } else { %>
-            <p class="mt-3 text-sm text-slate-600">No follow-ups needed.</p>
-          <% } %>
-
-          <!-- TABLE CONTAINER (still inside the same card) -->
-          <div class="mt-6 rounded-xl border border-slate-200 overflow-hidden">
-            <!-- Mobile list -->
-            <div class="md:hidden divide-y divide-slate-200">
-              <% for (const [pos, t] of Object.entries(tyres)) { const cond = finalCondition(t); %>
-                <div class="p-4">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="font-semibold text-slate-900"><%= pos %></div>
-                    <span class="text-[11px] capitalize px-2 py-0.5 rounded-full border
-                      <%= cond==='ok'?'bg-emerald-200 text-emerald-800 border-emerald-600':
-                          cond==='advisory'?'bg-amber-200 text-amber-800 border-amber-600':
-                          cond==='fail'?'bg-rose-200 text-rose-800 border-rose-600':'bg-slate-100 text-slate-700 border-slate-300' %>"><%= cond %></span>
-                  </div>
-                  <dl class="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px]">
-                    <dt class="text-slate-500">Size</dt><dd class="text-right text-slate-900"><%= fmt(t.size) %></dd>
-                    <dt class="text-slate-500">Brand</dt><dd class="text-right text-slate-900"><%= fmt(t.brand) %></dd>
-                    <dt class="text-slate-500">Model</dt><dd class="text-right text-slate-900"><%= fmt(t.model) %></dd>
-                    <dt class="text-slate-500">DOT</dt><dd class="text-right text-slate-900"><%= fmt(t.dot) %></dd>
-                    <dt class="text-slate-500">Tread</dt>
-                    <dd class="text-right text-slate-900"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></dd>
-                  </dl>
-                  <% if ((Array.isArray(t?.tags) && t.tags.length) || t?.notes) { %>
-                    <div class="mt-2 space-y-1 text-xs">
-                      <% if (Array.isArray(t?.tags) && t.tags.length) { %>
-                        <div><strong>Tags:</strong> <%= t.tags.join(", ") %></div>
-                      <% } %>
-                      <% if (t?.notes) { %>
-                        <div><strong>Notes:</strong> <%= t.notes %></div>
-                      <% } %>
-                    </div>
-                  <% } %>
-                </div>
-              <% } %>
-            </div>
-
-            <!-- Desktop table -->
-            <div class="hidden md:block">
-              <div class="px-4 sm:px-5 py-3 border-b border-slate-200 bg-slate-50/60">
-                <h3 class="text-sm font-semibold text-slate-900">Tyre details</h3>
-              </div>
-              <div class="table-scroll">
-                <table class="min-w-[860px] w-full text-sm">
-                  <thead class="bg-slate-100 sticky top-0 z-10">
-                    <tr>
-                      <th class="text-left px-4 py-2">Position</th>
-                      <th class="text-left px-4 py-2">Size</th>
-                      <th class="text-left px-4 py-2">Brand</th>
-                      <th class="text-left px-4 py-2">Model</th>
-                      <th class="text-left px-4 py-2">DOT</th>
-                      <th class="text-left px-4 py-2">Tread (In / Mid / Out)</th>
-                      <th class="text-left px-4 py-2">Tags</th>
-                      <th class="text-left px-4 py-2">Condition</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-200">
-                    <% for (const [pos, t] of Object.entries(tyres)) {
-                         const cond = finalCondition(t);
-                         const tagStr = tagsText(t) || "—";
-                         const rowCls = cond==='ok' ? 'row-ok' : cond==='advisory' ? 'row-adv' : cond==='fail' ? 'row-fail' : '';
-                    %>
-                      <tr class="<%= rowCls %>">
-                        <td class="px-4 py-2 font-medium text-slate-900"><%= pos %></td>
-                        <td class="px-4 py-2"><%= fmt(t.size) %></td>
-                        <td class="px-4 py-2"><%= fmt(t.brand) %></td>
-                        <td class="px-4 py-2"><%= fmt(t.model) %></td>
-                        <td class="px-4 py-2"><%= fmt(t.dot) %></td>
-                        <td class="px-4 py-2"><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
-                        <td class="px-4 py-2"><%= tagStr %></td>
-                        <td class="px-4 py-2">
-                          <span class="inline-flex items-center text-xs capitalize px-2 py-0.5 rounded-full border
-                            <%= cond==='ok'?'bg-emerald-200 text-emerald-900 border-emerald-700':
-                                cond==='advisory'?'bg-amber-200 text-amber-900 border-amber-700':
-                                cond==='fail'?'bg-rose-200 text-rose-900 border-rose-700':'bg-slate-100 text-slate-800 border-slate-400' %>"><%= cond %></span>
-                        </td>
-                      </tr>
-                    <% } %>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div> <!-- /table container -->
-
-        </div> <!-- /right column combined card -->
-      </div> <!-- /content grid -->
+    <div class="mb-3 sm:mb-4">
+      <a href="/" class="inline-flex items-center gap-2 text-slate-600 hover:text-slate-800">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
+        Home
+      </a>
     </div>
 
-    <!-- ======================= PRINT-ONLY ONE-PAGE SHEET ======================= -->
-    <div class="print-only print-sheet">
-      <!-- Header -->
-      <div class="mb-2">
-        <div class="print-title">Tyre Inspection Report</div>
-        <div class="print-muted" style="margin-top: 2px;">
-          <strong>VRM:</strong> <%= inspection.vrm %>
-          &nbsp;|&nbsp; <strong>Code:</strong> <%= inspection.code %>
-          <% if (typeof inspection.mileage === "number") { %>
-            &nbsp;|&nbsp; <strong>Mileage:</strong> <%= inspection.mileage %>
-          <% } %>
-          <% if (createdAtStr) { %>
-            &nbsp;|&nbsp; <strong>Date:</strong> <%= createdAtStr %>
-          <% } %>
-        </div>
-        <% if (vehicleLine || inspection.vehicle?.torque) { %>
-          <div class="print-muted" style="margin-top: 2px;">
-            <% if (vehicleLine) { %><strong>Vehicle:</strong> <%= vehicleLine %><% } %>
-            <% if (inspection.vehicle?.torque) { %> &nbsp;|&nbsp; <strong>Torque:</strong> <%= inspection.vehicle.torque %> Nm <% } %>
+    <!-- Header -->
+    <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 mb-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3 sm:gap-4">
+          <span class="inline-flex items-center rounded-md text-black text-sm sm:text-base font-extrabold tracking-widest px-3 py-1 select-none"
+                style="background:linear-gradient(90deg,#ffeb3b 0 74%, #1e88e5 74% 100%);">
+            <%= inspection.vrm %><small class="ml-2 text-white font-semibold tracking-normal">UK</small>
+          </span>
+          <div class="min-w-0">
+            <div class="text-lg sm:text-xl font-semibold text-slate-900 leading-tight">Tyre Inspection Report</div>
           </div>
-        <% } %>
-      </div>
-
-      <!-- Tiny car diagram (centered, small) -->
-      <div style="display:flex; justify-content:center; margin: 4px 0 6px;">
-        <div class="print-diagram" style="position:relative; width:130px;">
-          <svg viewBox="0 0 400 800" style="width:100%;height:auto;">
-            <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
-            <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0"/>
-            <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
-            <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
-          </svg>
-          <% for (const w of wheelPos) {
-               const node = tyres[w.label] || {};
-               const cond = finalCondition(node);
-          %>
-            <div class="wheel-dot <%= classForWheel(cond) %>" style="--left:<%= w.left %>; --top:<%= w.top %>;"><%= w.k %></div>
-          <% } %>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="copyLink" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50" title="Copy link" aria-label="Copy link">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
+          </button>
+          <button type="button" id="printBtn" class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 text-white hover:bg-slate-800" title="Print" aria-label="Print">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+          </button>
         </div>
       </div>
-
-      <!-- Compact legend (grayscale-friendly via text) -->
-      <div class="print-muted" style="margin-bottom: 6px;">
-        <strong>Legend:</strong> OK / Advisory / Fail
-      </div>
-
-      <!-- Print: concise recommendations -->
-      <div class="print-muted" style="margin-bottom: 6px;">
-        <strong>Summary:</strong> <%= overallHeadline %>
-      </div>
-
-      <div style="margin: 4px 0 6px;">
-        <% for (const a of needsAttention) { %>
-          <div style="margin-bottom:4px;">
-            <strong><%= a.pos %>:</strong>
-            <span style="text-transform:capitalize;"><%= a.cond %></span>
-            <% if (typeof a.minDepth === 'number') { %> — Min tread <%= a.minDepth.toFixed(1) %>mm<% } %>
-            <% if (a.replace) { %> — Replace now<% } else if (a.plan) { %> — Plan soon<% } %>.
-            <% if (a.reasons.length) { %> <em><%= a.reasons[0] %></em><% } %>
-          </div>
-        <% } %>
-      </div>
-
-      <!-- One compact table (fixed widths, tight padding) -->
-      <table class="print-table">
-        <colgroup>
-          <col class="col-pos" />
-          <col class="col-size" />
-          <col class="col-brand" />
-          <col class="col-model" />
-          <col class="col-dot" />
-          <col class="col-tread" />
-          <col class="col-tags" />
-          <col class="col-cond" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th>Position</th>
-            <th>Size</th>
-            <th>Brand</th>
-            <th>Model</th>
-            <th>DOT</th>
-            <th>Tread (I/M/O)</th>
-            <th>Tags</th>
-            <th>Cond.</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% for (const [pos, t] of Object.entries(tyres)) {
-               const cond = finalCondition(t);
-               const tagStr = short(tagsText(t), 40) || "—";
-          %>
-            <tr>
-              <td><%= pos %></td>
-              <td><%= fmt(t.size) %></td>
-              <td><%= fmt(t.brand) %></td>
-              <td><%= fmt(t.model) %></td>
-              <td><%= fmt(t.dot) %></td>
-              <td><%= fmt(t?.treadDepth?.inner) %> / <%= fmt(t?.treadDepth?.middle) %> / <%= fmt(t?.treadDepth?.outer) %></td>
-              <td><%= tagStr %></td>
-              <td style="text-transform: capitalize;"><%= cond %></td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
     </div>
 
-<script src="/js/show-inspection.js"></script>
-  </body>
+    <%- include("../partials/inspections/vehicleCard") %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
+      <div class="rounded-2xl bg-white border border-slate-200 shadow-soft p-4 order-2 lg:order-1">
+           <%- include("../partials/inspections/wheelDiagram") %>
+      </div>
+
+      <div class="lg:col-span-2 rounded-2xl bg-white border border-slate-200 shadow-soft p-4 sm:p-5 order-1 lg:order-2">
+           <%- include("../partials/inspections/customerSummary") %>
+              <%- include("../partials/inspections/tyreTable") %>
+      </div>
+    </div>
+  </div>
+
+   <%- include("../partials/inspections/printSheet") %>
+
+  <script src="/js/show-inspection.js"></script>
+</body>
 </html>

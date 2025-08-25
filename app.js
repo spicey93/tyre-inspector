@@ -11,6 +11,7 @@ import User from "./models/user.model.js";
 import { dashboard } from "./controllers/dashboard.controller.js";
 import requireAuth from "./middleware/requireAuth.js";
 import requireAdmin from "./middleware/requireAdmin.js";
+import * as vmHelpers from "./utils/inspectionViewModel.js";
 
 const app = express();
 const isProd = process.env.NODE_ENV === "production";
@@ -79,6 +80,7 @@ app.use(async (req, _res, next) => {
 });
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
+  res.locals.fmt = vmHelpers.fmt;
   next();
 });
 
