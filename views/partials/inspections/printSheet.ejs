@@ -2,61 +2,80 @@
   <!-- Header -->
   <div class="mb-2">
     <div class="print-title">Tyre Inspection Report</div>
-    <div class="print-muted" style="margin-top: 2px;">
-      <strong>VRM:</strong> <%= inspection.vrm %>
-      &nbsp;|&nbsp; <strong>Code:</strong> <%= inspection.code %>
-      <% if (typeof inspection.mileage === "number") { %>
-        &nbsp;|&nbsp; <strong>Mileage:</strong> <%= inspection.mileage %>
-      <% } %>
-      <% if (createdAtStr) { %>
-        &nbsp;|&nbsp; <strong>Date:</strong> <%= createdAtStr %>
-      <% } %>
+    <div class="print-muted" style="margin-top: 2px">
+      <strong>VRM:</strong> <%= inspection.vrm %> &nbsp;|&nbsp;
+      <strong>Code:</strong> <%= inspection.code %> <% if (typeof
+      inspection.mileage === "number") { %> &nbsp;|&nbsp;
+      <strong>Mileage:</strong> <%= inspection.mileage %> <% } %> <% if
+      (createdAtStr) { %> &nbsp;|&nbsp; <strong>Date:</strong> <%= createdAtStr
+      %> <% } %>
     </div>
     <% if (vehicleLine || inspection.vehicle?.torque) { %>
-      <div class="print-muted" style="margin-top: 2px;">
-        <% if (vehicleLine) { %><strong>Vehicle:</strong> <%= vehicleLine %><% } %>
-        <% if (inspection.vehicle?.torque) { %> &nbsp;|&nbsp; <strong>Torque:</strong> <%= inspection.vehicle.torque %> Nm <% } %>
-      </div>
+    <div class="print-muted" style="margin-top: 2px">
+      <% if (vehicleLine) { %><strong>Vehicle:</strong> <%= vehicleLine %><% }
+      %> <% if (inspection.vehicle?.torque) { %> &nbsp;|&nbsp;
+      <strong>Torque:</strong> <%= inspection.vehicle.torque %> Nm <% } %>
+    </div>
     <% } %>
   </div>
 
   <!-- Tiny car diagram -->
-  <div style="display:flex; justify-content:center; margin: 4px 0 6px;">
-    <div class="print-diagram" style="position:relative; width:130px;">
-      <svg viewBox="0 0 400 800" style="width:100%;height:auto;">
-        <rect x="60" y="60" width="280" height="680" rx="40" fill="#f1f5f9" stroke="#cbd5e1"/>
-        <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0"/>
-        <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0"/>
-        <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb"/>
+  <div style="display: flex; justify-content: center; margin: 4px 0 6px">
+    <div class="print-diagram" style="position: relative; width: 130px">
+      <svg viewBox="0 0 400 800" style="width: 100%; height: auto">
+        <rect
+          x="60"
+          y="60"
+          width="280"
+          height="680"
+          rx="40"
+          fill="#f1f5f9"
+          stroke="#cbd5e1"
+        />
+        <rect x="80" y="80" width="240" height="120" rx="20" fill="#e2e8f0" />
+        <rect x="80" y="600" width="240" height="120" rx="20" fill="#e2e8f0" />
+        <rect x="90" y="240" width="220" height="280" rx="16" fill="#e5e7eb" />
       </svg>
-      <% for (const w of wheelPos) {
-           const a = analyses.find(x => x.pos === w.label);
-      %>
-        <div class="wheel-dot <%= classForWheel(a?.cond) %>" style="--left:<%= w.left %>; --top:<%= w.top %>;"><%= w.k %></div>
+      <% for (const w of wheelPos) { const a = analyses.find(x => x.pos ===
+      w.label); %>
+      <div
+        class="wheel-dot <%= classForWheel(a?.cond) %>"
+        style="--left: <%= w.left %>; --top: <%= w.top %>"
+      >
+        <%= w.k %>
+      </div>
       <% } %>
     </div>
   </div>
 
   <!-- Legend -->
-  <div class="print-muted" style="margin-bottom: 6px;">
+  <div class="print-muted" style="margin-bottom: 6px">
     <strong>Legend:</strong> OK / Advisory / Fail
   </div>
 
   <!-- Summary -->
-  <div class="print-muted" style="margin-bottom: 6px;">
+  <div class="print-muted" style="margin-bottom: 6px">
     <strong>Summary:</strong> <%= overallHeadline %>
   </div>
 
+  <% if (inspection && inspection.notes) { %>
+  <div class="print-muted" style="margin-bottom: 6px">
+    <strong>Notes:</strong> <%= inspection.notes %>
+  </div>
+  <% } %>
+
   <!-- Concise recommendations -->
-  <div style="margin: 4px 0 6px;">
-    <% for (const a of analyses.filter(x => x.cond !== 'ok' && x.cond !== '—')) { %>
-      <div style="margin-bottom:4px;">
-        <strong><%= a.pos %>:</strong>
-        <span style="text-transform:capitalize;"><%= a.cond %></span>
-        <% if (typeof a.minDepth === 'number') { %> — Min tread <%= a.minDepth.toFixed(1) %>mm<% } %>
-        <% if (a.replace) { %> — Replace now<% } else if (a.plan) { %> — Plan soon<% } %>.
-        <% if (a.reasons.length) { %> <em><%= a.reasons[0] %></em><% } %>
-      </div>
+  <div style="margin: 4px 0 6px">
+    <% for (const a of analyses.filter(x => x.cond !== 'ok' && x.cond !== '—'))
+    { %>
+    <div style="margin-bottom: 4px">
+      <strong><%= a.pos %>:</strong>
+      <span style="text-transform: capitalize"><%= a.cond %></span>
+      <% if (typeof a.minDepth === 'number') { %> — Min tread <%=
+      a.minDepth.toFixed(1) %>mm<% } %> <% if (a.replace) { %> — Replace now<% }
+      else if (a.plan) { %> — Plan soon<% } %>. <% if (a.reasons.length) { %>
+      <em><%= a.reasons[0] %></em><% } %>
+    </div>
     <% } %>
   </div>
 
@@ -86,16 +105,19 @@
     </thead>
     <tbody>
       <% for (const row of tyresList) { %>
-        <tr>
-          <td><%= row.pos %></td>
-          <td><%= fmt(row.t.size) %></td>
-          <td><%= fmt(row.t.brand) %></td>
-          <td><%= fmt(row.t.model) %></td>
-          <td><%= fmt(row.t.dot) %></td>
-          <td><%= row.treadStr %></td>
-          <td><%= row.tagStr.length ? row.tagStr.slice(0,40) + (row.tagStr.length>40?'…':'') : '—' %></td>
-          <td style="text-transform: capitalize;"><%= row.cond %></td>
-        </tr>
+      <tr>
+        <td><%= row.pos %></td>
+        <td><%= fmt(row.t.size) %></td>
+        <td><%= fmt(row.t.brand) %></td>
+        <td><%= fmt(row.t.model) %></td>
+        <td><%= fmt(row.t.dot) %></td>
+        <td><%= row.treadStr %></td>
+        <td>
+          <%= row.tagStr.length ? row.tagStr.slice(0,40) +
+          (row.tagStr.length>40?'…':'') : '—' %>
+        </td>
+        <td style="text-transform: capitalize"><%= row.cond %></td>
+      </tr>
       <% } %>
     </tbody>
   </table>
